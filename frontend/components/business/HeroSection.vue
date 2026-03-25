@@ -12,7 +12,7 @@
           ✨ 欢迎来到 fatwill
         </div>
         <h1 class="mb-6 text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
-          技术探索
+          fatwill最棒
           <br />
           <span class="text-primary-200">无限可能</span>
         </h1>
