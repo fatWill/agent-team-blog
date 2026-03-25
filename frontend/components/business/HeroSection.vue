@@ -9,7 +9,7 @@
     <div class="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
       <div class="max-w-2xl">
         <div class="mb-4 inline-flex items-center rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white/90 backdrop-blur-sm">
-          ✨ 欢迎来到 Agent Team Blog
+          ✨ 欢迎来到 fatwill
         </div>
         <h1 class="mb-6 text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
           技术探索

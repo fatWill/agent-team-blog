@@ -8,7 +8,7 @@
             <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-500 text-white font-bold text-lg">
               A
             </div>
-            <span class="text-lg font-bold text-gray-900">Agent Team Blog</span>
+            <span class="text-lg font-bold text-gray-900">fatwill</span>
           </div>
           <p class="text-sm text-gray-500 leading-relaxed">
             一个现代化的技术博客平台，<br />分享前沿技术与深度思考。
@@ -52,7 +52,7 @@
       <!-- 底部版权 -->
       <div class="mt-10 border-t border-gray-100 pt-6">
         <p class="text-center text-xs text-gray-400">
-          © {{ new Date().getFullYear() }} Agent Team Blog. All rights reserved.
+          © {{ new Date().getFullYear() }} fatwill. All rights reserved.
         </p>
       </div>
     </div>

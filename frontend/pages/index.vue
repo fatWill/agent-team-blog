@@ -81,7 +81,7 @@ function handleCategorySelect(slug: string) {
 }
 
 useHead({
-  title: 'Agent Team Blog - 技术探索，无限可能',
+  title: 'fatwill - 技术探索，无限可能',
   meta: [
     { name: 'description', content: '一个现代化的技术博客平台，分享前沿技术趋势、深度实践经验与独到的工程思考。' },
   ],

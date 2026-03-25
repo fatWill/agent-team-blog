@@ -6,7 +6,7 @@
         <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-500 text-white font-bold text-lg transition-transform duration-200 group-hover:scale-105">
           A
         </div>
-        <span class="text-lg font-bold text-gray-900 hidden sm:block">Agent Team Blog</span>
+        <span class="text-lg font-bold text-gray-900 hidden sm:block">fatwill</span>
       </NuxtLink>
 
       <!-- 桌面端导航 -->
