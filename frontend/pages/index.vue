@@ -1,45 +1,121 @@
 <template>
   <div class="min-h-screen">
-    <!-- 顶部导航栏 -->
-    <header class="sticky top-0 z-50 border-b border-gray-200/60 bg-white/80 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80">
-      <div class="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
-        <NuxtLink to="/" class="text-lg font-bold text-gray-900 dark:text-gray-100">
-          fatwillzeng
-        </NuxtLink>
-        <div class="flex items-center gap-2">
-          <!-- GitHub -->
-          <a
-            href="https://github.com/fatwillzeng"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-            aria-label="GitHub"
-          >
-            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-            </svg>
-          </a>
-          <!-- 主题切换 -->
-          <button
-            class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-            aria-label="切换主题"
-            @click="toggleTheme"
-          >
-            <!-- 太阳图标（dark 模式下显示，点击切换为 light） -->
-            <svg v-if="isDark" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <!-- 月亮图标（light 模式下显示，点击切换为 dark） -->
-            <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          </button>
-        </div>
+    <!-- 移动端顶部导航栏（仅 < md 显示） -->
+    <header class="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-gray-200/60 bg-white/80 px-4 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80 md:hidden">
+      <!-- 汉堡菜单按钮 -->
+      <button
+        class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+        aria-label="打开菜单"
+        @click="drawerOpen = true"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <!-- 右侧：GitHub + 主题切换 -->
+      <div class="flex items-center gap-1">
+        <a
+          href="https://github.com/fatwillzeng"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          aria-label="GitHub"
+        >
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </a>
+        <button
+          class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          aria-label="切换主题"
+          @click="toggleTheme"
+        >
+          <svg v-if="isDark" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
       </div>
     </header>
 
+    <!-- 移动端侧滑抽屉 -->
+    <Teleport to="body">
+      <!-- 遮罩层 -->
+      <Transition name="drawer-overlay">
+        <div
+          v-if="drawerOpen"
+          class="fixed inset-0 z-[60] bg-black/40 md:hidden"
+          @click="drawerOpen = false"
+        />
+      </Transition>
+      <!-- 抽屉面板 -->
+      <Transition name="drawer-slide">
+        <div
+          v-if="drawerOpen"
+          class="fixed inset-y-0 left-0 z-[70] w-[280px] overflow-y-auto bg-white shadow-xl dark:bg-gray-900 md:hidden"
+        >
+          <!-- 抽屉头部 -->
+          <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+            <span class="text-lg font-bold text-gray-900 dark:text-gray-100">导航</span>
+            <button
+              class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              aria-label="关闭菜单"
+              @click="drawerOpen = false"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <!-- 导航列表 -->
+          <nav class="px-3 py-4">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+              :class="activeTab === tab.key
+                ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400'
+                : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800'"
+              @click="selectTab(tab.key)"
+            >
+              {{ tab.label }}
+            </button>
+          </nav>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- PC端右上角固定按钮组（仅 >= md 显示） -->
+    <div class="fixed right-6 top-6 z-50 hidden items-center gap-1 md:flex">
+      <a
+        href="https://github.com/fatwillzeng"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+        aria-label="GitHub"
+      >
+        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+      </a>
+      <button
+        class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+        aria-label="切换主题"
+        @click="toggleTheme"
+      >
+        <svg v-if="isDark" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+      </button>
+    </div>
+
     <!-- 个人信息区域 -->
-    <section class="mx-auto max-w-3xl px-4 pt-10 pb-6">
+    <section class="mx-auto max-w-3xl px-4 pt-8 pb-6 md:pt-10">
       <div class="flex items-center gap-5">
         <img
           src="/avatar.png"
@@ -55,8 +131,8 @@
       </div>
     </section>
 
-    <!-- Tab 导航 -->
-    <nav class="sticky top-14 z-40 border-b border-gray-200/60 bg-white/80 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80">
+    <!-- PC端 Tab 导航（仅 >= md 显示） -->
+    <nav class="sticky top-0 z-40 hidden border-b border-gray-200/60 bg-white/80 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80 md:block">
       <div class="mx-auto flex max-w-3xl gap-0 px-4">
         <button
           v-for="tab in tabs"
@@ -68,7 +144,6 @@
           @click="activeTab = tab.key"
         >
           {{ tab.label }}
-          <!-- 激活指示条 -->
           <span
             v-if="activeTab === tab.key"
             class="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary-500"
@@ -76,6 +151,11 @@
         </button>
       </div>
     </nav>
+
+    <!-- 移动端当前 Tab 指示（仅 < md 显示） -->
+    <div class="border-b border-gray-200/60 px-4 py-2 dark:border-gray-700/60 md:hidden">
+      <span class="text-xs font-medium text-primary-500">{{ currentTabLabel }}</span>
+    </div>
 
     <!-- 内容区域 -->
     <main class="mx-auto max-w-3xl px-4 py-8">
@@ -182,7 +262,7 @@
 
     <!-- 页脚 -->
     <footer class="border-t border-gray-200/60 py-8 text-center text-sm text-gray-400 transition-colors dark:border-gray-700/60 dark:text-gray-500">
-      <p>© {{ new Date().getFullYear() }} fatwillzeng. All rights reserved.</p>
+      <p>&copy; {{ new Date().getFullYear() }} fatwillzeng. All rights reserved.</p>
     </footer>
   </div>
 </template>
@@ -193,6 +273,9 @@ import { apiFetchArticles } from '~/utils/api'
 
 const { isDark, toggleTheme } = useTheme()
 
+// 移动端抽屉状态
+const drawerOpen = ref(false)
+
 // Tab 导航
 const tabs: TabItem[] = [
   { key: 'articles', label: '文章' },
@@ -202,6 +285,16 @@ const tabs: TabItem[] = [
   { key: 'changelog', label: '更新日志' },
 ]
 const activeTab = ref('articles')
+
+const currentTabLabel = computed(() => {
+  return tabs.find(t => t.key === activeTab.value)?.label ?? ''
+})
+
+/** 抽屉内 Tab 点击：切换 Tab 并关闭抽屉 */
+function selectTab(key: string) {
+  activeTab.value = key
+  drawerOpen.value = false
+}
 
 // 文章数据
 const articles = ref<ArticleListItem[]>([])
@@ -259,3 +352,22 @@ useHead({
   ],
 })
 </script>
+
+<style scoped>
+.drawer-overlay-enter-active,
+.drawer-overlay-leave-active {
+  transition: opacity 0.3s ease;
+}
+.drawer-overlay-enter-from,
+.drawer-overlay-leave-to {
+  opacity: 0;
+}
+.drawer-slide-enter-active,
+.drawer-slide-leave-active {
+  transition: transform 0.3s ease;
+}
+.drawer-slide-enter-from,
+.drawer-slide-leave-to {
+  transform: translateX(-100%);
+}
+</style>

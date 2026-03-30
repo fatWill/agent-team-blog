@@ -22,6 +22,28 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
+  /* 抽屉遮罩过渡 */
+  .drawer-overlay-enter-active,
+  .drawer-overlay-leave-active {
+    transition: opacity 0.3s ease;
+  }
+
+  .drawer-overlay-enter-from,
+  .drawer-overlay-leave-to {
+    opacity: 0;
+  }
+
+  /* 抽屉面板过渡 */
+  .drawer-panel-enter-active,
+  .drawer-panel-leave-active {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .drawer-panel-enter-from,
+  .drawer-panel-leave-to {
+    transform: translateX(-100%);
+  }
 }
 
 @layer components {
