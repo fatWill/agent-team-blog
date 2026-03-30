@@ -11,11 +11,14 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'fatwill',
+      title: 'fatwillzeng - 个人博客',
+      htmlAttrs: {
+        lang: 'zh-CN',
+      },
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: '一个现代化的技术博客平台，分享前沿技术与思考' },
+        { name: 'description', content: '全栈开发者 fatwillzeng 的个人博客，分享技术与生活。' },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
