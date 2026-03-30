@@ -1,55 +1,48 @@
-/** 文章信息 */
-export interface Article {
-  id: number
-  title: string
-  summary: string
-  content: string
-  coverImage: string
-  category: Category
-  tags: Tag[]
-  author: Author
-  createdAt: string
-  updatedAt: string
-  readingTime: number
-  viewCount: number
-  likeCount: number
-}
-
-/** 文章分类 */
-export interface Category {
-  id: number
-  name: string
-  slug: string
-  articleCount?: number
-}
-
-/** 文章标签 */
-export interface Tag {
-  id: number
-  name: string
-  slug: string
-}
-
-/** 作者信息 */
-export interface Author {
-  id: number
-  name: string
-  avatar: string
-  bio: string
-}
-
-/** 分页响应 */
-export interface PaginatedResponse<T> {
-  data: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
-
-/** 导航菜单项 */
+/** 导航项 */
 export interface NavItem {
   label: string
   to: string
-  icon?: string
+}
+
+/** 文章列表项（不含 content） */
+export interface ArticleListItem {
+  id: string
+  title: string
+  summary: string
+  createdAt: string
+  updatedAt: string
+}
+
+/** 文章详情（含 Tiptap content） */
+export interface ArticleDetail extends ArticleListItem {
+  content: Record<string, unknown>
+}
+
+/** 文章列表接口响应 */
+export interface ArticleListResponse {
+  list: ArticleListItem[]
+}
+
+/** 创建文章请求体 */
+export interface CreateArticleRequest {
+  title: string
+  summary?: string
+  content: Record<string, unknown>
+}
+
+/** 登录请求体 */
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
+/** 登录响应 */
+export interface LoginResponse {
+  token: string
+}
+
+/** Tab 项 */
+export interface TabItem {
+  key: string
+  label: string
 }

@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 export default <Config>{
+  darkMode: 'class',
   content: [
     './components/**/*.{vue,ts}',
     './layouts/**/*.vue',
@@ -8,6 +9,7 @@ export default <Config>{
     './composables/**/*.ts',
     './plugins/**/*.ts',
     './app.vue',
+    './src/**/*.{vue,ts}',
   ],
   theme: {
     extend: {
@@ -49,13 +51,6 @@ export default <Config>{
           'sans-serif',
         ],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
-      },
-      typography: {
-        DEFAULT: {
-          css: {
-            maxWidth: '100%',
-          },
-        },
       },
     },
   },
