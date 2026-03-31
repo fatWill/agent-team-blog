@@ -45,3 +45,23 @@ export async function apiUpdateArticle(id: string, data: UpdateArticleRequest): 
   })
   return res
 }
+
+/** 删除文章 */
+export async function apiDeleteArticle(id: string): Promise<{ ok: boolean }> {
+  const res = await $fetch<{ ok: boolean }>(`/api/articles/${id}`, {
+    method: 'DELETE',
+  })
+  return res
+}
+
+/** 获取文章列表（支持 title 关键词筛选） */
+export async function apiGetArticles(params?: { title?: string }): Promise<ArticleListResponse> {
+  const query: Record<string, string> = {}
+  if (params?.title) {
+    query.title = params.title
+  }
+  const res = await $fetch<ArticleListResponse>('/api/articles', {
+    params: query,
+  })
+  return res
+}

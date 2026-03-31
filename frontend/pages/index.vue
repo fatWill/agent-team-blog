@@ -204,17 +204,26 @@
             v-for="article in articles"
             :key="article.id"
             :to="`/articles/${article.id}`"
-            class="block rounded-xl border border-gray-100 bg-white p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+            class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
           >
-            <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {{ article.title }}
-            </h2>
-            <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">
-              {{ article.summary }}
-            </p>
-            <time class="text-xs text-gray-400 dark:text-gray-500">
-              {{ formatDate(article.createdAt) }}
-            </time>
+            <!-- 封面图 -->
+            <img
+              v-if="article.coverImage"
+              :src="article.coverImage"
+              :alt="article.title"
+              class="h-40 w-full object-cover"
+            />
+            <div class="p-5">
+              <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {{ article.title }}
+              </h2>
+              <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">
+                {{ article.summary }}
+              </p>
+              <time class="text-xs text-gray-400 dark:text-gray-500">
+                {{ formatDate(article.createdAt) }}
+              </time>
+            </div>
           </NuxtLink>
         </div>
 
