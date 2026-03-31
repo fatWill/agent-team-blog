@@ -1,10 +1,12 @@
 import type { H3Event } from 'h3'
-import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise'
 import { getCookie, setCookie } from 'h3'
-import { getPool } from './db'
+import { getRedis } from './redis'
 
-/** Token 有效期：72 小时（毫秒） */
-const TOKEN_TTL = 72 * 60 * 60 * 1000
+/** Token 有效期：72 小时（秒） */
+const TOKEN_TTL_SECONDS = 72 * 60 * 60
+
+/** Redis Key 前缀 */
+const TOKEN_KEY_PREFIX = 'auth_token:'
 
 /**
  * 生成随机 Token 字符串
@@ -19,25 +21,12 @@ export function generateToken(): string {
 }
 
 /**
- * 保存 Token 到 MySQL
- * 先删除该用户的旧 Token，再插入新 Token
- * 同时清理全局过期 Token，防止表无限增长
+ * 保存 Token 到 Redis
+ * 使用 SET EX 命令，自动带 72 小时过期
  */
 export async function saveToken(token: string, username: string): Promise<void> {
-  const pool = getPool()
-  const now = Date.now()
-
-  // 删除该用户的旧 Token + 清理全局过期 Token
-  await pool.query<ResultSetHeader>(
-    'DELETE FROM auth_tokens WHERE username = ? OR last_active_at < ?',
-    [username, now - TOKEN_TTL],
-  )
-
-  // 插入新 Token
-  await pool.query<ResultSetHeader>(
-    'INSERT INTO auth_tokens (token, username, last_active_at) VALUES (?, ?, ?)',
-    [token, username, now],
-  )
+  const redis = getRedis()
+  await redis.set(`${TOKEN_KEY_PREFIX}${token}`, username, 'EX', TOKEN_TTL_SECONDS)
 }
 
 /**
@@ -45,40 +34,15 @@ export async function saveToken(token: string, username: string): Promise<void> 
  * 返回用户名或 null
  */
 export async function verifyToken(token: string): Promise<string | null> {
-  const pool = getPool()
-  const now = Date.now()
+  const redis = getRedis()
+  const username = await redis.get(`${TOKEN_KEY_PREFIX}${token}`)
 
-  interface TokenRow extends RowDataPacket {
-    username: string
-    last_active_at: number
-  }
+  if (!username) return null
 
-  const [rows] = await pool.query<TokenRow[]>(
-    'SELECT username, last_active_at FROM auth_tokens WHERE token = ?',
-    [token],
-  )
+  // 滚动续期：每次验证通过重置 TTL
+  await redis.expire(`${TOKEN_KEY_PREFIX}${token}`, TOKEN_TTL_SECONDS)
 
-  if (rows.length === 0) return null
-
-  const entry = rows[0]
-
-  // 检查是否过期
-  if (now - Number(entry.last_active_at) > TOKEN_TTL) {
-    // 过期则删除
-    await pool.query<ResultSetHeader>(
-      'DELETE FROM auth_tokens WHERE token = ?',
-      [token],
-    )
-    return null
-  }
-
-  // 滚动续期：刷新最后活跃时间
-  await pool.query<ResultSetHeader>(
-    'UPDATE auth_tokens SET last_active_at = ? WHERE token = ?',
-    [now, token],
-  )
-
-  return entry.username
+  return username
 }
 
 /**
@@ -106,7 +70,7 @@ export async function requireAuth(event: H3Event): Promise<string> {
   // 续期 cookie（滚动 72 小时）
   setCookie(event, 'auth_token', token, {
     httpOnly: true,
-    maxAge: 72 * 60 * 60,
+    maxAge: TOKEN_TTL_SECONDS,
     path: '/',
     sameSite: 'lax',
   })
