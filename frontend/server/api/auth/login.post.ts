@@ -24,9 +24,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 生成 Token 并存储
+  // 生成 Token 并持久化到 MySQL
   const token = generateToken()
-  saveToken(token, body.username)
+  await saveToken(token, body.username)
 
   // 将 Token 写入 httpOnly cookie
   setCookie(event, 'auth_token', token, {

@@ -30,12 +30,13 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 模块 | 路径 | 说明 |
 |------|------|------|
 | 主题切换 | `composables/useTheme.ts` | Dark/Light 主题切换，持久化 localStorage |
-| API 服务 | `utils/api.ts` | 封装登录、文章 CRUD 接口 |
+| API 服务 | `utils/api.ts` | 封装登录、文章 CRUD、图片上传、个人资料接口 |
 | 认证 Store | `stores/auth.ts` | Pinia 认证状态管理 |
-| 类型定义 | `types/index.ts` | 全局 TS 类型：文章、登录、Tab 等 |
+| 类型定义 | `types/index.ts` | 全局 TS 类型：文章、登录、Tab、Profile 等 |
 | 数据库连接 | `server/utils/db.ts` | MySQL 连接池（mysql2，进程级单例） |
 | 文章 DAO | `server/utils/articles.ts` | 文章 CRUD 操作（MySQL） |
 | 更新日志 DAO | `server/utils/changelog.ts` | 更新日志查询（MySQL） |
+| 个人资料 DAO | `server/utils/profile.ts` | 博主资料读写（MySQL profile 表） |
 
 ## 页面路由映射
 
@@ -57,6 +58,9 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 更新文章 | PUT | `/api/articles/:id` | 需鉴权，部分更新，支持 coverImage |
 | 删除文章 | DELETE | `/api/articles/:id` | 需鉴权，物理删除 |
 | 更新日志 | GET | `/api/changelog` | 返回所有版本更新日志，数据源 MySQL changelogs 表 |
+| 图片上传 | POST | `/api/upload` | 需鉴权，multipart/form-data，支持 jpg/png/gif/webp，最大 5MB |
+| 获取资料 | GET | `/api/profile` | 公开接口，返回博主头像和简介 |
+| 更新资料 | PUT | `/api/profile` | 需鉴权，更新博主头像和简介 |
 
 ## 版本号规范（用户明确要求）
 
@@ -87,6 +91,8 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 |------|------|------|------|
 | `articles` | 文章表 | `id` (varchar(36) UUID) | `idx_created_at` |
 | `changelogs` | 更新日志表 | `id` (bigint auto_increment) | `uk_version`, `idx_date` |
+| `auth_tokens` | 登录 token 表 | `token` (varchar(64)) | `idx_username` |
+| `profile` | 博主个人资料表 | `id` (int, 固定为1) | — |
 
 ## 环境配置
 
@@ -98,6 +104,8 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-03-31: 新增图片上传接口（POST /api/upload）和个人资料接口（GET/PUT /api/profile）；新建 profile 表和 profile DAO；uploads 目录静态伺服
+- 2026-03-31: Token 持久化到 MySQL auth_tokens 表，重启/部署不再丢失登录态
 - 2026-03-31: articles 表新增 cover_image 字段；文章接口全面支持 coverImage；新增 title 关键词筛选；新增 DELETE /api/articles/:id 删除接口
 - 2026-03-31: 将文章和更新日志数据从 JSON 文件迁移到 MySQL 8.0；新增 mysql2 驱动、连接池工具（server/utils/db.ts）、articles/changelog DAO 层；改写全部 API 路由；新增 .env 环境配置
 - 2026-03-31: Admin 入口图标 + Nuxt middleware 鉴权前置 + cookie 72h 滚动续期；新增 /api/auth/check、auth middleware、login redirect

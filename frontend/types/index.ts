@@ -70,3 +70,9 @@ export interface ChangelogItem {
 export interface ChangelogResponse {
   changelog: ChangelogItem[]
 }
+
+/** 博主个人资料 */
+export interface Profile {
+  avatar: string
+  bio: string
+}

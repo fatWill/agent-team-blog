@@ -4,7 +4,7 @@ import { updateArticle } from '~/server/utils/articles'
 
 export default defineEventHandler(async (event) => {
   // 鉴权校验
-  requireAuth(event)
+  await requireAuth(event)
 
   const id = getRouterParam(event, 'id')
 
