@@ -119,6 +119,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-01: 文章列表和相册照片列表添加虚拟滚动（vue-virtual-scroller DynamicScroller），大幅精简 DOM 节点提升滚动性能
 - 2026-03-31: 图片上传支持进度条和分片上传（>2MB 自动分片）；移除前端 5MB 大小限制；新增 chunkedUpload 工具函数
 - 2026-03-31: 新增相册功能（albums/photos 表）；完整 CRUD API（7个接口）；相册 DAO 层；前端类型定义和 API 封装
 - 2026-03-31: 新增图片上传接口（POST /api/upload）和个人资料接口（GET/PUT /api/profile）；新建 profile 表和 profile DAO；uploads 目录静态伺服
