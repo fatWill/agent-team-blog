@@ -138,13 +138,25 @@
     <section class="mx-auto max-w-3xl px-4 pt-8 pb-6 md:pt-10">
       <div class="flex items-center gap-5">
         <img
-          src="/avatar.png"
+          v-if="profile.avatar"
+          :src="profile.avatar"
           alt="fatwillzeng 头像"
           class="h-20 w-20 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700"
         />
+        <div
+          v-else
+          class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 ring-2 ring-gray-200 dark:bg-gray-700 dark:ring-gray-700"
+        >
+          <svg class="h-8 w-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+        </div>
         <div class="flex-1">
           <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">fatwillzeng</h1>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p v-if="profile.bio" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {{ profile.bio }}
+          </p>
+          <p v-else class="mt-1 text-sm text-gray-500 dark:text-gray-400">
             全栈开发者 / 热爱技术与生活 / 记录成长的点滴
           </p>
         </div>
@@ -297,8 +309,8 @@
 </template>
 
 <script setup lang="ts">
-import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse } from '~/types'
-import { apiFetchArticles } from '~/utils/api'
+import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile } from '~/types'
+import { apiFetchArticles, apiGetProfile } from '~/utils/api'
 
 const { isDark, toggleTheme } = useTheme()
 
@@ -333,6 +345,19 @@ const error = ref(false)
 // 更新日志数据
 const changelog = ref<ChangelogItem[]>([])
 const changelogLoading = ref(false)
+
+// 博主个人资料
+const profile = reactive<Profile>({ avatar: '', bio: '' })
+
+async function fetchProfile() {
+  try {
+    const data = await apiGetProfile()
+    profile.avatar = data.avatar || ''
+    profile.bio = data.bio || ''
+  } catch {
+    // 静默处理，使用默认值
+  }
+}
 
 async function fetchChangelog() {
   changelogLoading.value = true
@@ -372,6 +397,7 @@ function formatDate(dateStr: string): string {
 onMounted(() => {
   fetchArticles()
   fetchChangelog()
+  fetchProfile()
 })
 
 useHead({

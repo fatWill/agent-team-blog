@@ -86,8 +86,13 @@ export default defineEventHandler(async (event) => {
   // 生成唯一文件名：时间戳-随机串.扩展名
   const filename = `${Date.now()}-${randomString(8)}${ext}`
 
-  // 确定存储目录：运行时 public/uploads/
-  const uploadDir = join(process.cwd(), 'public', 'uploads')
+  // 确定存储目录
+  // 生产环境：cwd = .output/server，静态资源在 .output/public/uploads/
+  // 开发环境：cwd = 项目根目录，静态资源在 public/uploads/
+  const isProduction = process.env.NODE_ENV === 'production'
+  const uploadDir = isProduction
+    ? join(process.cwd(), '..', 'public', 'uploads')
+    : join(process.cwd(), 'public', 'uploads')
 
   // 确保目录存在
   if (!existsSync(uploadDir)) {

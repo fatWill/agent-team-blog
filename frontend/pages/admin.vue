@@ -84,22 +84,56 @@
             />
           </div>
 
-          <!-- 封面图 URL -->
+          <!-- 封面图上传 -->
           <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">封面图（可选）</label>
+            <!-- 隐藏的文件 input -->
             <input
-              v-model="form.coverImage"
-              type="text"
-              placeholder="封面图 URL（可选）"
-              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-primary-400"
+              ref="coverFileInput"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="handleCoverUpload"
             />
-            <!-- 封面图预览 -->
-            <div v-if="form.coverImage" class="mt-2">
+            <!-- 未上传状态：虚线上传区域 -->
+            <div
+              v-if="!form.coverImage"
+              class="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-8 transition-colors hover:border-primary-400 hover:bg-primary-50/30 dark:border-gray-600 dark:bg-gray-800/50 dark:hover:border-primary-500 dark:hover:bg-primary-900/10"
+              :class="{ 'pointer-events-none opacity-60': coverUploading }"
+              @click="coverFileInput?.click()"
+              @dragover.prevent
+              @drop.prevent="handleCoverDrop"
+            >
+              <svg v-if="!coverUploading" class="mb-2 h-10 w-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+              </svg>
+              <!-- 上传中 loading -->
+              <svg v-else class="mb-2 h-10 w-10 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                {{ coverUploading ? '上传中...' : '点击上传封面图' }}
+              </span>
+              <span v-if="!coverUploading" class="mt-1 text-xs text-gray-400 dark:text-gray-500">支持 JPG/PNG/GIF/WebP，最大 5MB</span>
+            </div>
+            <!-- 已上传状态：预览图 + 删除按钮 -->
+            <div v-else class="relative inline-block">
               <img
                 :src="form.coverImage"
                 alt="封面图预览"
-                class="h-32 w-auto rounded-lg border border-gray-200 object-cover dark:border-gray-600"
-                @error="(e: Event) => (e.target as HTMLImageElement).style.display = 'none'"
+                class="h-40 w-auto rounded-lg border border-gray-200 object-cover dark:border-gray-600"
               />
+              <button
+                type="button"
+                class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-md transition-colors hover:bg-red-600"
+                @click="form.coverImage = ''"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -336,6 +370,80 @@
           </p>
         </div>
       </div>
+
+      <!-- ========== Tab 3: 个人资料 ========== -->
+      <div v-if="activeTab === 'profile'">
+        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">个人资料</h2>
+
+        <div class="space-y-8">
+          <!-- 头像区域 -->
+          <div class="flex flex-col items-center gap-4">
+            <!-- 隐藏的文件 input -->
+            <input
+              ref="avatarFileInput"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="handleAvatarFileChange"
+            />
+            <!-- 头像展示 -->
+            <div class="relative">
+              <img
+                v-if="profileForm.avatar"
+                :src="profileForm.avatar"
+                alt="头像"
+                class="h-24 w-24 rounded-full border-2 border-gray-200 object-cover dark:border-gray-600"
+              />
+              <div
+                v-else
+                class="flex h-24 w-24 items-center justify-center rounded-full border-2 border-gray-200 bg-gray-100 dark:border-gray-600 dark:bg-gray-700"
+              >
+                <svg class="h-10 w-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </div>
+            </div>
+            <!-- 更换头像按钮 -->
+            <button
+              type="button"
+              :disabled="avatarUploading"
+              class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              @click="avatarFileInput?.click()"
+            >
+              {{ avatarUploading ? '上传中...' : '更换头像' }}
+            </button>
+          </div>
+
+          <!-- 个人简介 -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">个人简介</label>
+            <textarea
+              v-model="profileForm.bio"
+              rows="4"
+              maxlength="200"
+              placeholder="写点什么介绍自己吧..."
+              class="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-primary-400"
+            />
+            <p class="mt-1 text-right text-xs text-gray-400 dark:text-gray-500">
+              {{ profileForm.bio.length }} / 200
+            </p>
+          </div>
+
+          <!-- 保存按钮 -->
+          <div class="flex items-center justify-end gap-3">
+            <span v-if="profileSuccess" class="text-sm text-green-600 dark:text-green-400">✓ 保存成功</span>
+            <span v-if="profileError" class="text-sm text-red-500">{{ profileError }}</span>
+            <button
+              type="button"
+              :disabled="profileSaving"
+              class="rounded-lg bg-primary-500 px-6 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-60"
+              @click="handleSaveProfile"
+            >
+              {{ profileSaving ? '保存中...' : '保存资料' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -357,6 +465,9 @@ import {
   apiDeleteArticle,
   apiGetArticles,
   apiFetchArticle,
+  apiUploadImage,
+  apiGetProfile,
+  apiUpdateProfile,
 } from '~/utils/api'
 
 const authStore = useAuthStore()
@@ -367,11 +478,14 @@ const { isDark, toggleTheme } = useTheme()
 const adminTabs = [
   { key: 'write', label: '写文章' },
   { key: 'manage', label: '文章管理' },
+  { key: 'profile', label: '个人资料' },
 ]
 const activeTab = ref('write')
 
 // ====== 写文章 / 编辑文章 ======
 const editingArticleId = ref<string | null>(null)
+const coverFileInput = ref<HTMLInputElement | null>(null)
+const coverUploading = ref(false)
 
 const form = reactive({
   title: '',
@@ -418,6 +532,39 @@ function addLink() {
   }
 }
 
+/** 封面图上传（点击选择文件） */
+async function handleCoverUpload(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  await uploadCoverFile(file)
+  input.value = '' // 重置 input，允许重复选择同一文件
+}
+
+/** 封面图上传（拖拽） */
+async function handleCoverDrop(e: DragEvent) {
+  const file = e.dataTransfer?.files?.[0]
+  if (!file || !file.type.startsWith('image/')) return
+  await uploadCoverFile(file)
+}
+
+/** 封面图上传核心逻辑 */
+async function uploadCoverFile(file: File) {
+  if (file.size > 5 * 1024 * 1024) {
+    alert('图片大小不能超过 5MB')
+    return
+  }
+  coverUploading.value = true
+  try {
+    const res = await apiUploadImage(file)
+    form.coverImage = res.url
+  } catch {
+    alert('封面图上传失败，请重试')
+  } finally {
+    coverUploading.value = false
+  }
+}
+
 /** 重置表单为新建模式 */
 function resetForm() {
   editingArticleId.value = null
@@ -450,10 +597,8 @@ async function handlePublish() {
     }
 
     if (editingArticleId.value) {
-      // 编辑模式：调用 PUT
       await apiUpdateArticle(editingArticleId.value, payload)
       publishSuccess.value = true
-      // 保存成功后切回文章管理 Tab
       setTimeout(() => {
         resetForm()
         activeTab.value = 'manage'
@@ -461,7 +606,6 @@ async function handlePublish() {
         fetchManageArticles()
       }, 1500)
     } else {
-      // 新建模式：调用 POST
       await apiCreateArticle(payload)
       publishSuccess.value = true
       resetForm()
@@ -491,7 +635,6 @@ const deletingId = ref<string | null>(null)
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
-/** 获取文章列表 */
 async function fetchManageArticles() {
   manageLoading.value = true
   try {
@@ -505,7 +648,6 @@ async function fetchManageArticles() {
   }
 }
 
-/** 搜索防抖 */
 watch(searchKeyword, () => {
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
@@ -513,17 +655,17 @@ watch(searchKeyword, () => {
   }, 300)
 })
 
-/** 切到文章管理 Tab 时加载数据 */
 watch(activeTab, (val) => {
   if (val === 'manage') {
     fetchManageArticles()
   }
+  if (val === 'profile') {
+    fetchProfile()
+  }
 })
 
-/** 点击编辑：加载文章详情，填充表单，切到写文章 Tab */
 async function startEdit(article: ArticleListItem) {
   try {
-    // 获取完整文章详情（含 content）
     const detail = await apiFetchArticle(article.id)
     editingArticleId.value = detail.id
     form.title = detail.title
@@ -536,14 +678,12 @@ async function startEdit(article: ArticleListItem) {
   }
 }
 
-/** 删除文章 */
 async function handleDelete(article: ArticleListItem) {
   if (!confirm(`确定要删除「${article.title}」吗？此操作不可撤销。`)) return
 
   deletingId.value = article.id
   try {
     await apiDeleteArticle(article.id)
-    // 刷新列表
     await fetchManageArticles()
   } catch (err: unknown) {
     const fetchErr = err as { statusCode?: number }
@@ -556,6 +696,73 @@ async function handleDelete(article: ArticleListItem) {
     }
   } finally {
     deletingId.value = null
+  }
+}
+
+// ====== 个人资料 ======
+const avatarFileInput = ref<HTMLInputElement | null>(null)
+const profileForm = reactive({ avatar: '', bio: '' })
+const profileSaving = ref(false)
+const profileSuccess = ref(false)
+const profileError = ref('')
+const avatarUploading = ref(false)
+
+async function fetchProfile() {
+  try {
+    const data = await apiGetProfile()
+    profileForm.avatar = data.avatar || ''
+    profileForm.bio = data.bio || ''
+  } catch {
+    // 首次可能无数据，静默处理
+  }
+}
+
+async function handleAvatarFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) {
+    alert('图片大小不能超过 5MB')
+    input.value = ''
+    return
+  }
+  avatarUploading.value = true
+  try {
+    const res = await apiUploadImage(file)
+    profileForm.avatar = res.url
+  } catch {
+    alert('头像上传失败，请重试')
+  } finally {
+    avatarUploading.value = false
+    input.value = ''
+  }
+}
+
+async function handleSaveProfile() {
+  profileSaving.value = true
+  profileSuccess.value = false
+  profileError.value = ''
+
+  try {
+    await apiUpdateProfile({
+      avatar: profileForm.avatar,
+      bio: profileForm.bio,
+    })
+    profileSuccess.value = true
+    setTimeout(() => {
+      profileSuccess.value = false
+    }, 3000)
+  } catch (err: unknown) {
+    const fetchErr = err as { statusCode?: number }
+    if (fetchErr?.statusCode === 401) {
+      profileError.value = '登录已过期，请重新登录'
+      authStore.setLoggedIn(false)
+      setTimeout(() => router.push('/login'), 1500)
+    } else {
+      profileError.value = '保存失败，请重试'
+    }
+  } finally {
+    profileSaving.value = false
   }
 }
 
