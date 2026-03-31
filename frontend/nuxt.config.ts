@@ -9,6 +9,10 @@ export default defineNuxtConfig({
     dbUser: process.env.DB_USER || 'root',
     dbPassword: process.env.DB_PASSWORD || '',
     dbName: process.env.DB_NAME || 'blog',
+    // Redis 配置
+    redisHost: process.env.REDIS_HOST || '127.0.0.1',
+    redisPort: process.env.REDIS_PORT || '6379',
+    redisPassword: process.env.REDIS_PASSWORD || '',
   },
 
   devtools: { enabled: true },
@@ -33,7 +37,6 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
       ],
     },
-    pageTransition: { name: 'page' },
   },
 
   tailwindcss: {
