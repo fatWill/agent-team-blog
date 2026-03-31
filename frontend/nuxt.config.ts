@@ -15,7 +15,7 @@ export default defineNuxtConfig({
     redisPassword: process.env.REDIS_PASSWORD || '',
   },
 
-  devtools: { enabled: true },
+  devtools: { enabled: false },
 
   modules: [
     '@nuxtjs/tailwindcss',
