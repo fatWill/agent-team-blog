@@ -9,6 +9,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - **样式**: Tailwind CSS（dark mode via `class` 策略）
 - **状态管理**: Pinia
 - **富文本**: Tiptap（@tiptap/vue-3 + starter-kit + image + link）
+- **数据库**: MySQL 8.0（mysql2 驱动，连接池模式）
 - **包管理**: npm
 
 ## 最高优先级读取
@@ -32,6 +33,9 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | API 服务 | `utils/api.ts` | 封装登录、文章 CRUD 接口 |
 | 认证 Store | `stores/auth.ts` | Pinia 认证状态管理 |
 | 类型定义 | `types/index.ts` | 全局 TS 类型：文章、登录、Tab 等 |
+| 数据库连接 | `server/utils/db.ts` | MySQL 连接池（mysql2，进程级单例） |
+| 文章 DAO | `server/utils/articles.ts` | 文章 CRUD 操作（MySQL） |
+| 更新日志 DAO | `server/utils/changelog.ts` | 更新日志查询（MySQL） |
 
 ## 页面路由映射
 
@@ -51,7 +55,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 文章详情 | GET | `/api/articles/:id` | 返回详情（含 Tiptap JSON content） |
 | 创建文章 | POST | `/api/articles` | 需鉴权（cookie auth_token） |
 | 更新文章 | PUT | `/api/articles/:id` | 需鉴权，部分更新，自动刷新 updatedAt |
-| 更新日志 | GET | `/api/changelog` | 返回所有版本更新日志，数据源 server/data/changelog.json |
+| 更新日志 | GET | `/api/changelog` | 返回所有版本更新日志，数据源 MySQL changelogs 表 |
 
 ## 版本号规范（用户明确要求）
 
@@ -67,15 +71,33 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 
 ## 更新日志规范（用户明确要求）
 
-- 每次前端发版必须在 `/server/data/changelog.json` 中新增一条版本记录
+- 更新日志存储在 MySQL `changelogs` 表中（旧的 `server/data/changelog.json` 已废弃）
 - 字段说明：
-  - `version`：版本号字符串，如 `"1.1.0"`
+  - `version`：版本号字符串，如 `"1.1.0"`（UNIQUE 约束）
   - `date`：发版日期，格式 `"YYYY-MM-DD"`
-  - `logs`：更新内容数组，**每条最多 20 字，最多 5 条**
+  - `logs`：更新内容 JSON 数组，**每条最多 20 字，最多 5 条**
+  - `created_at` / `updated_at`：自动维护的时间戳
 - 不需要登录即可查看的更新内容都应记录；涉及敏感功能（如管理后台权限逻辑）的条目可省略
 - 内容风格：用 Emoji 前缀 + 简短描述，如 `"🎉 个人博客正式上线"`
 
+## 数据库表注册表
+
+| 表名 | 说明 | 主键 | 索引 |
+|------|------|------|------|
+| `articles` | 文章表 | `id` (varchar(36) UUID) | `idx_created_at` |
+| `changelogs` | 更新日志表 | `id` (bigint auto_increment) | `uk_version`, `idx_date` |
+
+## 环境配置
+
+数据库连接通过 `.env` 文件注入（Nuxt runtimeConfig 读取）：
+- `DB_HOST` — MySQL 主机地址（服务器用 localhost，本地开发用远程 IP）
+- `DB_PORT` — 端口号（默认 3306）
+- `DB_USER` — 数据库用户名
+- `DB_PASSWORD` — 数据库密码
+- `DB_NAME` — 数据库名（blog）
+
 ## 变更日志
+- 2026-03-31: 将文章和更新日志数据从 JSON 文件迁移到 MySQL 8.0；新增 mysql2 驱动、连接池工具（server/utils/db.ts）、articles/changelog DAO 层；改写全部 API 路由；新增 .env 环境配置
 - 2026-03-31: Admin 入口图标 + Nuxt middleware 鉴权前置 + cookie 72h 滚动续期；新增 /api/auth/check、auth middleware、login redirect
 - 2026-03-31: 为所有数据结构统一添加 createdAt/updatedAt 时间戳字段（ChangelogItem 接口 + changelog.json 历史数据补充）
 - 2026-03-31: 新增「更新日志」Tab，时间轴风格展示版本历史；新增版本号规范和更新日志规则到 AGENTS.md
