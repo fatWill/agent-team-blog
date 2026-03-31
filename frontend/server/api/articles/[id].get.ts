@@ -1,4 +1,4 @@
-import { readArticles } from '~/server/utils/articles'
+import { getArticleById } from '~/server/utils/articles'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -10,8 +10,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const articles = await readArticles()
-  const article = articles.find((a) => a.id === id)
+  const article = await getArticleById(id)
 
   if (!article) {
     throw createError({

@@ -1,8 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { readBody } from 'h3'
 import { requireAuth } from '~/server/utils/auth'
-import { readArticles, writeArticles } from '~/server/utils/articles'
-import type { Article } from '~/server/utils/articles'
+import { createArticle } from '~/server/utils/articles'
 
 export default defineEventHandler(async (event) => {
   // 鉴权校验
@@ -29,21 +28,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const now = new Date().toISOString()
-
-  const newArticle: Article = {
+  const article = await createArticle({
     id: uuidv4(),
     title: body.title.trim(),
     summary: body.summary?.trim() || '',
     content: body.content,
-    createdAt: now,
-    updatedAt: now,
-  }
+  })
 
-  // 读取现有文章，追加新文章，写回文件
-  const articles = await readArticles()
-  articles.push(newArticle)
-  await writeArticles(articles)
-
-  return newArticle
+  return article
 })

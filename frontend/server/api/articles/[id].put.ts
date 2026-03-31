@@ -1,6 +1,6 @@
 import { readBody } from 'h3'
 import { requireAuth } from '~/server/utils/auth'
-import { readArticles, writeArticles } from '~/server/utils/articles'
+import { updateArticle } from '~/server/utils/articles'
 
 export default defineEventHandler(async (event) => {
   // 鉴权校验
@@ -29,41 +29,27 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const articles = await readArticles()
-  const index = articles.findIndex((a) => a.id === id)
+  // 构建更新对象
+  const updates: { title?: string; summary?: string; content?: Record<string, any> } = {}
 
-  if (index === -1) {
+  if (body.title !== undefined && typeof body.title === 'string' && body.title.trim() !== '') {
+    updates.title = body.title.trim()
+  }
+  if (body.summary !== undefined) {
+    updates.summary = typeof body.summary === 'string' ? body.summary.trim() : undefined
+  }
+  if (body.content !== undefined && typeof body.content === 'object') {
+    updates.content = body.content
+  }
+
+  const article = await updateArticle(id, updates)
+
+  if (!article) {
     throw createError({
       statusCode: 404,
       statusMessage: '文章不存在',
     })
   }
 
-  const article = articles[index]
-
-  // 更新字段（仅更新传入的非空字段）
-  if (body.title !== undefined && typeof body.title === 'string' && body.title.trim() !== '') {
-    article.title = body.title.trim()
-  }
-  if (body.summary !== undefined) {
-    article.summary = typeof body.summary === 'string' ? body.summary.trim() : article.summary
-  }
-  if (body.content !== undefined && typeof body.content === 'object') {
-    article.content = body.content
-  }
-
-  // 自动刷新 updatedAt
-  article.updatedAt = new Date().toISOString()
-
-  articles[index] = article
-  await writeArticles(articles)
-
-  return {
-    id: article.id,
-    title: article.title,
-    summary: article.summary,
-    content: article.content,
-    createdAt: article.createdAt,
-    updatedAt: article.updatedAt,
-  }
+  return article
 })
