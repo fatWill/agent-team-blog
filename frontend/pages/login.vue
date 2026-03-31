@@ -70,7 +70,6 @@
 import { useAuthStore } from '~/stores/auth'
 import { apiLogin } from '~/utils/api'
 
-const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
@@ -91,7 +90,7 @@ async function handleLogin() {
     })
     authStore.setLoggedIn(true)
     const redirectTo = (route.query.redirect as string) || '/'
-    router.push(redirectTo)
+    await navigateTo(redirectTo, { replace: true })
   } catch (err: unknown) {
     const fetchErr = err as { data?: { statusMessage?: string } }
     errorMsg.value = fetchErr?.data?.statusMessage || '登录失败，请重试'
