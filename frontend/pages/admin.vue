@@ -208,7 +208,6 @@ import Link from '@tiptap/extension-link'
 import { useAuthStore } from '~/stores/auth'
 import { apiCreateArticle } from '~/utils/api'
 
-const router = useRouter()
 const authStore = useAuthStore()
 const { isDark, toggleTheme } = useTheme()
 
@@ -278,14 +277,14 @@ async function handlePublish() {
 
     // 2 秒后跳转首页
     setTimeout(() => {
-      router.push('/')
+      navigateTo('/')
     }, 2000)
   } catch (err: unknown) {
     const fetchErr = err as { data?: { statusMessage?: string }; statusCode?: number }
     if (fetchErr?.statusCode === 401 || (fetchErr?.data as Record<string, unknown>)?.statusCode === 401) {
       publishError.value = '登录已过期，请重新登录'
       authStore.setLoggedIn(false)
-      setTimeout(() => router.push('/login'), 1500)
+      setTimeout(() => navigateTo('/login'), 1500)
     } else {
       publishError.value = '发布失败，请重试'
     }
@@ -296,7 +295,7 @@ async function handlePublish() {
 
 function handleLogout() {
   authStore.logout()
-  router.push('/')
+  navigateTo('/')
 }
 
 onBeforeUnmount(() => {

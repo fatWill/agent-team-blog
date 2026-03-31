@@ -19,6 +19,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (!ok) {
     // 未登录，携带 redirect 参数跳转登录页
-    return navigateTo(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
+    return navigateTo(`/login?redirect=${encodeURIComponent(to.fullPath)}`, { replace: true })
   }
 })
