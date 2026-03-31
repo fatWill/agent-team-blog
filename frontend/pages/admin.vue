@@ -209,6 +209,7 @@ import { useAuthStore } from '~/stores/auth'
 import { apiCreateArticle } from '~/utils/api'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
 
 const form = reactive({
@@ -277,14 +278,14 @@ async function handlePublish() {
 
     // 2 秒后跳转首页
     setTimeout(() => {
-      navigateTo('/')
+      router.push('/')
     }, 2000)
   } catch (err: unknown) {
     const fetchErr = err as { data?: { statusMessage?: string }; statusCode?: number }
     if (fetchErr?.statusCode === 401 || (fetchErr?.data as Record<string, unknown>)?.statusCode === 401) {
       publishError.value = '登录已过期，请重新登录'
       authStore.setLoggedIn(false)
-      setTimeout(() => navigateTo('/login'), 1500)
+      setTimeout(() => router.push('/login'), 1500)
     } else {
       publishError.value = '发布失败，请重试'
     }
@@ -295,7 +296,7 @@ async function handlePublish() {
 
 function handleLogout() {
   authStore.logout()
-  navigateTo('/')
+  router.push('/')
 }
 
 onBeforeUnmount(() => {
