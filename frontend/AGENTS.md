@@ -19,7 +19,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 
 | 模块 | 路径 | 状态 | 说明 |
 |------|------|------|------|
-| 首页 | `pages/index.vue` | ✅ 已实现 | 个人信息、Tab 导航（文章/生活/小工具·小游戏/agent team）、文章列表 |
+| 首页 | `pages/index.vue` | ✅ 已实现 | 个人信息、Tab 导航（文章/生活/小工具·小游戏/agent team/更新日志）、文章列表 |
 | 文章详情 | `pages/articles/[id].vue` | ✅ 已实现 | Tiptap 只读渲染文章内容 |
 | 登录 | `pages/login.vue` | ✅ 已实现 | 账号密码登录，成功后跳转 /admin |
 | 管理后台 | `pages/admin.vue` | ✅ 已实现 | Tiptap 编辑器，录入并发布文章 |
@@ -51,8 +51,35 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 文章详情 | GET | `/api/articles/:id` | 返回详情（含 Tiptap JSON content） |
 | 创建文章 | POST | `/api/articles` | 需鉴权（cookie auth_token） |
 | 更新文章 | PUT | `/api/articles/:id` | 需鉴权，部分更新，自动刷新 updatedAt |
+| 更新日志 | GET | `/api/changelog` | 返回所有版本更新日志，数据源 server/data/changelog.json |
+
+## 前端版本号规范（用户明确要求）
+
+### 版本号格式：`MAJOR.MINOR.PATCH`（如 `1.0.0`）
+
+| 位置 | 含义 | 触发场景 |
+|------|------|----------|
+| MAJOR | 主版本 | 重大架构重构、破坏性变更 |
+| MINOR | 次版本 | 常规功能新增、页面/模块级改动（**默认递增此位**） |
+| PATCH | 补丁版本 | 仅 bug 修复、样式微调、文案修改 |
+
+> **默认规则**：非特殊需求，一律递增中间的 MINOR 版本号。
+
+### 更新日志规则（`server/data/changelog.json`）
+
+- 每次发版必须在 `changelog.json` 中新增一条版本记录
+- 格式：`{ "version": "x.y.z", "date": "YYYY-MM-DD", "logs": [...] }`
+- **内容要求**：
+  - 每行最多 **20 字**（含 emoji）
+  - 每个版本最多 **5 行**
+  - 高权限/敏感更新内容（如鉴权逻辑变更）**不录入**
+- 新版本记录放在数组**最前面**（倒序，最新在上）
+- `logs` 每一项建议以 emoji 开头，简洁描述变更内容
+
+### 当前版本：`1.0.1`
 
 ## 变更日志
+- 2026-03-31: 新增「更新日志」Tab，时间轴风格展示版本历史；新增版本号规范和更新日志规则到 AGENTS.md
 - 2026-03-31: 新增更新文章接口（PUT /api/articles/:id），支持 updatedAt 自动刷新；新增 UpdateArticleRequest 类型和 apiUpdateArticle 前端调用
 - 2026-03-30: 全面重写首页，实现 Dark/Light 主题切换、个人信息区域、Tab 导航、文章列表
 - 2026-03-30: 新增文章详情页（Tiptap 渲染）、登录页、管理后台（Tiptap 编辑器）
