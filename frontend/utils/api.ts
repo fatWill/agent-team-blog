@@ -6,6 +6,10 @@ import type {
   LoginRequest,
   LoginResponse,
   Profile,
+  AlbumItem,
+  AlbumListResponse,
+  PhotoItem,
+  PhotoListResponse,
 } from '~/types'
 
 /** 登录 */
@@ -89,6 +93,61 @@ export async function apiUpdateProfile(data: Partial<Profile>): Promise<Profile>
   const res = await $fetch<Profile>('/api/profile', {
     method: 'PUT',
     body: data,
+  })
+  return res
+}
+
+/** 获取相册集列表 */
+export async function apiGetAlbums(): Promise<AlbumListResponse> {
+  const res = await $fetch<AlbumListResponse>('/api/albums')
+  return res
+}
+
+/** 创建相册集 */
+export async function apiCreateAlbum(data: { name: string; description?: string }): Promise<AlbumItem> {
+  const res = await $fetch<AlbumItem>('/api/albums', {
+    method: 'POST',
+    body: data,
+  })
+  return res
+}
+
+/** 更新相册集 */
+export async function apiUpdateAlbum(id: number, data: { name?: string; description?: string }): Promise<AlbumItem> {
+  const res = await $fetch<AlbumItem>(`/api/albums/${id}`, {
+    method: 'PUT',
+    body: data,
+  })
+  return res
+}
+
+/** 删除相册集 */
+export async function apiDeleteAlbum(id: number): Promise<{ ok: boolean }> {
+  const res = await $fetch<{ ok: boolean }>(`/api/albums/${id}`, {
+    method: 'DELETE',
+  })
+  return res
+}
+
+/** 获取相册下所有照片 */
+export async function apiGetPhotos(albumId: number): Promise<PhotoListResponse> {
+  const res = await $fetch<PhotoListResponse>(`/api/albums/${albumId}/photos`)
+  return res
+}
+
+/** 向相册添加照片 */
+export async function apiAddPhoto(albumId: number, data: { url: string; caption?: string }): Promise<PhotoItem> {
+  const res = await $fetch<PhotoItem>(`/api/albums/${albumId}/photos`, {
+    method: 'POST',
+    body: data,
+  })
+  return res
+}
+
+/** 删除单张照片 */
+export async function apiDeletePhoto(id: number): Promise<{ ok: boolean }> {
+  const res = await $fetch<{ ok: boolean }>(`/api/photos/${id}`, {
+    method: 'DELETE',
   })
   return res
 }

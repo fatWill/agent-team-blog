@@ -24,6 +24,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 文章详情 | `pages/articles/[id].vue` | ✅ 已实现 | Tiptap 只读渲染文章内容 |
 | 登录 | `pages/login.vue` | ✅ 已实现 | 账号密码登录，成功后跳转 /admin |
 | 管理后台 | `pages/admin.vue` | ✅ 已实现 | Tiptap 编辑器，录入并发布文章 |
+| 相册 | `server/api/albums/`, `server/api/photos/` | ✅ 已实现 | 相册集 CRUD、照片管理、封面自动更新 |
 
 ## 共享层注册表
 
@@ -37,6 +38,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 文章 DAO | `server/utils/articles.ts` | 文章 CRUD 操作（MySQL） |
 | 更新日志 DAO | `server/utils/changelog.ts` | 更新日志查询（MySQL） |
 | 个人资料 DAO | `server/utils/profile.ts` | 博主资料读写（MySQL profile 表） |
+| 相册 DAO | `server/utils/albums.ts` | 相册集和照片 CRUD（MySQL albums/photos 表） |
 
 ## 页面路由映射
 
@@ -61,6 +63,13 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 图片上传 | POST | `/api/upload` | 需鉴权，multipart/form-data，支持 jpg/png/gif/webp，最大 5MB |
 | 获取资料 | GET | `/api/profile` | 公开接口，返回博主头像和简介 |
 | 更新资料 | PUT | `/api/profile` | 需鉴权，更新博主头像和简介 |
+| 相册列表 | GET | `/api/albums` | 公开接口，返回所有相册集（含 photoCount、coverUrl） |
+| 创建相册 | POST | `/api/albums` | 需鉴权，创建相册集 |
+| 更新相册 | PUT | `/api/albums/:id` | 需鉴权，更新相册集名称和描述 |
+| 删除相册 | DELETE | `/api/albums/:id` | 需鉴权，级联删除相册及所有照片 |
+| 照片列表 | GET | `/api/albums/:id/photos` | 公开接口，获取相册下所有照片 |
+| 添加照片 | POST | `/api/albums/:id/photos` | 需鉴权，添加照片并自动更新封面 |
+| 删除照片 | DELETE | `/api/photos/:id` | 需鉴权，删除照片并自动更新封面 |
 
 ## 版本号规范（用户明确要求）
 
@@ -93,6 +102,8 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | `changelogs` | 更新日志表 | `id` (bigint auto_increment) | `uk_version`, `idx_date` |
 | `auth_tokens` | 登录 token 表 | `token` (varchar(64)) | `idx_username` |
 | `profile` | 博主个人资料表 | `id` (int, 固定为1) | — |
+| `albums` | 相册集表 | `id` (int auto_increment) | — |
+| `photos` | 照片表 | `id` (int auto_increment) | `idx_album_id` |
 
 ## 环境配置
 
@@ -104,6 +115,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-03-31: 新增相册功能（albums/photos 表）；完整 CRUD API（7个接口）；相册 DAO 层；前端类型定义和 API 封装
 - 2026-03-31: 新增图片上传接口（POST /api/upload）和个人资料接口（GET/PUT /api/profile）；新建 profile 表和 profile DAO；uploads 目录静态伺服
 - 2026-03-31: Token 持久化到 MySQL auth_tokens 表，重启/部署不再丢失登录态
 - 2026-03-31: articles 表新增 cover_image 字段；文章接口全面支持 coverImage；新增 title 关键词筛选；新增 DELETE /api/articles/:id 删除接口

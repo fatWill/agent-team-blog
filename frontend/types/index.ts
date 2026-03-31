@@ -76,3 +76,34 @@ export interface Profile {
   avatar: string
   bio: string
 }
+
+/** 相册集列表项 */
+export interface AlbumItem {
+  id: number
+  name: string
+  description: string | null
+  coverUrl: string | null
+  photoCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+/** 相册集列表响应 */
+export interface AlbumListResponse {
+  list: AlbumItem[]
+}
+
+/** 照片列表项 */
+export interface PhotoItem {
+  id: number
+  albumId: number
+  url: string
+  caption: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** 照片列表响应 */
+export interface PhotoListResponse {
+  list: PhotoItem[]
+}
