@@ -30,6 +30,13 @@ export interface CreateArticleRequest {
   content: Record<string, unknown>
 }
 
+/** 更新文章请求体（所有字段可选） */
+export interface UpdateArticleRequest {
+  title?: string
+  summary?: string
+  content?: Record<string, unknown>
+}
+
 /** 登录请求体 */
 export interface LoginRequest {
   username: string
