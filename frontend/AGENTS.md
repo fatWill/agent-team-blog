@@ -50,8 +50,10 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 文章列表 | GET | `/api/articles` | 返回列表（不含 content） |
 | 文章详情 | GET | `/api/articles/:id` | 返回详情（含 Tiptap JSON content） |
 | 创建文章 | POST | `/api/articles` | 需鉴权（cookie auth_token） |
+| 更新文章 | PUT | `/api/articles/:id` | 需鉴权，部分更新，自动刷新 updatedAt |
 
 ## 变更日志
+- 2026-03-31: 新增更新文章接口（PUT /api/articles/:id），支持 updatedAt 自动刷新；新增 UpdateArticleRequest 类型和 apiUpdateArticle 前端调用
 - 2026-03-30: 全面重写首页，实现 Dark/Light 主题切换、个人信息区域、Tab 导航、文章列表
 - 2026-03-30: 新增文章详情页（Tiptap 渲染）、登录页、管理后台（Tiptap 编辑器）
 - 2026-03-30: 新增 useTheme composable、auth store、API 服务层

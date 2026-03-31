@@ -2,6 +2,7 @@ import type {
   ArticleListResponse,
   ArticleDetail,
   CreateArticleRequest,
+  UpdateArticleRequest,
   LoginRequest,
   LoginResponse,
 } from '~/types'
@@ -31,6 +32,15 @@ export async function apiFetchArticle(id: string): Promise<ArticleDetail> {
 export async function apiCreateArticle(data: CreateArticleRequest): Promise<ArticleDetail> {
   const res = await $fetch<ArticleDetail>('/api/articles', {
     method: 'POST',
+    body: data,
+  })
+  return res
+}
+
+/** 更新文章 */
+export async function apiUpdateArticle(id: string, data: UpdateArticleRequest): Promise<ArticleDetail> {
+  const res = await $fetch<ArticleDetail>(`/api/articles/${id}`, {
+    method: 'PUT',
     body: data,
   })
   return res
