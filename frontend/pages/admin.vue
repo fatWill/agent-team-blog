@@ -324,13 +324,13 @@
                 {{ photoUploadProgress ? '上传中...' : '上传照片' }}
               </button>
             </div>
-            <!-- 单张图片上传进度条 -->
-            <div v-if="photoUploadProgress" class="mt-2 w-full">
-              <div class="bg-gray-200 rounded-full h-1.5 dark:bg-gray-600">
-                <div class="bg-primary-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: photoSinglePercent + '%' }" />
-              </div>
-              <p class="text-xs text-gray-500 mt-1 text-center dark:text-gray-400">第 {{ photoUploadProgress.current + 1 }} 张 · {{ photoSinglePercent }}%</p>
+          </div>
+          <!-- 单张图片上传进度条 -->
+          <div v-if="photoUploadProgress" class="mb-4 w-full">
+            <div class="bg-gray-200 rounded-full h-1.5 dark:bg-gray-600">
+              <div class="bg-primary-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: photoSinglePercent + '%' }" />
             </div>
+            <p class="text-xs text-gray-500 mt-1 text-center dark:text-gray-400">第 {{ photoUploadProgress.current }} / {{ photoUploadProgress.total }} 张 · {{ photoSinglePercent }}%</p>
           </div>
 
           <!-- 加载骨架屏 -->

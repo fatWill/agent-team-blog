@@ -9,48 +9,30 @@ export interface UploadProgress {
 }
 
 /**
- * 用 XHR 包装小文件直传，支持 upload.onprogress
+ * 小文件直传（使用 fetch，确保 cookie 鉴权正常）
  */
-function uploadSmallFile(
+async function uploadSmallFile(
   file: File,
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
+  onProgress?.({ loaded: 0, total: file.size, percent: 0 })
 
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        onProgress?.({
-          loaded: e.loaded,
-          total: e.total,
-          percent: Math.round((e.loaded / e.total) * 100),
-        })
-      }
-    }
+  const formData = new FormData()
+  formData.append('file', file)
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const res = JSON.parse(xhr.responseText) as { url: string }
-          resolve(res.url)
-        } catch {
-          reject(new Error('解析上传响应失败'))
-        }
-      } else {
-        reject(new Error(`上传失败，状态码 ${xhr.status}`))
-      }
-    }
-
-    xhr.onerror = () => reject(new Error('网络错误'))
-    xhr.onabort = () => reject(new Error('上传已取消'))
-
-    xhr.open('POST', '/api/upload')
-    xhr.withCredentials = true
-
-    const formData = new FormData()
-    formData.append('file', file)
-    xhr.send(formData)
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
   })
+
+  if (!res.ok) {
+    throw new Error(`上传失败，状态码 ${res.status}`)
+  }
+
+  const data = (await res.json()) as { url: string }
+  onProgress?.({ loaded: file.size, total: file.size, percent: 100 })
+  return data.url
 }
 
 /**
@@ -137,7 +119,7 @@ async function uploadLargeFile(
 
 /**
  * 分片上传主函数
- * - 文件 ≤ 2MB：直接用 XHR 上传（有进度）
+ * - 文件 ≤ 2MB：直接用 fetch 上传（开始/结束两段式进度）
  * - 文件 > 2MB：分片上传
  * @param file 要上传的文件
  * @param onProgress 进度回调
