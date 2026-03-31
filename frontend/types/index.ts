@@ -9,6 +9,7 @@ export interface ArticleListItem {
   id: string
   title: string
   summary: string
+  coverImage: string
   createdAt: string
   updatedAt: string
 }
@@ -27,6 +28,7 @@ export interface ArticleListResponse {
 export interface CreateArticleRequest {
   title: string
   summary?: string
+  coverImage?: string
   content: Record<string, unknown>
 }
 
@@ -34,6 +36,7 @@ export interface CreateArticleRequest {
 export interface UpdateArticleRequest {
   title?: string
   summary?: string
+  coverImage?: string
   content?: Record<string, unknown>
 }
 

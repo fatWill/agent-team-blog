@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
     id: article.id,
     title: article.title,
     summary: article.summary,
+    coverImage: article.coverImage,
     content: article.content,
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,

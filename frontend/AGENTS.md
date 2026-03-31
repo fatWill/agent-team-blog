@@ -51,10 +51,11 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 接口 | 方法 | 路径 | 说明 |
 |------|------|------|------|
 | 登录 | POST | `/api/auth/login` | 账号密码验证，写入 httpOnly cookie |
-| 文章列表 | GET | `/api/articles` | 返回列表（不含 content） |
-| 文章详情 | GET | `/api/articles/:id` | 返回详情（含 Tiptap JSON content） |
-| 创建文章 | POST | `/api/articles` | 需鉴权（cookie auth_token） |
-| 更新文章 | PUT | `/api/articles/:id` | 需鉴权，部分更新，自动刷新 updatedAt |
+| 文章列表 | GET | `/api/articles` | 返回列表（不含 content），支持 `?title=xxx` 关键词筛选 |
+| 文章详情 | GET | `/api/articles/:id` | 返回详情（含 Tiptap JSON content、coverImage） |
+| 创建文章 | POST | `/api/articles` | 需鉴权，支持 coverImage 封面图 |
+| 更新文章 | PUT | `/api/articles/:id` | 需鉴权，部分更新，支持 coverImage |
+| 删除文章 | DELETE | `/api/articles/:id` | 需鉴权，物理删除 |
 | 更新日志 | GET | `/api/changelog` | 返回所有版本更新日志，数据源 MySQL changelogs 表 |
 
 ## 版本号规范（用户明确要求）
@@ -97,6 +98,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-03-31: articles 表新增 cover_image 字段；文章接口全面支持 coverImage；新增 title 关键词筛选；新增 DELETE /api/articles/:id 删除接口
 - 2026-03-31: 将文章和更新日志数据从 JSON 文件迁移到 MySQL 8.0；新增 mysql2 驱动、连接池工具（server/utils/db.ts）、articles/changelog DAO 层；改写全部 API 路由；新增 .env 环境配置
 - 2026-03-31: Admin 入口图标 + Nuxt middleware 鉴权前置 + cookie 72h 滚动续期；新增 /api/auth/check、auth middleware、login redirect
 - 2026-03-31: 为所有数据结构统一添加 createdAt/updatedAt 时间戳字段（ChangelogItem 接口 + changelog.json 历史数据补充）

@@ -18,25 +18,29 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     title?: string
     summary?: string
+    coverImage?: string
     content?: Record<string, any>
   }>(event)
 
   // 至少需要提供一个更新字段
-  if (!body?.title && !body?.summary && !body?.content) {
+  if (!body?.title && body?.summary === undefined && body?.coverImage === undefined && !body?.content) {
     throw createError({
       statusCode: 400,
-      statusMessage: '至少需要提供 title、summary 或 content 中的一个字段',
+      statusMessage: '至少需要提供 title、summary、coverImage 或 content 中的一个字段',
     })
   }
 
   // 构建更新对象
-  const updates: { title?: string; summary?: string; content?: Record<string, any> } = {}
+  const updates: { title?: string; summary?: string; coverImage?: string; content?: Record<string, any> } = {}
 
   if (body.title !== undefined && typeof body.title === 'string' && body.title.trim() !== '') {
     updates.title = body.title.trim()
   }
   if (body.summary !== undefined) {
     updates.summary = typeof body.summary === 'string' ? body.summary.trim() : undefined
+  }
+  if (body.coverImage !== undefined) {
+    updates.coverImage = typeof body.coverImage === 'string' ? body.coverImage.trim() : ''
   }
   if (body.content !== undefined && typeof body.content === 'object') {
     updates.content = body.content

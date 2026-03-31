@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     title?: string
     summary?: string
+    coverImage?: string
     content?: Record<string, any>
   }>(event)
 
@@ -32,6 +33,7 @@ export default defineEventHandler(async (event) => {
     id: uuidv4(),
     title: body.title.trim(),
     summary: body.summary?.trim() || '',
+    coverImage: typeof body.coverImage === 'string' ? body.coverImage.trim() : '',
     content: body.content,
   })
 
