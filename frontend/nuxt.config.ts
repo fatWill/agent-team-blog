@@ -16,7 +16,7 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    maxRequestBodySize: 10 * 1024 * 1024, // 10MB，兼容分片 + 表单字段开销
+    maxRequestBodySize: 500 * 1024 * 1024, // 500MB
   },
 
   devtools: { enabled: false },
@@ -27,6 +27,7 @@ export default defineNuxtConfig({
   ],
 
   app: {
+    cdnURL: 'https://cdn.fatwill.cloud',
     head: {
       title: 'fatwillzeng - 个人博客',
       htmlAttrs: {

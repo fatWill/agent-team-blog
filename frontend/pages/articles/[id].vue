@@ -32,12 +32,8 @@
     <!-- 文章内容 -->
     <main class="mx-auto max-w-3xl px-4 pt-16 pb-10">
       <!-- 加载状态 -->
-      <div v-if="loading" class="space-y-4">
-        <div class="h-8 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-        <div class="h-4 w-1/3 animate-pulse rounded bg-gray-100 dark:bg-gray-700/50" />
-        <div class="mt-8 space-y-3">
-          <div v-for="i in 8" :key="i" class="h-4 animate-pulse rounded bg-gray-100 dark:bg-gray-700/50" :class="i === 8 ? 'w-2/3' : 'w-full'" />
-        </div>
+      <div v-if="loading" class="flex items-center justify-center py-20">
+        <ASpin size="large" tip="加载中..." />
       </div>
 
       <!-- 错误状态 -->
@@ -76,6 +72,8 @@
 </template>
 
 <script setup lang="ts">
+import { Spin as ASpin } from 'ant-design-vue'
+import 'ant-design-vue/es/spin/style'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'

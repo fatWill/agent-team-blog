@@ -165,13 +165,8 @@
         <div class="mb-6">
           <input v-model="searchKeyword" type="text" placeholder="按标题搜索文章..." class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-primary-400" />
         </div>
-        <div v-if="manageLoading" class="space-y-3">
-          <div v-for="i in 3" :key="i" class="animate-pulse rounded-lg border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div class="flex items-center gap-4">
-              <div class="h-12 w-20 rounded bg-gray-200 dark:bg-gray-700" />
-              <div class="flex-1"><div class="mb-2 h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700" /><div class="h-3 w-1/4 rounded bg-gray-100 dark:bg-gray-700/50" /></div>
-            </div>
-          </div>
+        <div v-if="manageLoading" class="flex items-center justify-center py-20">
+          <ASpin size="large" tip="加载中..." />
         </div>
         <div v-else-if="manageArticles.length > 0" class="space-y-3">
           <div v-for="article in manageArticles" :key="article.id" class="rounded-lg border border-gray-100 bg-white p-4 transition-colors dark:border-gray-700 dark:bg-gray-800">
@@ -242,14 +237,9 @@
           </button>
         </div>
 
-        <!-- 加载骨架屏 -->
-        <div v-if="adminAlbumsLoading" class="space-y-3">
-          <div v-for="i in 3" :key="i" class="animate-pulse rounded-lg border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div class="flex items-center gap-4">
-              <div class="h-10 w-10 rounded bg-gray-200 dark:bg-gray-700" />
-              <div class="flex-1"><div class="h-4 w-1/3 rounded bg-gray-200 dark:bg-gray-700" /></div>
-            </div>
-          </div>
+        <!-- 加载中 -->
+        <div v-if="adminAlbumsLoading" class="flex items-center justify-center py-20">
+          <ASpin size="large" tip="加载中..." />
         </div>
 
         <!-- 相册列表 -->
@@ -322,11 +312,9 @@
             </div>
           </div>
 
-          <!-- 加载骨架屏 -->
-          <div v-if="adminPhotosLoading" class="grid grid-cols-3 gap-3">
-            <div v-for="i in 6" :key="i" class="animate-pulse">
-              <div class="aspect-square rounded-lg bg-gray-200 dark:bg-gray-700" />
-            </div>
+          <!-- 加载中 -->
+          <div v-if="adminPhotosLoading" class="flex items-center justify-center py-20">
+            <ASpin size="large" tip="加载中..." />
           </div>
 
           <!-- 照片网格 -->
@@ -468,6 +456,10 @@ import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
+import { Spin as ASpin, message, Modal } from 'ant-design-vue'
+import 'ant-design-vue/es/spin/style'
+import 'ant-design-vue/es/message/style'
+import 'ant-design-vue/es/modal/style'
 import type { ArticleListItem, AlbumItem, PhotoItem } from '~/types'
 import { useAuthStore } from '~/stores/auth'
 import { chunkedUpload } from '~/utils/chunkedUpload'
@@ -576,7 +568,7 @@ async function uploadCoverFile(file: File) {
   try {
     const url = await chunkedUpload(file, (p) => { coverUploadPercent.value = p.percent })
     form.coverImage = url
-  } catch { alert('封面图上传失败，请重试') }
+  } catch { message.error('封面图上传失败，请重试') }
   finally { coverUploading.value = false; coverUploadPercent.value = 0 }
 }
 
@@ -606,10 +598,12 @@ async function handlePublish() {
     if (editingArticleId.value) {
       await apiUpdateArticle(editingArticleId.value, payload)
       publishSuccess.value = true
+      message.success('文章保存成功')
       setTimeout(() => { resetForm(); activeTab.value = 'manage'; publishSuccess.value = false; fetchManageArticles() }, 1500)
     } else {
       await apiCreateArticle(payload)
       publishSuccess.value = true
+      message.success('文章发布成功')
       resetForm()
       setTimeout(() => { publishSuccess.value = false }, 3000)
     }
@@ -617,10 +611,13 @@ async function handlePublish() {
     const fetchErr = err as { data?: { statusMessage?: string }; statusCode?: number }
     if (fetchErr?.statusCode === 401 || (fetchErr?.data as Record<string, unknown>)?.statusCode === 401) {
       publishError.value = '登录已过期，请重新登录'
+      message.error('登录已过期，请重新登录')
       authStore.setLoggedIn(false)
       setTimeout(() => router.push('/login'), 1500)
     } else {
-      publishError.value = editingArticleId.value ? '保存失败，请重试' : '发布失败，请重试'
+      const errMsg = editingArticleId.value ? '保存失败，请重试' : '发布失败，请重试'
+      publishError.value = errMsg
+      message.error(errMsg)
     }
   } finally { publishing.value = false }
 }
@@ -662,20 +659,29 @@ async function startEdit(article: ArticleListItem) {
     form.coverImage = detail.coverImage || ''
     editor.value?.commands.setContent(detail.content)
     activeTab.value = 'write'
-  } catch { alert('加载文章详情失败，请重试') }
+  } catch { message.error('加载文章详情失败，请重试') }
 }
 
 async function handleDelete(article: ArticleListItem) {
-  if (!confirm(`确定要删除「${article.title}」吗？此操作不可撤销。`)) return
-  deletingId.value = article.id
-  try {
-    await apiDeleteArticle(article.id)
-    await fetchManageArticles()
-  } catch (err: unknown) {
-    const fetchErr = err as { statusCode?: number }
-    if (fetchErr?.statusCode === 401) { alert('登录已过期，请重新登录'); authStore.setLoggedIn(false); router.push('/login') }
-    else alert('删除失败，请重试')
-  } finally { deletingId.value = null }
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除「${article.title}」吗？此操作不可撤销。`,
+    okText: '确定删除',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      deletingId.value = article.id
+      try {
+        await apiDeleteArticle(article.id)
+        message.success('文章删除成功')
+        await fetchManageArticles()
+      } catch (err: unknown) {
+        const fetchErr = err as { statusCode?: number }
+        if (fetchErr?.statusCode === 401) { message.error('登录已过期，请重新登录'); authStore.setLoggedIn(false); router.push('/login') }
+        else message.error('删除失败，请重试')
+      } finally { deletingId.value = null }
+    },
+  })
 }
 
 // ====== 个人资料 ======
@@ -704,7 +710,8 @@ async function handleAvatarFileChange(e: Event) {
   try {
     const url = await chunkedUpload(file, (p) => { avatarUploadPercent.value = p.percent })
     profileForm.avatar = url
-  } catch { alert('头像上传失败，请重试') }
+    message.success('头像上传成功')
+  } catch { message.error('头像上传失败，请重试') }
   finally { avatarUploading.value = false; avatarUploadPercent.value = 0; input.value = '' }
 }
 
@@ -715,14 +722,19 @@ async function handleSaveProfile() {
   try {
     await apiUpdateProfile({ avatar: profileForm.avatar, bio: profileForm.bio })
     profileSuccess.value = true
+    message.success('个人信息保存成功')
     setTimeout(() => { profileSuccess.value = false }, 3000)
   } catch (err: unknown) {
     const fetchErr = err as { statusCode?: number }
     if (fetchErr?.statusCode === 401) {
       profileError.value = '登录已过期，请重新登录'
+      message.error('登录已过期，请重新登录')
       authStore.setLoggedIn(false)
       setTimeout(() => router.push('/login'), 1500)
-    } else { profileError.value = '保存失败，请重试' }
+    } else {
+      profileError.value = '保存失败，请重试'
+      message.error('保存失败，请重试')
+    }
   } finally { profileSaving.value = false }
 }
 
@@ -803,37 +815,47 @@ async function handleSaveAlbum() {
       })
     }
     closeAlbumModal()
+    message.success(albumModal.editingId ? '相册更新成功' : '相册创建成功')
     await fetchAdminAlbums()
   } catch (err: unknown) {
     const fetchErr = err as { statusCode?: number }
     if (fetchErr?.statusCode === 401) {
-      alert('登录已过期，请重新登录')
+      message.error('登录已过期，请重新登录')
       authStore.setLoggedIn(false)
       router.push('/login')
     } else {
-      alert('保存失败，请重试')
+      message.error('保存失败，请重试')
     }
   } finally { albumModal.saving = false }
 }
 
 async function handleDeleteAlbum(album: AlbumItem) {
-  if (!confirm(`确定要删除相册「${album.name}」吗？其中所有照片也会被删除，此操作不可撤销。`)) return
-  adminDeletingAlbumId.value = album.id
-  try {
-    await apiDeleteAlbum(album.id)
-    if (adminSelectedAlbumId.value === album.id) {
-      adminSelectedAlbumId.value = null
-      adminPhotos.value = []
-    }
-    await fetchAdminAlbums()
-  } catch (err: unknown) {
-    const fetchErr = err as { statusCode?: number }
-    if (fetchErr?.statusCode === 401) {
-      alert('登录已过期，请重新登录')
-      authStore.setLoggedIn(false)
-      router.push('/login')
-    } else { alert('删除失败，请重试') }
-  } finally { adminDeletingAlbumId.value = null }
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除相册「${album.name}」吗？其中所有照片也会被删除，此操作不可撤销。`,
+    okText: '确定删除',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      adminDeletingAlbumId.value = album.id
+      try {
+        await apiDeleteAlbum(album.id)
+        if (adminSelectedAlbumId.value === album.id) {
+          adminSelectedAlbumId.value = null
+          adminPhotos.value = []
+        }
+        message.success('相册删除成功')
+        await fetchAdminAlbums()
+      } catch (err: unknown) {
+        const fetchErr = err as { statusCode?: number }
+        if (fetchErr?.statusCode === 401) {
+          message.error('登录已过期，请重新登录')
+          authStore.setLoggedIn(false)
+          router.push('/login')
+        } else { message.error('删除失败，请重试') }
+      } finally { adminDeletingAlbumId.value = null }
+    },
+  })
 }
 
 /** 批量上传照片（乐观更新：先插入占位卡，成功后替换，失败后显示裂图） */
@@ -881,7 +903,7 @@ async function handlePhotoUpload(e: Event) {
     } catch (err: unknown) {
       const fetchErr = err as { statusCode?: number }
       if (fetchErr?.statusCode === 401) {
-        alert('登录已过期，请重新登录')
+        message.error('登录已过期，请重新登录')
         authStore.setLoggedIn(false)
         router.push('/login')
         return
@@ -899,20 +921,29 @@ async function handlePhotoUpload(e: Event) {
 }
 
 async function handleDeletePhoto(photo: AdminPhotoItem) {
-  if (!confirm('确定要删除这张照片吗？')) return
-  adminDeletingPhotoId.value = photo.id
-  try {
-    await apiDeletePhoto(photo.id)
-    adminPhotos.value = adminPhotos.value.filter(p => p.id !== photo.id)
-    await fetchAdminAlbums() // 刷新 photoCount
-  } catch (err: unknown) {
-    const fetchErr = err as { statusCode?: number }
-    if (fetchErr?.statusCode === 401) {
-      alert('登录已过期，请重新登录')
-      authStore.setLoggedIn(false)
-      router.push('/login')
-    } else { alert('删除失败，请重试') }
-  } finally { adminDeletingPhotoId.value = null }
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定要删除这张照片吗？',
+    okText: '确定删除',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      adminDeletingPhotoId.value = photo.id
+      try {
+        await apiDeletePhoto(photo.id)
+        adminPhotos.value = adminPhotos.value.filter(p => p.id !== photo.id)
+        message.success('照片删除成功')
+        await fetchAdminAlbums() // 刷新 photoCount
+      } catch (err: unknown) {
+        const fetchErr = err as { statusCode?: number }
+        if (fetchErr?.statusCode === 401) {
+          message.error('登录已过期，请重新登录')
+          authStore.setLoggedIn(false)
+          router.push('/login')
+        } else { message.error('删除失败，请重试') }
+      } finally { adminDeletingPhotoId.value = null }
+    },
+  })
 }
 
 function formatDate(dateStr: string): string {
@@ -920,7 +951,10 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-function handleLogout() {
+async function handleLogout() {
+  try {
+    await $fetch('/api/auth/logout', { method: 'POST' })
+  } catch {}
   authStore.logout()
   router.push('/')
 }

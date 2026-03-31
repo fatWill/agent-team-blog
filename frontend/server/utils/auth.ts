@@ -30,6 +30,14 @@ export async function saveToken(token: string, username: string): Promise<void> 
 }
 
 /**
+ * 删除 Token（退出登录时调用）
+ */
+export async function deleteToken(token: string): Promise<void> {
+  const redis = getRedis()
+  await redis.del(`${TOKEN_KEY_PREFIX}${token}`)
+}
+
+/**
  * 验证 Token 是否有效，通过则滚动续期
  * 返回用户名或 null
  */

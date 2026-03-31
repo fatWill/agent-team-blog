@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
 
   const mergedBuffer = Buffer.concat(chunks)
 
-  // 生成最终文件名（同 upload.post.ts 命名规则）
+  // 生成最终文件名，保留原始扩展名
   const finalFilename = `${Date.now()}-${randomString(8)}${ext}`
 
   // 确定上传目录
@@ -98,7 +98,7 @@ export default defineEventHandler(async (event) => {
     mkdirSync(uploadDir, { recursive: true, mode: 0o755 })
   }
 
-  // 写入最终文件
+  // 直接写入合并后的原始文件
   const filePath = join(uploadDir, finalFilename)
   writeFileSync(filePath, mergedBuffer, { mode: 0o644 })
 

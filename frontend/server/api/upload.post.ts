@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 生成唯一文件名：时间戳-随机串.扩展名
+  // 生成唯一文件名，保留原始扩展名
   const filename = `${Date.now()}-${randomString(8)}${ext}`
 
   // 确定存储目录
@@ -88,7 +88,7 @@ export default defineEventHandler(async (event) => {
     mkdirSync(uploadDir, { recursive: true, mode: 0o755 })
   }
 
-  // 写入文件（mode 0o644 确保 Nginx worker 有读权限）
+  // 直接写入原图（mode 0o644 确保 Nginx worker 有读权限）
   const filePath = join(uploadDir, filename)
   writeFileSync(filePath, fileField.data, { mode: 0o644 })
 

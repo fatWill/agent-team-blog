@@ -187,32 +187,42 @@
     <main class="mx-auto max-w-3xl px-4 py-8">
       <!-- 文章 Tab -->
       <div v-if="activeTab === 'articles'">
-        <div v-if="loading" class="space-y-4">
-          <div v-for="i in 3" :key="i" class="animate-pulse rounded-xl border border-gray-100 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-            <div class="mb-3 h-5 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-            <div class="mb-2 h-4 w-full rounded bg-gray-100 dark:bg-gray-700/50" />
-            <div class="h-4 w-1/2 rounded bg-gray-100 dark:bg-gray-700/50" />
-          </div>
+        <div v-if="loading" class="flex items-center justify-center py-20">
+          <ASpin size="large" tip="加载中..." />
         </div>
         <div v-else-if="error" class="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
           <p class="text-red-600 dark:text-red-400">加载文章失败，请稍后重试</p>
           <button class="mt-3 text-sm text-primary-500 hover:text-primary-600" @click="fetchArticles">重新加载</button>
         </div>
-        <div v-else-if="articles.length > 0" class="space-y-4">
-          <NuxtLink
-            v-for="article in articles"
-            :key="article.id"
-            :to="`/articles/${article.id}`"
-            class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
-          >
-            <img v-if="article.coverImage" :src="article.coverImage" :alt="article.title" class="h-40 w-full object-cover" />
-            <div class="p-5">
-              <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
-              <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
-              <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
-            </div>
-          </NuxtLink>
-        </div>
+        <DynamicScroller
+          v-else-if="articles.length > 0"
+          :items="articles"
+          :min-item-size="100"
+          key-field="id"
+          class="article-scroller"
+        >
+          <template #default="{ item: article, index, active }">
+            <DynamicScrollerItem
+              :item="article"
+              :active="active"
+              :size-dependencies="[article.coverImage, article.summary]"
+              :data-index="index"
+              class="pb-4"
+            >
+              <NuxtLink
+                :to="`/articles/${article.id}`"
+                class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+              >
+                <img v-if="article.coverImage" :src="article.coverImage" :alt="article.title" class="h-40 w-full object-cover" />
+                <div class="p-5">
+                  <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
+                  <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
+                  <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                </div>
+              </NuxtLink>
+            </DynamicScrollerItem>
+          </template>
+        </DynamicScroller>
         <div v-else class="py-20 text-center">
           <p class="text-gray-400 dark:text-gray-500">暂无文章</p>
         </div>
@@ -232,13 +242,9 @@
             </div>
           </div>
 
-          <!-- 加载骨架屏 -->
-          <div v-if="albumsLoading" class="grid grid-cols-2 gap-3 md:grid-cols-5">
-            <div v-for="i in 6" :key="i" class="animate-pulse">
-              <div class="aspect-square rounded-lg bg-gray-200 dark:bg-gray-700" />
-              <div class="mt-2 h-4 w-2/3 rounded bg-gray-200 dark:bg-gray-700" />
-              <div class="mt-1 h-3 w-1/3 rounded bg-gray-100 dark:bg-gray-700/50" />
-            </div>
+          <!-- 加载中 -->
+          <div v-if="albumsLoading" class="flex items-center justify-center py-20">
+            <ASpin size="large" tip="加载中..." />
           </div>
 
           <!-- 相册集网格 -->
@@ -302,33 +308,54 @@
             </p>
           </div>
 
-          <!-- 加载骨架屏 -->
-          <div v-if="photosLoading" class="grid grid-cols-2 gap-2 md:grid-cols-5">
-            <div v-for="i in 8" :key="i" class="animate-pulse">
-              <div class="aspect-square rounded-lg bg-gray-200 dark:bg-gray-700" />
-            </div>
+          <!-- 加载中 -->
+          <div v-if="photosLoading" class="flex items-center justify-center py-20">
+            <ASpin size="large" tip="加载中..." />
           </div>
 
-          <!-- 按年月分组展示照片 -->
-          <div v-else-if="albumPhotos.length > 0" class="space-y-6">
-            <div v-for="group in groupedPhotos" :key="group.label">
-              <h3 class="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">{{ group.label }}</h3>
-              <div class="grid grid-cols-2 gap-2 md:grid-cols-5">
-                <button
-                  v-for="(photo, idx) in group.photos"
-                  :key="photo.id"
-                  class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
-                  @click="openLightbox(photo)"
+          <!-- 按年月分组展示照片（虚拟滚动） -->
+          <DynamicScroller
+            v-else-if="albumPhotos.length > 0"
+            :items="flatPhotoRows"
+            :min-item-size="40"
+            key-field="id"
+            class="photo-scroller"
+          >
+            <template #default="{ item: row, index, active }">
+              <DynamicScrollerItem
+                :item="row"
+                :active="active"
+                :size-dependencies="[row.type, row.type === 'grid' ? row.photos.length : row.label]"
+                :data-index="index"
+              >
+                <!-- 标题行 -->
+                <div v-if="row.type === 'header'" class="min-h-[40px] flex items-end pb-2 pt-4">
+                  <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ row.label }}
+                  </h3>
+                </div>
+                <!-- 图片网格行 -->
+                <div
+                  v-else-if="row.type === 'grid'"
+                  class="mb-2 grid grid-cols-2 gap-2 md:grid-cols-5"
+                  style="min-height: 120px;"
                 >
-                  <img
-                    :src="photo.url"
-                    :alt="photo.caption || '照片'"
-                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
+                  <button
+                    v-for="photo in row.photos"
+                    :key="photo.id"
+                    class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
+                    @click="openLightbox(photo)"
+                  >
+                    <img
+                      :src="photo.url"
+                      :alt="photo.caption || '照片'"
+                      class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </button>
+                </div>
+              </DynamicScrollerItem>
+            </template>
+          </DynamicScroller>
 
           <!-- 空状态 -->
           <div v-else class="py-20 text-center">
@@ -339,14 +366,8 @@
 
       <!-- 更新日志 Tab -->
       <div v-else-if="activeTab === 'changelog'">
-        <div v-if="changelogLoading" class="space-y-6">
-          <div v-for="i in 2" :key="i" class="animate-pulse">
-            <div class="mb-3 h-5 w-32 rounded bg-gray-200 dark:bg-gray-700" />
-            <div class="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
-              <div class="h-4 w-3/4 rounded bg-gray-100 dark:bg-gray-700/50" />
-              <div class="h-4 w-2/3 rounded bg-gray-100 dark:bg-gray-700/50" />
-            </div>
-          </div>
+        <div v-if="changelogLoading" class="flex items-center justify-center py-20">
+          <ASpin size="large" tip="加载中..." />
         </div>
         <div v-else class="relative">
           <div class="absolute left-[7px] top-2 bottom-2 w-px bg-gray-200 dark:bg-gray-700" />
@@ -384,26 +405,47 @@
       <Transition name="lightbox-fade">
         <div
           v-if="lightbox.visible"
-          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90"
-          @click.self="closeLightbox"
-          @keydown.left="prevPhoto"
-          @keydown.right="nextPhoto"
-          @keydown.escape="closeLightbox"
+          class="fixed inset-0 z-[100] select-none"
+          style="background-color: rgba(0,0,0,0.92);"
+          @touchstart="onTouchStart"
+          @touchmove.prevent="onTouchMove"
+          @touchend="onTouchEnd"
         >
-          <!-- 关闭按钮 -->
-          <button
-            class="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
-            @click="closeLightbox"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <!-- 顶部操作栏 -->
+          <div class="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-4 pb-2">
+            <!-- 计数 -->
+            <span class="text-sm text-white/60">{{ lightbox.index + 1 }} / {{ albumPhotos.length }}</span>
+            <!-- 右侧：下载 + 关闭 -->
+            <div class="flex items-center gap-2">
+              <!-- 下载按钮 -->
+              <a
+                v-if="lightboxCurrentPhoto"
+                :href="lightboxCurrentPhoto.url"
+                :download="`photo-${lightbox.index + 1}.jpg`"
+                target="_blank"
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+                @click.stop
+              >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </a>
+              <!-- 关闭按钮 -->
+              <button
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+                @click="closeLightbox"
+              >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
 
-          <!-- 左箭头 -->
+          <!-- 左箭头（放大时隐藏） -->
           <button
-            v-if="lightbox.index > 0"
-            class="absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            v-if="lightbox.index > 0 && lightbox.scale <= 1"
+            class="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
             @click.stop="prevPhoto"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -411,10 +453,10 @@
             </svg>
           </button>
 
-          <!-- 右箭头 -->
+          <!-- 右箭头（放大时隐藏） -->
           <button
-            v-if="lightbox.index < albumPhotos.length - 1"
-            class="absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            v-if="lightbox.index < albumPhotos.length - 1 && lightbox.scale <= 1"
+            class="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
             @click.stop="nextPhoto"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -422,28 +464,53 @@
             </svg>
           </button>
 
-          <!-- 图片区域（支持触摸滑动 + 双指缩放） -->
-          <div
-            class="flex max-h-[90vh] max-w-[90vw] items-center justify-center"
-            @click.stop
-            @touchstart="onTouchStart"
-            @touchmove="onTouchMove"
-            @touchend="onTouchEnd"
-          >
-            <img
-              v-if="lightboxCurrentPhoto"
-              :src="lightboxCurrentPhoto.url"
-              :alt="lightboxCurrentPhoto.caption || '照片'"
-              class="max-h-[90vh] max-w-[90vw] object-contain transition-transform duration-200"
-              :style="{ transform: `scale(${lightbox.scale})` }"
-              draggable="false"
-            />
+          <!-- Swiper 容器（overflow hidden，水平切换） -->
+          <div class="absolute inset-0 overflow-hidden">
+            <!-- 轨道：宽度为 N * 100%，用 translateX 切换 -->
+            <div
+              class="flex h-full"
+              :style="{
+                width: `${albumPhotos.length * 100}%`,
+                transform: `translateX(calc(-${lightbox.index * (100 / albumPhotos.length)}% + ${lightbox.swipeX}px))`,
+                transition: lightbox.swiping ? 'none' : 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+              }"
+            >
+              <div
+                v-for="(photo, idx) in albumPhotos"
+                :key="photo.id"
+                class="flex h-full items-center justify-center flex-shrink-0"
+                :style="{ width: `${100 / albumPhotos.length}%` }"
+              >
+                <img
+                  v-if="Math.abs(idx - lightbox.index) <= 1"
+                  :src="photo.url"
+                  :alt="photo.caption || '照片'"
+                  class="max-h-[85vh] max-w-[90vw] object-contain"
+                  :style="idx === lightbox.index ? {
+                    transform: `scale(${lightbox.scale}) translate(${lightbox.panX / lightbox.scale}px, ${lightbox.panY / lightbox.scale}px)`,
+                    transition: (lightbox.panning || isPinchingRef) ? 'none' : (lightbox.scale === 1 ? 'transform 0.25s cubic-bezier(0.4,0,0.2,1)' : 'none'),
+                    cursor: lightbox.scale > 1 ? 'grab' : 'default',
+                    willChange: 'transform',
+                  } : {}"
+                  draggable="false"
+                />
+              </div>
+            </div>
           </div>
 
-          <!-- 底部信息 -->
-          <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center">
-            <span class="text-sm text-white/70">{{ lightbox.index + 1 }} / {{ albumPhotos.length }}</span>
-            <p v-if="lightboxCurrentPhoto?.caption" class="mt-1 text-sm text-white/50">{{ lightboxCurrentPhoto.caption }}</p>
+          <!-- 底部 caption -->
+          <div v-if="lightboxCurrentPhoto?.caption" class="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
+            <p class="text-sm text-white/50">{{ lightboxCurrentPhoto.caption }}</p>
+          </div>
+
+          <!-- 底部指示点 -->
+          <div v-if="albumPhotos.length > 1" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+            <span
+              v-for="(_, i) in albumPhotos"
+              :key="i"
+              class="h-1.5 rounded-full transition-all duration-200"
+              :class="i === lightbox.index ? 'w-4 bg-white' : 'w-1.5 bg-white/30'"
+            />
           </div>
         </div>
       </Transition>
@@ -457,6 +524,8 @@
 </template>
 
 <script setup lang="ts">
+import { Spin as ASpin } from 'ant-design-vue'
+import 'ant-design-vue/es/spin/style'
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos } from '~/utils/api'
 
@@ -560,6 +629,27 @@ const groupedPhotos = computed(() => {
   return groups
 })
 
+type PhotoListRow =
+  | { id: string; type: 'header'; label: string }
+  | { id: string; type: 'grid'; photos: PhotoItem[] }
+
+/** 将分组拍平为虚拟滚动的行列表（标题行 + 每2列/5列的图片行） */
+const flatPhotoRows = computed<PhotoListRow[]>(() => {
+  const rows: PhotoListRow[] = []
+  for (const group of groupedPhotos.value) {
+    rows.push({ id: `header-${group.label}`, type: 'header', label: group.label })
+    // 每行按 grid 列数拆分（移动端2列，PC端5列，这里统一按最小公倍数2拆分，CSS负责显示列数）
+    for (let i = 0; i < group.photos.length; i += 5) {
+      rows.push({
+        id: `grid-${group.label}-${i}`,
+        type: 'grid',
+        photos: group.photos.slice(i, i + 5),
+      })
+    }
+  }
+  return rows
+})
+
 async function fetchAlbums() {
   albumsLoading.value = true
   try {
@@ -596,6 +686,13 @@ const lightbox = reactive({
   visible: false,
   index: 0,
   scale: 1,
+  // swiper 切换时的水平拖动偏移（正常模式）
+  swipeX: 0,
+  swiping: false,
+  // 放大时的平移偏移
+  panX: 0,
+  panY: 0,
+  panning: false,
 })
 
 const lightboxCurrentPhoto = computed(() => {
@@ -607,18 +704,27 @@ function openLightbox(photo: PhotoItem) {
   const idx = albumPhotos.value.findIndex(p => p.id === photo.id)
   lightbox.index = idx >= 0 ? idx : 0
   lightbox.scale = 1
+  lightbox.swipeX = 0
+  lightbox.panX = 0
+  lightbox.panY = 0
   lightbox.visible = true
 }
 
 function closeLightbox() {
   lightbox.visible = false
   lightbox.scale = 1
+  lightbox.swipeX = 0
+  lightbox.panX = 0
+  lightbox.panY = 0
 }
 
 function prevPhoto() {
   if (lightbox.index > 0) {
     lightbox.index--
     lightbox.scale = 1
+    lightbox.swipeX = 0
+    lightbox.panX = 0
+    lightbox.panY = 0
   }
 }
 
@@ -626,6 +732,9 @@ function nextPhoto() {
   if (lightbox.index < albumPhotos.value.length - 1) {
     lightbox.index++
     lightbox.scale = 1
+    lightbox.swipeX = 0
+    lightbox.panX = 0
+    lightbox.panY = 0
   }
 }
 
@@ -637,13 +746,18 @@ function handleKeydown(e: KeyboardEvent) {
   else if (e.key === 'Escape') closeLightbox()
 }
 
-// 触摸滑动 + 双指缩放
+// ======== 触摸处理 ========
 let touchStartX = 0
 let touchStartY = 0
 let touchStartDist = 0
 let touchStartScale = 1
-let isSwiping = false
-let isPinching = false
+let touchStartPanX = 0
+let touchStartPanY = 0
+// 双指中点（相对于图片容器中心的偏移），用于以双指中点为缩放原点
+let pinchCenterX = 0
+let pinchCenterY = 0
+const isPinchingRef = ref(false) // 需要模板访问，用 ref
+let isTouchActive = false
 
 function getTouchDist(touches: TouchList): number {
   if (touches.length < 2) return 0
@@ -653,44 +767,116 @@ function getTouchDist(touches: TouchList): number {
 }
 
 function onTouchStart(e: TouchEvent) {
+  isTouchActive = true
   if (e.touches.length === 2) {
     // 双指缩放开始
-    isPinching = true
-    isSwiping = false
+    isPinchingRef.value = true
+    lightbox.swiping = false
+    lightbox.panning = false
     touchStartDist = getTouchDist(e.touches)
     touchStartScale = lightbox.scale
+    touchStartPanX = lightbox.panX
+    touchStartPanY = lightbox.panY
+    // 记录双指中点（屏幕坐标转换为相对于屏幕中心的偏移）
+    pinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - window.innerWidth / 2
+    pinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - window.innerHeight / 2
   } else if (e.touches.length === 1) {
-    isSwiping = true
-    isPinching = false
+    isPinchingRef.value = false
     touchStartX = e.touches[0].clientX
     touchStartY = e.touches[0].clientY
+    touchStartPanX = lightbox.panX
+    touchStartPanY = lightbox.panY
+    if (lightbox.scale > 1) {
+      // 放大模式：拖动平移
+      lightbox.panning = true
+      lightbox.swiping = false
+    } else {
+      // 正常模式：swipe 切换
+      lightbox.swiping = true
+      lightbox.panning = false
+    }
   }
 }
 
 function onTouchMove(e: TouchEvent) {
-  if (isPinching && e.touches.length === 2) {
-    e.preventDefault()
+  if (!isTouchActive) return
+
+  if (isPinchingRef.value && e.touches.length === 2) {
+    // 双指缩放 —— 完全跟手，无任何 transition
     const dist = getTouchDist(e.touches)
     const ratio = dist / touchStartDist
-    lightbox.scale = Math.min(4, Math.max(0.5, touchStartScale * ratio))
+    const newScale = Math.min(4, Math.max(1, touchStartScale * ratio))
+
+    // 以双指中点为缩放原点：
+    // 当 scale 从 S0 变为 S1，图片上双指中点对应的位置不变
+    // 需要调整 panX/panY 使中点锁定
+    const scaleDelta = newScale - touchStartScale
+    lightbox.scale = newScale
+
+    if (newScale > 1) {
+      // 以 pinchCenter 为原点调整平移，使缩放原点保持在双指中点
+      const newPanX = touchStartPanX - pinchCenterX * scaleDelta / touchStartScale
+      const newPanY = touchStartPanY - pinchCenterY * scaleDelta / touchStartScale
+      const maxPan = (newScale - 1) * window.innerWidth * 0.5
+      const maxPanY = (newScale - 1) * window.innerHeight * 0.5
+      lightbox.panX = Math.max(-maxPan, Math.min(maxPan, newPanX))
+      lightbox.panY = Math.max(-maxPanY, Math.min(maxPanY, newPanY))
+    } else {
+      lightbox.panX = 0
+      lightbox.panY = 0
+    }
+    return
+  }
+
+  if (e.touches.length !== 1) return
+
+  const dx = e.touches[0].clientX - touchStartX
+  const dy = e.touches[0].clientY - touchStartY
+
+  if (lightbox.scale > 1 && lightbox.panning) {
+    // 放大模式：平移图片（限制在合理范围内）
+    const maxPan = (lightbox.scale - 1) * window.innerWidth * 0.5
+    const maxPanY = (lightbox.scale - 1) * window.innerHeight * 0.5
+    lightbox.panX = Math.max(-maxPan, Math.min(maxPan, touchStartPanX + dx))
+    lightbox.panY = Math.max(-maxPanY, Math.min(maxPanY, touchStartPanY + dy))
+  } else if (lightbox.scale <= 1 && lightbox.swiping) {
+    // 正常模式：跟手拖动（带阻尼）
+    const resistance = Math.abs(dy) > Math.abs(dx) ? 0.3 : 1
+    lightbox.swipeX = dx * resistance
   }
 }
 
 function onTouchEnd(e: TouchEvent) {
-  if (isPinching) {
-    isPinching = false
+  if (!isTouchActive) return
+  isTouchActive = false
+
+  if (isPinchingRef.value) {
+    isPinchingRef.value = false
+    // 缩放回 1 时重置 pan，带弹性（transition 在 scale===1 时会生效）
+    if (lightbox.scale <= 1) {
+      lightbox.scale = 1
+      lightbox.panX = 0
+      lightbox.panY = 0
+    }
+    lightbox.panning = false
     return
   }
-  if (isSwiping && e.changedTouches.length === 1) {
-    const dx = e.changedTouches[0].clientX - touchStartX
-    const dy = e.changedTouches[0].clientY - touchStartY
-    // 水平滑动距离 > 50px 且大于垂直距离
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
-      if (dx > 0) prevPhoto()
-      else nextPhoto()
+
+  if (lightbox.scale <= 1 && lightbox.swiping) {
+    // swipe 切换判断：超过屏幕宽度 25% 则切换
+    const threshold = window.innerWidth * 0.25
+    if (lightbox.swipeX < -threshold) {
+      nextPhoto()
+    } else if (lightbox.swipeX > threshold) {
+      prevPhoto()
+    } else {
+      // 未达到阈值，弹回
+      lightbox.swipeX = 0
     }
-    isSwiping = false
+    lightbox.swiping = false
   }
+
+  lightbox.panning = false
 }
 
 // 生活 Tab 切换时加载相册
@@ -753,5 +939,12 @@ useHead({
 .lightbox-fade-enter-from,
 .lightbox-fade-leave-to {
   opacity: 0;
+}
+
+/* 虚拟滚动容器：铺满内容区，由父容器决定可视高度 */
+.article-scroller,
+.photo-scroller {
+  height: calc(100vh - 220px);
+  min-height: 400px;
 }
 </style>
