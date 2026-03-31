@@ -299,7 +299,7 @@ function handleLogout() {
   router.push('/')
 }
 
-onBeforeUnmount(() => {
+onUnmounted(() => {
   editor.value?.destroy()
 })
 
