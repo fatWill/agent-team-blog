@@ -15,6 +15,10 @@ export default defineNuxtConfig({
     redisPassword: process.env.REDIS_PASSWORD || '',
   },
 
+  nitro: {
+    maxRequestBodySize: 10 * 1024 * 1024, // 10MB，兼容分片 + 表单字段开销
+  },
+
   devtools: { enabled: false },
 
   modules: [

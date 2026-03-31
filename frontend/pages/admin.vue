@@ -338,7 +338,7 @@
             >
               <!-- 上传中：loading 占位 -->
               <template v-if="photo.status === 'uploading'">
-                <div class="flex h-full w-full flex-col items-center justify-center gap-2">
+                <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800">
                   <svg class="h-8 w-8 animate-spin text-primary-400" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />

@@ -1,6 +1,6 @@
 /** 分片上传工具 —— 支持进度回调、断点续传（分片）、自动清理 */
 
-const CHUNK_SIZE = 2 * 1024 * 1024 // 2MB 每片
+const CHUNK_SIZE = 1.5 * 1024 * 1024 // 1.5MB 每片，预留 FormData 字段开销
 
 export interface UploadProgress {
   loaded: number   // 已上传字节
@@ -119,8 +119,8 @@ async function uploadLargeFile(
 
 /**
  * 分片上传主函数
- * - 文件 ≤ 2MB：直接用 fetch 上传（开始/结束两段式进度）
- * - 文件 > 2MB：分片上传
+ * - 文件 ≤ 1.5MB：直接用 fetch 上传（开始/结束两段式进度）
+ * - 文件 > 1.5MB：分片上传
  * @param file 要上传的文件
  * @param onProgress 进度回调
  * @returns 最终图片 URL
