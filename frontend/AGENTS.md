@@ -34,6 +34,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | API 服务 | `utils/api.ts` | 封装登录、文章 CRUD、图片上传、个人资料接口 |
 | 认证 Store | `stores/auth.ts` | Pinia 认证状态管理 |
 | 类型定义 | `types/index.ts` | 全局 TS 类型：文章、登录、Tab、Profile 等 |
+| 分片上传 | `utils/chunkedUpload.ts` | 分片上传工具（进度回调、断点续传、自动清理） |
 | 数据库连接 | `server/utils/db.ts` | MySQL 连接池（mysql2，进程级单例） |
 | 文章 DAO | `server/utils/articles.ts` | 文章 CRUD 操作（MySQL） |
 | 更新日志 DAO | `server/utils/changelog.ts` | 更新日志查询（MySQL） |
@@ -60,7 +61,10 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 更新文章 | PUT | `/api/articles/:id` | 需鉴权，部分更新，支持 coverImage |
 | 删除文章 | DELETE | `/api/articles/:id` | 需鉴权，物理删除 |
 | 更新日志 | GET | `/api/changelog` | 返回所有版本更新日志，数据源 MySQL changelogs 表 |
-| 图片上传 | POST | `/api/upload` | 需鉴权，multipart/form-data，支持 jpg/png/gif/webp，最大 5MB |
+| 图片上传 | POST | `/api/upload` | 需鉴权，multipart/form-data，支持 jpg/png/gif/webp |
+| 上传分片 | POST | `/api/upload/chunk` | 需鉴权，上传单个分片（uploadId/chunkIndex/totalChunks/filename） |
+| 合并分片 | POST | `/api/upload/merge` | 需鉴权，合并所有分片，返回最终 URL |
+| 取消上传 | DELETE | `/api/upload/chunk` | 需鉴权，清理临时分片文件 |
 | 获取资料 | GET | `/api/profile` | 公开接口，返回博主头像和简介 |
 | 更新资料 | PUT | `/api/profile` | 需鉴权，更新博主头像和简介 |
 | 相册列表 | GET | `/api/albums` | 公开接口，返回所有相册集（含 photoCount、coverUrl） |
@@ -115,6 +119,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-03-31: 图片上传支持进度条和分片上传（>2MB 自动分片）；移除前端 5MB 大小限制；新增 chunkedUpload 工具函数
 - 2026-03-31: 新增相册功能（albums/photos 表）；完整 CRUD API（7个接口）；相册 DAO 层；前端类型定义和 API 封装
 - 2026-03-31: 新增图片上传接口（POST /api/upload）和个人资料接口（GET/PUT /api/profile）；新建 profile 表和 profile DAO；uploads 目录静态伺服
 - 2026-03-31: Token 持久化到 MySQL auth_tokens 表，重启/部署不再丢失登录态
