@@ -197,6 +197,10 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: ['auth'],
+})
+
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
@@ -207,13 +211,6 @@ import { apiCreateArticle } from '~/utils/api'
 const router = useRouter()
 const authStore = useAuthStore()
 const { isDark, toggleTheme } = useTheme()
-
-// 鉴权检查
-onMounted(() => {
-  if (!authStore.isLoggedIn) {
-    router.push('/login')
-  }
-})
 
 const form = reactive({
   title: '',

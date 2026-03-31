@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   // 将 Token 写入 httpOnly cookie
   setCookie(event, 'auth_token', token, {
     httpOnly: true,
-    maxAge: 60 * 60 * 24, // 24 小时
+    maxAge: 60 * 60 * 72, // 72 小时
     path: '/',
     sameSite: 'lax',
   })
