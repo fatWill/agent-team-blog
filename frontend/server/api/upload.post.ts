@@ -14,9 +14,6 @@ const ALLOWED_MIMES = new Set([
   'image/webp',
 ])
 
-/** 最大文件大小：5MB */
-const MAX_FILE_SIZE = 5 * 1024 * 1024
-
 /**
  * 生成随机字符串
  */
@@ -55,14 +52,6 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: '缺少 file 字段或文件为空',
-    })
-  }
-
-  // 校验文件大小
-  if (fileField.data.length > MAX_FILE_SIZE) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: '文件大小不能超过 5MB',
     })
   }
 
