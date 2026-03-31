@@ -99,12 +99,18 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
               </svg>
-              <svg v-else class="mb-2 h-10 w-10 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ coverUploading ? '上传中...' : '点击上传封面图' }}</span>
-              <span v-if="!coverUploading" class="mt-1 text-xs text-gray-400 dark:text-gray-500">支持 JPG/PNG/GIF/WebP，最大 5MB</span>
+              <div v-if="coverUploading" class="flex flex-col items-center gap-2">
+                <svg class="h-8 w-8 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <div class="w-full max-w-xs bg-gray-200 rounded-full h-1.5 dark:bg-gray-600">
+                  <div class="bg-primary-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: coverUploadPercent + '%' }" />
+                </div>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ coverUploadPercent }}%</span>
+              </div>
+              <span v-if="!coverUploading" class="text-sm font-medium text-gray-600 dark:text-gray-400">点击上传封面图</span>
+              <span v-if="!coverUploading" class="mt-1 text-xs text-gray-400 dark:text-gray-500">支持 JPG/PNG/GIF/WebP</span>
             </div>
             <div v-else class="relative inline-block">
               <img :src="form.coverImage" alt="封面图预览" class="h-40 w-auto rounded-lg border border-gray-200 object-cover dark:border-gray-600" />
@@ -204,6 +210,12 @@
               </div>
             </div>
             <button type="button" :disabled="avatarUploading" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800" @click="avatarFileInput?.click()">{{ avatarUploading ? '上传中...' : '更换头像' }}</button>
+            <div v-if="avatarUploading" class="w-32 mt-2">
+              <div class="bg-gray-200 rounded-full h-1.5 dark:bg-gray-600">
+                <div class="bg-primary-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: avatarUploadPercent + '%' }" />
+              </div>
+              <p class="text-xs text-center text-gray-500 mt-1 dark:text-gray-400">{{ avatarUploadPercent }}%</p>
+            </div>
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">个人简介</label>
@@ -312,6 +324,13 @@
                 {{ photoUploadProgress ? '上传中...' : '上传照片' }}
               </button>
             </div>
+            <!-- 单张图片上传进度条 -->
+            <div v-if="photoUploadProgress" class="mt-2 w-full">
+              <div class="bg-gray-200 rounded-full h-1.5 dark:bg-gray-600">
+                <div class="bg-primary-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: photoSinglePercent + '%' }" />
+              </div>
+              <p class="text-xs text-gray-500 mt-1 text-center dark:text-gray-400">第 {{ photoUploadProgress.current + 1 }} 张 · {{ photoSinglePercent }}%</p>
+            </div>
           </div>
 
           <!-- 加载骨架屏 -->
@@ -411,6 +430,7 @@ import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import type { ArticleListItem, AlbumItem, PhotoItem } from '~/types'
 import { useAuthStore } from '~/stores/auth'
+import { chunkedUpload } from '~/utils/chunkedUpload'
 import {
   apiCreateArticle,
   apiUpdateArticle,
@@ -446,6 +466,7 @@ const activeTab = ref('write')
 const editingArticleId = ref<string | null>(null)
 const coverFileInput = ref<HTMLInputElement | null>(null)
 const coverUploading = ref(false)
+const coverUploadPercent = ref(0)
 
 const form = reactive({
   title: '',
@@ -497,13 +518,13 @@ async function handleCoverDrop(e: DragEvent) {
 }
 
 async function uploadCoverFile(file: File) {
-  if (file.size > 5 * 1024 * 1024) { alert('图片大小不能超过 5MB'); return }
   coverUploading.value = true
+  coverUploadPercent.value = 0
   try {
-    const res = await apiUploadImage(file)
-    form.coverImage = res.url
+    const url = await chunkedUpload(file, (p) => { coverUploadPercent.value = p.percent })
+    form.coverImage = url
   } catch { alert('封面图上传失败，请重试') }
-  finally { coverUploading.value = false }
+  finally { coverUploading.value = false; coverUploadPercent.value = 0 }
 }
 
 function resetForm() {
@@ -611,6 +632,7 @@ const profileSaving = ref(false)
 const profileSuccess = ref(false)
 const profileError = ref('')
 const avatarUploading = ref(false)
+const avatarUploadPercent = ref(0)
 
 async function fetchProfile() {
   try {
@@ -624,13 +646,13 @@ async function handleAvatarFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
-  if (file.size > 5 * 1024 * 1024) { alert('图片大小不能超过 5MB'); input.value = ''; return }
   avatarUploading.value = true
+  avatarUploadPercent.value = 0
   try {
-    const res = await apiUploadImage(file)
-    profileForm.avatar = res.url
+    const url = await chunkedUpload(file, (p) => { avatarUploadPercent.value = p.percent })
+    profileForm.avatar = url
   } catch { alert('头像上传失败，请重试') }
-  finally { avatarUploading.value = false; input.value = '' }
+  finally { avatarUploading.value = false; avatarUploadPercent.value = 0; input.value = '' }
 }
 
 async function handleSaveProfile() {
@@ -663,6 +685,7 @@ const adminDeletingPhotoId = ref<number | null>(null)
 
 const photoFileInput = ref<HTMLInputElement | null>(null)
 const photoUploadProgress = ref<{ current: number; total: number } | null>(null)
+const photoSinglePercent = ref(0)
 
 const adminSelectedAlbumName = computed(() => {
   return adminAlbums.value.find(a => a.id === adminSelectedAlbumId.value)?.name || ''
@@ -774,15 +797,12 @@ async function handlePhotoUpload(e: Event) {
 
   for (let i = 0; i < total; i++) {
     const file = files[i]
-    if (file.size > 5 * 1024 * 1024) {
-      alert(`文件「${file.name}」超过 5MB，已跳过`)
-      continue
-    }
+    photoSinglePercent.value = 0
     try {
-      // 先上传图片文件
-      const uploadRes = await apiUploadImage(file)
+      // 先上传图片文件（支持分片 + 进度）
+      const url = await chunkedUpload(file, (p) => { photoSinglePercent.value = p.percent })
       // 再添加到相册
-      await apiAddPhoto(albumId, { url: uploadRes.url })
+      await apiAddPhoto(albumId, { url })
       photoUploadProgress.value = { current: i + 1, total }
     } catch (err: unknown) {
       const fetchErr = err as { statusCode?: number }
@@ -797,6 +817,7 @@ async function handlePhotoUpload(e: Event) {
   }
 
   photoUploadProgress.value = null
+  photoSinglePercent.value = 0
   input.value = ''
 
   // 刷新照片列表和相册列表（更新 photoCount）
