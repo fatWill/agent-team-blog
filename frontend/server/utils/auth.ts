@@ -1,17 +1,17 @@
 import type { H3Event } from 'h3'
-import { getCookie } from 'h3'
+import { getCookie, setCookie } from 'h3'
 
 /** Token 存储条目 */
 interface TokenEntry {
   username: string
-  createdAt: number
+  lastActiveAt: number
 }
 
 /** 内存 Token 存储 Map */
 const tokenStore = new Map<string, TokenEntry>()
 
-/** Token 有效期：24 小时（毫秒） */
-const TOKEN_TTL = 24 * 60 * 60 * 1000
+/** Token 有效期：72 小时（毫秒） */
+const TOKEN_TTL = 72 * 60 * 60 * 1000
 
 /**
  * 生成随机 Token 字符串
@@ -35,11 +35,11 @@ export function saveToken(token: string, username: string): void {
       tokenStore.delete(key)
     }
   }
-  tokenStore.set(token, { username, createdAt: Date.now() })
+  tokenStore.set(token, { username, lastActiveAt: Date.now() })
 }
 
 /**
- * 验证 Token 是否有效
+ * 验证 Token 是否有效，通过则滚动续期
  * 返回用户名或 null
  */
 export function verifyToken(token: string): string | null {
@@ -47,16 +47,18 @@ export function verifyToken(token: string): string | null {
   if (!entry) return null
 
   // 检查是否过期
-  if (Date.now() - entry.createdAt > TOKEN_TTL) {
+  if (Date.now() - entry.lastActiveAt > TOKEN_TTL) {
     tokenStore.delete(token)
     return null
   }
 
+  // 滚动续期：刷新最后活跃时间
+  entry.lastActiveAt = Date.now()
   return entry.username
 }
 
 /**
- * 从请求中提取并验证鉴权信息
+ * 从请求中提取并验证鉴权信息，验证通过自动续期 cookie
  * 未通过鉴权时抛出 401 错误
  */
 export function requireAuth(event: H3Event): string {
@@ -76,6 +78,14 @@ export function requireAuth(event: H3Event): string {
       statusMessage: 'Token 已过期或无效，请重新登录',
     })
   }
+
+  // 续期 cookie（滚动 72 小时）
+  setCookie(event, 'auth_token', token, {
+    httpOnly: true,
+    maxAge: 72 * 60 * 60,
+    path: '/',
+    sameSite: 'lax',
+  })
 
   return username
 }

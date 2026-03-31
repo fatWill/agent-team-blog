@@ -71,6 +71,7 @@ import { useAuthStore } from '~/stores/auth'
 import { apiLogin } from '~/utils/api'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const form = reactive({
@@ -89,7 +90,8 @@ async function handleLogin() {
       password: form.password,
     })
     authStore.setLoggedIn(true)
-    router.push('/admin')
+    const redirectTo = (route.query.redirect as string) || '/'
+    router.push(redirectTo)
   } catch (err: unknown) {
     const fetchErr = err as { data?: { statusMessage?: string } }
     errorMsg.value = fetchErr?.data?.statusMessage || '登录失败，请重试'

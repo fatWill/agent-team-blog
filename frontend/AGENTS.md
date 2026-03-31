@@ -76,6 +76,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - 内容风格：用 Emoji 前缀 + 简短描述，如 `"🎉 个人博客正式上线"`
 
 ## 变更日志
+- 2026-03-31: Admin 入口图标 + Nuxt middleware 鉴权前置 + cookie 72h 滚动续期；新增 /api/auth/check、auth middleware、login redirect
 - 2026-03-31: 为所有数据结构统一添加 createdAt/updatedAt 时间戳字段（ChangelogItem 接口 + changelog.json 历史数据补充）
 - 2026-03-31: 新增「更新日志」Tab，时间轴风格展示版本历史；新增版本号规范和更新日志规则到 AGENTS.md
 - 2026-03-31: 新增更新文章接口（PUT /api/articles/:id），支持 updatedAt 自动刷新；新增 UpdateArticleRequest 类型和 apiUpdateArticle 前端调用
