@@ -312,25 +312,14 @@
               {{ adminSelectedAlbumName }} · 照片管理
             </h3>
             <div class="flex items-center gap-2">
-              <span v-if="photoUploadProgress" class="text-xs text-primary-500">
-                上传中 {{ photoUploadProgress.current }}/{{ photoUploadProgress.total }}
-              </span>
               <input ref="photoFileInput" type="file" accept="image/*" multiple class="hidden" @change="handlePhotoUpload" />
               <button
-                :disabled="!!photoUploadProgress"
-                class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
                 @click="photoFileInput?.click()"
               >
-                {{ photoUploadProgress ? '上传中...' : '上传照片' }}
+                上传照片
               </button>
             </div>
-          </div>
-          <!-- 单张图片上传进度条 -->
-          <div v-if="photoUploadProgress" class="mb-4 w-full">
-            <div class="bg-gray-200 rounded-full h-1.5 dark:bg-gray-600">
-              <div class="bg-primary-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: photoSinglePercent + '%' }" />
-            </div>
-            <p class="text-xs text-gray-500 mt-1 text-center dark:text-gray-400">第 {{ photoUploadProgress.current }} / {{ photoUploadProgress.total }} 张 · {{ photoSinglePercent }}%</p>
           </div>
 
           <!-- 加载骨架屏 -->
@@ -342,16 +331,67 @@
 
           <!-- 照片网格 -->
           <div v-else-if="adminPhotos.length > 0" class="grid grid-cols-3 gap-3">
-            <div v-for="photo in adminPhotos" :key="photo.id" class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
-              <img :src="photo.url" :alt="photo.caption || '照片'" class="h-full w-full object-cover" />
-              <!-- 删除按钮 -->
-              <button
-                class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                :disabled="adminDeletingPhotoId === photo.id"
-                @click="handleDeletePhoto(photo)"
-              >
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+            <div
+              v-for="photo in adminPhotos"
+              :key="photo.id"
+              class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
+            >
+              <!-- 上传中：loading 占位 -->
+              <template v-if="photo.status === 'uploading'">
+                <div class="flex h-full w-full flex-col items-center justify-center gap-2">
+                  <svg class="h-8 w-8 animate-spin text-primary-400" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <!-- 进度条 -->
+                  <div class="w-3/4">
+                    <div class="h-1 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600">
+                      <div
+                        class="h-full rounded-full bg-primary-400 transition-all duration-200"
+                        :style="{ width: photo.uploadPercent + '%' }"
+                      />
+                    </div>
+                    <p class="mt-1 text-center text-xs text-gray-400">{{ photo.uploadPercent }}%</p>
+                  </div>
+                </div>
+              </template>
+
+              <!-- 上传失败：裂图 -->
+              <template v-else-if="photo.status === 'error'">
+                <div class="flex h-full w-full flex-col items-center justify-center gap-1 bg-gray-100 dark:bg-gray-800">
+                  <!-- 裂图 SVG -->
+                  <svg class="h-12 w-12 text-gray-300 dark:text-gray-600" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="64" height="64" rx="4" fill="currentColor" fill-opacity="0.15"/>
+                    <!-- 山和太阳 -->
+                    <path d="M8 48 L20 28 L28 38 L36 24 L56 48 Z" fill="currentColor" fill-opacity="0.25"/>
+                    <circle cx="46" cy="18" r="7" fill="currentColor" fill-opacity="0.25"/>
+                    <!-- 裂缝 -->
+                    <path d="M22 10 L30 28 L24 36 L34 56" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M30 28 L38 22 L44 34" stroke="#EF4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="text-xs text-red-400">上传失败</span>
+                </div>
+                <!-- 失败时也可以点 × 移除 -->
+                <button
+                  class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  @click="adminPhotos = adminPhotos.filter(p => p.id !== photo.id)"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </template>
+
+              <!-- 上传成功：正常显示图片 -->
+              <template v-else>
+                <img :src="photo.url" :alt="photo.caption || '照片'" class="h-full w-full object-cover" />
+                <!-- 删除按钮 -->
+                <button
+                  class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  :disabled="adminDeletingPhotoId === photo.id"
+                  @click="handleDeletePhoto(photo)"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </template>
             </div>
           </div>
           <div v-else class="py-12 text-center">
@@ -448,6 +488,19 @@ import {
   apiAddPhoto,
   apiDeletePhoto,
 } from '~/utils/api'
+
+/** 本地相册照片条目（含上传状态） */
+interface AdminPhotoItem {
+  id: number           // 正式照片为正数 DB id；占位项为负数临时 id
+  albumId: number
+  url: string          // 占位时为空字符串，成功后为真实 url
+  caption: string | null
+  createdAt: string
+  updatedAt: string
+  // 扩展字段（仅本地使用）
+  status: 'done' | 'uploading' | 'error'
+  uploadPercent: number  // 0-100，仅 uploading 时有效
+}
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -679,13 +732,11 @@ const adminAlbumsLoading = ref(false)
 const adminDeletingAlbumId = ref<number | null>(null)
 
 const adminSelectedAlbumId = ref<number | null>(null)
-const adminPhotos = ref<PhotoItem[]>([])
+const adminPhotos = ref<AdminPhotoItem[]>([])
 const adminPhotosLoading = ref(false)
 const adminDeletingPhotoId = ref<number | null>(null)
 
 const photoFileInput = ref<HTMLInputElement | null>(null)
-const photoUploadProgress = ref<{ current: number; total: number } | null>(null)
-const photoSinglePercent = ref(0)
 
 const adminSelectedAlbumName = computed(() => {
   return adminAlbums.value.find(a => a.id === adminSelectedAlbumId.value)?.name || ''
@@ -719,7 +770,7 @@ async function selectAdminAlbum(album: AlbumItem) {
   adminPhotosLoading.value = true
   try {
     const res = await apiGetPhotos(album.id)
-    adminPhotos.value = res.list
+    adminPhotos.value = res.list.map(p => ({ ...p, status: 'done' as const, uploadPercent: 100 }))
   } catch { adminPhotos.value = [] }
   finally { adminPhotosLoading.value = false }
 }
@@ -785,52 +836,69 @@ async function handleDeleteAlbum(album: AlbumItem) {
   } finally { adminDeletingAlbumId.value = null }
 }
 
-/** 批量上传照片 */
+/** 批量上传照片（乐观更新：先插入占位卡，成功后替换，失败后显示裂图） */
 async function handlePhotoUpload(e: Event) {
   const input = e.target as HTMLInputElement
   const files = input.files
   if (!files || files.length === 0 || !adminSelectedAlbumId.value) return
 
   const albumId = adminSelectedAlbumId.value
-  const total = files.length
-  photoUploadProgress.value = { current: 0, total }
 
-  for (let i = 0; i < total; i++) {
-    const file = files[i]
-    photoSinglePercent.value = 0
+  // 为每张图片生成临时 id，并插入占位卡（插到列表最前面）
+  const tempItems: AdminPhotoItem[] = Array.from(files).map((_, i) => ({
+    id: -(Date.now() + i),   // 负数 id，避免与真实 id 冲突
+    albumId,
+    url: '',
+    caption: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    status: 'uploading' as const,
+    uploadPercent: 0,
+  }))
+
+  // 插入到列表最前面
+  adminPhotos.value = [...tempItems, ...adminPhotos.value]
+
+  // 并发上传所有图片（每张独立处理，互不影响）
+  const uploadTasks = Array.from(files).map(async (file, i) => {
+    const tempId = tempItems[i].id
+
     try {
-      // 先上传图片文件（支持分片 + 进度）
-      const url = await chunkedUpload(file, (p) => { photoSinglePercent.value = p.percent })
-      // 再添加到相册
-      await apiAddPhoto(albumId, { url })
-      photoUploadProgress.value = { current: i + 1, total }
+      // 上传文件，获取 url
+      const url = await chunkedUpload(file, (p) => {
+        const idx = adminPhotos.value.findIndex(ph => ph.id === tempId)
+        if (idx !== -1) adminPhotos.value[idx].uploadPercent = p.percent
+      })
+
+      // 调接口存入 DB
+      const photo = await apiAddPhoto(albumId, { url })
+
+      // 替换占位项为真实数据
+      const idx = adminPhotos.value.findIndex(ph => ph.id === tempId)
+      if (idx !== -1) {
+        adminPhotos.value[idx] = { ...photo, status: 'done' as const, uploadPercent: 100 }
+      }
     } catch (err: unknown) {
       const fetchErr = err as { statusCode?: number }
       if (fetchErr?.statusCode === 401) {
         alert('登录已过期，请重新登录')
         authStore.setLoggedIn(false)
         router.push('/login')
-        break
+        return
       }
-      // 单张失败继续上传下一张
+      // 标记为失败
+      const idx = adminPhotos.value.findIndex(ph => ph.id === tempId)
+      if (idx !== -1) adminPhotos.value[idx].status = 'error'
     }
-  }
+  })
 
-  photoUploadProgress.value = null
-  photoSinglePercent.value = 0
+  await Promise.all(uploadTasks)
+
   input.value = ''
-
-  // 刷新照片列表和相册列表（更新 photoCount）
-  if (adminSelectedAlbumId.value) {
-    try {
-      const res = await apiGetPhotos(adminSelectedAlbumId.value)
-      adminPhotos.value = res.list
-    } catch { /* ignore */ }
-  }
-  await fetchAdminAlbums()
+  await fetchAdminAlbums() // 刷新 photoCount 和封面
 }
 
-async function handleDeletePhoto(photo: PhotoItem) {
+async function handleDeletePhoto(photo: AdminPhotoItem) {
   if (!confirm('确定要删除这张照片吗？')) return
   adminDeletingPhotoId.value = photo.id
   try {
