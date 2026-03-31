@@ -94,14 +94,14 @@ export default defineEventHandler(async (event) => {
     ? join(process.cwd(), '..', 'public', 'uploads')
     : join(process.cwd(), 'public', 'uploads')
 
-  // 确保目录存在
+  // 确保目录存在（mode 0o755 确保 Nginx 可访问）
   if (!existsSync(uploadDir)) {
-    mkdirSync(uploadDir, { recursive: true })
+    mkdirSync(uploadDir, { recursive: true, mode: 0o755 })
   }
 
-  // 写入文件
+  // 写入文件（mode 0o644 确保 Nginx worker 有读权限）
   const filePath = join(uploadDir, filename)
-  writeFileSync(filePath, fileField.data)
+  writeFileSync(filePath, fileField.data, { mode: 0o644 })
 
   // 返回可访问的 URL
   return {
