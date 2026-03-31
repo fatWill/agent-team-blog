@@ -11,7 +11,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   const authStore = useAuthStore()
 
-  // 调用服务端 check 接口验证 cookie
+  // 客户端导航时：内存中已有登录状态，直接放行，无需重复请求服务端
+  if (import.meta.client && authStore.isLoggedIn) return
+
+  // 首次进入（SSR 或内存无状态）：请求服务端验证 cookie
   const ok = await authStore.checkAuth()
 
   if (!ok) {
