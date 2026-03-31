@@ -124,7 +124,51 @@
         </div>
       </div>
 
-      <!-- 其他 Tab -->
+      <!-- 更新日志 Tab -->
+      <div v-else-if="activeTab === 'changelog'">
+        <!-- 加载状态 -->
+        <div v-if="changelogLoading" class="space-y-6">
+          <div v-for="i in 2" :key="i" class="animate-pulse">
+            <div class="mb-3 h-5 w-32 rounded bg-gray-200 dark:bg-gray-700" />
+            <div class="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+              <div class="h-4 w-3/4 rounded bg-gray-100 dark:bg-gray-700/50" />
+              <div class="h-4 w-2/3 rounded bg-gray-100 dark:bg-gray-700/50" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 更新日志列表 -->
+        <div v-else class="relative">
+          <!-- 时间轴竖线 -->
+          <div class="absolute left-[7px] top-2 bottom-2 w-px bg-gray-200 dark:bg-gray-700" />
+
+          <div class="space-y-8">
+            <div v-for="item in changelog" :key="item.version" class="relative pl-8">
+              <!-- 时间轴圆点 -->
+              <div class="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-primary-500 bg-white dark:bg-gray-900" />
+
+              <!-- 版本头部 -->
+              <div class="mb-2 flex items-baseline gap-3">
+                <span class="text-sm font-bold text-primary-500 font-mono">v{{ item.version }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ item.date }}</span>
+              </div>
+
+              <!-- 更新条目 -->
+              <ul class="space-y-1.5">
+                <li
+                  v-for="(log, idx) in item.logs"
+                  :key="idx"
+                  class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed"
+                >
+                  {{ log }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 其他 Tab（敬请期待） -->
       <div v-else class="py-20 text-center">
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
           <svg class="h-8 w-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +188,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ArticleListItem, TabItem } from '~/types'
+import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse } from '~/types'
 import { apiFetchArticles } from '~/utils/api'
 
 const { isDark, toggleTheme } = useTheme()
@@ -155,6 +199,7 @@ const tabs: TabItem[] = [
   { key: 'life', label: '生活' },
   { key: 'tools', label: '小工具·小游戏' },
   { key: 'agent-team', label: 'agent team' },
+  { key: 'changelog', label: '更新日志' },
 ]
 const activeTab = ref('articles')
 
@@ -162,6 +207,22 @@ const activeTab = ref('articles')
 const articles = ref<ArticleListItem[]>([])
 const loading = ref(false)
 const error = ref(false)
+
+// 更新日志数据
+const changelog = ref<ChangelogItem[]>([])
+const changelogLoading = ref(false)
+
+async function fetchChangelog() {
+  changelogLoading.value = true
+  try {
+    const res = await $fetch<ChangelogResponse>('/api/changelog')
+    changelog.value = res.changelog
+  } catch {
+    changelog.value = []
+  } finally {
+    changelogLoading.value = false
+  }
+}
 
 async function fetchArticles() {
   loading.value = true
@@ -185,9 +246,10 @@ function formatDate(dateStr: string): string {
   })
 }
 
-// 页面挂载时加载文章
+// 页面挂载时加载文章和更新日志
 onMounted(() => {
   fetchArticles()
+  fetchChangelog()
 })
 
 useHead({
