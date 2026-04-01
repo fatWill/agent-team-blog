@@ -433,6 +433,10 @@
           @touchstart="onTouchStart"
           @touchmove.prevent="onTouchMove"
           @touchend="onTouchEnd"
+          @mousedown="onMouseDown"
+          @mousemove="onMouseMove"
+          @mouseup="onMouseUp"
+          @mouseleave="onMouseUp"
         >
           <!-- 顶部操作栏 -->
           <div class="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-4 pb-2">
@@ -512,7 +516,7 @@
                   :style="idx === lightbox.index ? {
                     transform: `scale(${lightbox.scale}) translate(${lightbox.panX / lightbox.scale}px, ${lightbox.panY / lightbox.scale}px)`,
                     transition: (lightbox.panning || isPinchingRef) ? 'none' : (lightbox.scale === 1 ? 'transform 0.25s cubic-bezier(0.4,0,0.2,1)' : 'none'),
-                    cursor: lightbox.scale > 1 ? 'grab' : 'default',
+                    cursor: lightbox.scale > 1 ? (lightbox.panning ? 'grabbing' : 'grab') : 'default',
                     willChange: 'transform',
                   } : {}"
                   draggable="false"
@@ -526,8 +530,9 @@
             <p class="text-sm text-white/50">{{ lightboxCurrentPhoto.caption }}</p>
           </div>
 
-          <!-- 灯箱点赞按钮 -->
-          <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center">
+          <!-- 灯箱点赞/踩按钮（右上角） -->
+          <div class="absolute top-16 right-4 z-10 flex flex-col items-center gap-2">
+            <!-- 点赞按钮 -->
             <div class="relative flex items-center gap-2">
               <!-- 飘动 +1 动画（灯箱内） -->
               <div class="pointer-events-none absolute inset-0 overflow-visible">
@@ -550,6 +555,24 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
                 </svg>
                 <span class="text-sm text-white font-medium">{{ lightboxCurrentPhoto?.likes ?? 0 }}</span>
+              </button>
+            </div>
+            <!-- 踩按钮 -->
+            <div class="relative flex items-center gap-2">
+              <!-- 飘动 -1 动画 -->
+              <div class="pointer-events-none absolute inset-0 overflow-visible">
+                <span
+                  v-for="anim in (lightboxCurrentPhoto ? (dislikeFloatAnims[lightboxCurrentPhoto.id] || []) : [])"
+                  :key="anim.id"
+                  class="float-plus-one absolute -top-6 left-1/2 -translate-x-1/2 text-base font-bold text-blue-400 select-none"
+                >+1</span>
+              </div>
+              <button
+                class="flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm transition-colors hover:bg-white/20 active:scale-95"
+                @click.stop="lightboxCurrentPhoto && handleDislike(lightboxCurrentPhoto)"
+              >
+                <span class="text-lg leading-none transition-transform duration-200" :class="lightboxCurrentPhoto?.disliked ? 'scale-110' : ''">👎</span>
+                <span class="text-sm text-white font-medium">{{ lightboxCurrentPhoto?.dislikes ?? 0 }}</span>
               </button>
             </div>
           </div>
@@ -668,6 +691,74 @@ async function fetchLikesForPhotos(photos: PhotoItem[]) {
     })
   )
 }
+
+// ====== 踩飘动动画 ======
+const dislikeFloatAnims = ref<Record<number, { id: number }[]>>({})
+let dislikeAnimCounter = 0
+
+function triggerDislikeFloatAnim(photoId: number) {
+  if (!dislikeFloatAnims.value[photoId]) dislikeFloatAnims.value[photoId] = []
+  const key = ++dislikeAnimCounter
+  dislikeFloatAnims.value[photoId].push({ id: key })
+  setTimeout(() => {
+    if (dislikeFloatAnims.value[photoId]) {
+      dislikeFloatAnims.value[photoId] = dislikeFloatAnims.value[photoId].filter(a => a.id !== key)
+    }
+  }, 800)
+}
+
+// ====== 踩处理 ======
+async function handleDislike(photo: PhotoItem) {
+  if (!deviceId.value) return
+  triggerDislikeFloatAnim(photo.id)
+
+  // 乐观更新 UI
+  const wasDisliked = photo.disliked
+  photo.disliked = !wasDisliked
+  if (!wasDisliked) {
+    photo.dislikes = (photo.dislikes ?? 0) + 1
+  } else {
+    photo.dislikes = Math.max(0, (photo.dislikes ?? 1) - 1)
+  }
+
+  // TODO: 后端踩接口，参考点赞接口实现
+  // try {
+  //   const res = await $fetch<{ count: number; disliked: boolean }>(`/api/photos/${photo.id}/dislikes`, {
+  //     method: 'POST',
+  //     body: { deviceId: deviceId.value },
+  //   })
+  //   photo.dislikes = res.count
+  //   photo.disliked = res.disliked
+  // } catch {
+  //   // 回滚乐观更新
+  //   photo.disliked = wasDisliked
+  //   if (!wasDisliked) {
+  //     photo.dislikes = Math.max(0, (photo.dislikes ?? 1) - 1)
+  //   } else {
+  //     photo.dislikes = (photo.dislikes ?? 0) + 1
+  //   }
+  // }
+}
+
+// ====== 批量拉取踩数 ======
+// TODO: 后端踩查询接口实现后取消注释
+// async function fetchDislikesForPhotos(photos: PhotoItem[]) {
+//   if (!photos.length || !deviceId.value) return
+//   await Promise.allSettled(
+//     photos.map(async (photo) => {
+//       try {
+//         const res = await $fetch<{ count: number; disliked: boolean }>(
+//           `/api/photos/${photo.id}/dislikes?deviceId=${encodeURIComponent(deviceId.value)}`
+//         )
+//         photo.dislikes = res.count
+//         photo.disliked = res.disliked
+//       } catch {
+//         photo.dislikes = 0
+//         photo.disliked = false
+//       }
+//     })
+//   )
+// }
 
 // Tab 导航
 const tabs: TabItem[] = [
@@ -1014,6 +1105,74 @@ function onTouchEnd(e: TouchEvent) {
   }
 
   lightbox.panning = false
+}
+
+// ======== PC 端鼠标拖动处理 ========
+let mouseDown = false
+let mouseStartX = 0
+let mouseStartY = 0
+let mouseStartPanX = 0
+let mouseStartPanY = 0
+let mouseMoved = false
+
+function onMouseDown(e: MouseEvent) {
+  // 仅左键，且非按钮/链接等可交互元素
+  if (e.button !== 0) return
+  const tag = (e.target as HTMLElement).tagName?.toLowerCase()
+  if (tag === 'button' || tag === 'a' || tag === 'svg' || tag === 'path' || tag === 'span') return
+
+  mouseDown = true
+  mouseMoved = false
+  mouseStartX = e.clientX
+  mouseStartY = e.clientY
+  mouseStartPanX = lightbox.panX
+  mouseStartPanY = lightbox.panY
+
+  if (lightbox.scale > 1) {
+    lightbox.panning = true
+  } else {
+    lightbox.swiping = true
+  }
+  e.preventDefault()
+}
+
+function onMouseMove(e: MouseEvent) {
+  if (!mouseDown) return
+  mouseMoved = true
+  const dx = e.clientX - mouseStartX
+  const dy = e.clientY - mouseStartY
+
+  if (lightbox.scale > 1) {
+    // 放大模式：拖动平移
+    const maxPan = (lightbox.scale - 1) * window.innerWidth * 0.5
+    const maxPanY = (lightbox.scale - 1) * window.innerHeight * 0.5
+    lightbox.panX = Math.max(-maxPan, Math.min(maxPan, mouseStartPanX + dx))
+    lightbox.panY = Math.max(-maxPanY, Math.min(maxPanY, mouseStartPanY + dy))
+  } else {
+    // 正常模式：swipe 切换
+    const resistance = Math.abs(dy) > Math.abs(dx) ? 0.3 : 1
+    lightbox.swipeX = dx * resistance
+  }
+  e.preventDefault()
+}
+
+function onMouseUp(_e: MouseEvent) {
+  if (!mouseDown) return
+  mouseDown = false
+
+  if (lightbox.scale > 1) {
+    lightbox.panning = false
+  } else if (lightbox.swiping) {
+    const threshold = window.innerWidth * 0.25
+    if (lightbox.swipeX < -threshold) {
+      nextPhoto()
+    } else if (lightbox.swipeX > threshold) {
+      prevPhoto()
+    } else {
+      lightbox.swipeX = 0
+    }
+    lightbox.swiping = false
+  }
 }
 
 // 生活 Tab 切换时加载相册

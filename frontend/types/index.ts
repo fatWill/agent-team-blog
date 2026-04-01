@@ -105,6 +105,10 @@ export interface PhotoItem {
   likes?: number
   /** 当前设备是否已点赞（前端运行时附加） */
   liked?: boolean
+  /** 踩数（前端运行时附加，非数据库字段） */
+  dislikes?: number
+  /** 当前设备是否已踩（前端运行时附加） */
+  disliked?: boolean
 }
 
 /** 照片列表响应 */
