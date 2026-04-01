@@ -437,6 +437,7 @@
           @mousemove="onMouseMove"
           @mouseup="onMouseUp"
           @mouseleave="onMouseUp"
+          @wheel.prevent="onWheel"
         >
           <!-- 顶部操作栏 -->
           <div class="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-4 pb-2">
@@ -1172,6 +1173,39 @@ function onMouseUp(_e: MouseEvent) {
       lightbox.swipeX = 0
     }
     lightbox.swiping = false
+  }
+}
+
+// ======== PC 端鼠标滚轮缩放 ========
+function onWheel(e: WheelEvent) {
+  if (!lightbox.visible) return
+
+  // 根据滚轮方向计算新缩放比例（向上滚放大，向下滚缩小）
+  const delta = e.deltaY > 0 ? -0.15 : 0.15
+  const oldScale = lightbox.scale
+  const newScale = Math.min(4, Math.max(1, oldScale + delta))
+
+  if (newScale === oldScale) return
+
+  // 以鼠标位置为缩放原点：计算鼠标相对于屏幕中心的偏移
+  const mouseOffsetX = e.clientX - window.innerWidth / 2
+  const mouseOffsetY = e.clientY - window.innerHeight / 2
+
+  // 调整 panX/panY 使鼠标指向的图片位置保持不变
+  const scaleDelta = newScale - oldScale
+  lightbox.scale = newScale
+
+  if (newScale > 1) {
+    const newPanX = lightbox.panX - mouseOffsetX * scaleDelta / oldScale
+    const newPanY = lightbox.panY - mouseOffsetY * scaleDelta / oldScale
+    const maxPanX = (newScale - 1) * window.innerWidth * 0.5
+    const maxPanY = (newScale - 1) * window.innerHeight * 0.5
+    lightbox.panX = Math.max(-maxPanX, Math.min(maxPanX, newPanX))
+    lightbox.panY = Math.max(-maxPanY, Math.min(maxPanY, newPanY))
+  } else {
+    // 缩回 1x 时重置平移
+    lightbox.panX = 0
+    lightbox.panY = 0
   }
 }
 
