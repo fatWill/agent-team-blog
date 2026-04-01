@@ -124,6 +124,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-01: 修复 SSR 500 错误：用 ClientOnly 包裹 DynamicScroller（vue-virtual-scroller 不支持 SSR），文章列表 fallback 渲染静态卡片保证首屏 HTML 包含内容；三个首屏接口（articles/profile/changelog）已通过 useAsyncData 预取
 - 2026-04-01: 新增 toCdnUrl 工具函数，所有图片 URL 统一走 CDN（cdn.fatwill.cloud）；覆盖首页头像/文章封面/相册/照片/灯箱及后台全部图片展示
 - 2026-04-01: 统一 UI 组件跨端适配：PC 端 antd（Spin/Modal/message），移动端自定义轻量组件（MobileToast/MobileDialog）；封装 useDevice composable 和 AppLoading 组件；修复相册虚拟滚动日期标题被覆盖
 - 2026-04-01: 引入 ant-design-vue@4.x；骨架屏替换为 Spin loading；alert/confirm 替换为 Modal.confirm + message；操作成功添加 message.success toast；修复相册虚拟滚动 header/grid 重叠
