@@ -101,6 +101,10 @@ export interface PhotoItem {
   caption: string | null
   createdAt: string
   updatedAt: string
+  /** 点赞数（前端运行时附加，非数据库字段） */
+  likes?: number
+  /** 当前设备是否已点赞（前端运行时附加） */
+  liked?: boolean
 }
 
 /** 照片列表响应 */

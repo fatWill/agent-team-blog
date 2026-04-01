@@ -351,6 +351,29 @@
                       :alt="photo.caption || '照片'"
                       class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
+                    <!-- 右下角点赞按钮 -->
+                    <div
+                      class="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
+                      @click.stop="handleLike(photo)"
+                    >
+                      <svg
+                        class="h-3 w-3 transition-colors duration-200"
+                        :class="photo.liked ? 'text-red-500 fill-red-500' : 'text-white/80 fill-none stroke-white/80'"
+                        viewBox="0 0 24 24"
+                        stroke-width="2"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                      </svg>
+                      <span class="text-[10px] text-white font-medium leading-none">{{ photo.likes ?? 0 }}</span>
+                    </div>
+                    <!-- 飘动 +1 动画容器 -->
+                    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+                      <span
+                        v-for="anim in (floatAnims[photo.id] || [])"
+                        :key="anim.id"
+                        class="float-plus-one absolute bottom-6 right-2 text-xs font-bold text-red-400 select-none"
+                      >+1</span>
+                    </div>
                   </button>
                 </div>
               </DynamicScrollerItem>
@@ -499,8 +522,36 @@
           </div>
 
           <!-- 底部 caption -->
-          <div v-if="lightboxCurrentPhoto?.caption" class="absolute bottom-6 left-1/2 -translate-x-1/2 text-center">
+          <div v-if="lightboxCurrentPhoto?.caption" class="absolute bottom-16 left-1/2 -translate-x-1/2 text-center">
             <p class="text-sm text-white/50">{{ lightboxCurrentPhoto.caption }}</p>
+          </div>
+
+          <!-- 灯箱点赞按钮 -->
+          <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center">
+            <div class="relative flex items-center gap-2">
+              <!-- 飘动 +1 动画（灯箱内） -->
+              <div class="pointer-events-none absolute inset-0 overflow-visible">
+                <span
+                  v-for="anim in (lightboxCurrentPhoto ? (floatAnims[lightboxCurrentPhoto.id] || []) : [])"
+                  :key="anim.id"
+                  class="float-plus-one absolute -top-6 left-1/2 -translate-x-1/2 text-base font-bold text-red-400 select-none"
+                >+1</span>
+              </div>
+              <button
+                class="flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm transition-colors hover:bg-white/20 active:scale-95"
+                @click.stop="lightboxCurrentPhoto && handleLike(lightboxCurrentPhoto)"
+              >
+                <svg
+                  class="h-5 w-5 transition-all duration-200"
+                  :class="lightboxCurrentPhoto?.liked ? 'text-red-500 fill-red-500 scale-110' : 'text-white fill-none stroke-white'"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
+                <span class="text-sm text-white font-medium">{{ lightboxCurrentPhoto?.likes ?? 0 }}</span>
+              </button>
+            </div>
           </div>
 
           <!-- 底部指示点 -->
@@ -533,6 +584,91 @@ const { isDark, toggleTheme } = useTheme()
 
 // 移动端抽屉状态
 const drawerOpen = ref(false)
+
+// ====== 设备唯一 ID（持久化到 localStorage） ======
+const deviceId = ref('')
+function getOrCreateDeviceId(): string {
+  if (import.meta.server) return ''
+  const KEY = 'blog_device_id'
+  let id = localStorage.getItem(KEY)
+  if (!id) {
+    // 生成 UUID v4
+    id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0
+      const v = c === 'x' ? r : (r & 0x3) | 0x8
+      return v.toString(16)
+    })
+    localStorage.setItem(KEY, id)
+  }
+  return id
+}
+
+// ====== 点赞飘动动画 ======
+// floatAnims[photoId] = [{ id: uniqueKey }]
+const floatAnims = ref<Record<number, { id: number }[]>>({})
+let animCounter = 0
+
+function triggerFloatAnim(photoId: number) {
+  if (!floatAnims.value[photoId]) floatAnims.value[photoId] = []
+  const key = ++animCounter
+  floatAnims.value[photoId].push({ id: key })
+  // 800ms 后移除
+  setTimeout(() => {
+    if (floatAnims.value[photoId]) {
+      floatAnims.value[photoId] = floatAnims.value[photoId].filter(a => a.id !== key)
+    }
+  }, 800)
+}
+
+// ====== 点赞处理 ======
+async function handleLike(photo: PhotoItem) {
+  if (!deviceId.value) return
+  // 无论是否已赞，每次点击都触发 +1 动画
+  triggerFloatAnim(photo.id)
+
+  // 乐观更新 UI
+  const wasLiked = photo.liked
+  photo.liked = true
+  if (!wasLiked) {
+    photo.likes = (photo.likes ?? 0) + 1
+  }
+
+  try {
+    const res = await $fetch<{ count: number; liked: boolean }>(`/api/photos/${photo.id}/likes`, {
+      method: 'POST',
+      body: { deviceId: deviceId.value },
+    })
+    // 同步服务端真实数量
+    photo.likes = res.count
+    photo.liked = res.liked
+  } catch {
+    // 回滚乐观更新
+    if (!wasLiked) {
+      photo.liked = false
+      photo.likes = Math.max(0, (photo.likes ?? 1) - 1)
+    }
+  }
+}
+
+// ====== 批量拉取点赞数 ======
+async function fetchLikesForPhotos(photos: PhotoItem[]) {
+  if (!photos.length || !deviceId.value) return
+  // 并发请求，每张图片单独查询（数量少时可行，后续可改为批量接口）
+  await Promise.allSettled(
+    photos.map(async (photo) => {
+      try {
+        const res = await $fetch<{ count: number; liked: boolean }>(
+          `/api/photos/${photo.id}/likes?deviceId=${encodeURIComponent(deviceId.value)}`
+        )
+        photo.likes = res.count
+        photo.liked = res.liked
+      } catch {
+        photo.likes = 0
+        photo.liked = false
+      }
+    })
+  )
+}
 
 // Tab 导航
 const tabs: TabItem[] = [
@@ -669,6 +805,8 @@ async function openAlbum(album: AlbumItem) {
   try {
     const res = await apiGetPhotos(album.id)
     albumPhotos.value = res.list
+    // 拉取各照片点赞数
+    fetchLikesForPhotos(albumPhotos.value)
   } catch {
     albumPhotos.value = []
   } finally {
@@ -897,6 +1035,7 @@ function formatDate(dateStr: string): string {
 
 // 页面挂载
 onMounted(() => {
+  deviceId.value = getOrCreateDeviceId()
   fetchArticles()
   fetchChangelog()
   fetchProfile()
@@ -946,5 +1085,22 @@ useHead({
 .photo-scroller {
   height: calc(100vh - 220px);
   min-height: 400px;
+}
+
+/* +1 飘动消失动画 */
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-32px) scale(1.3);
+  }
+}
+
+.float-plus-one {
+  animation: floatUp 0.8s ease-out forwards;
+  pointer-events: none;
 }
 </style>
