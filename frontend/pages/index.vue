@@ -133,7 +133,7 @@
       <div class="flex items-center gap-5">
         <img
           v-if="profile.avatar"
-          :src="profile.avatar"
+          :src="toCdnUrl(profile.avatar)"
           alt="fatwillzeng 头像"
           class="h-20 w-20 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700"
         />
@@ -213,7 +213,7 @@
                 :to="`/articles/${article.id}`"
                 class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
               >
-                <img v-if="article.coverImage" :src="article.coverImage" :alt="article.title" class="h-40 w-full object-cover" />
+                <img v-if="article.coverImage" :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-40 w-full object-cover" />
                 <div class="p-5">
                   <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
                   <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
@@ -258,7 +258,7 @@
               <div class="relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
                 <img
                   v-if="album.coverUrl"
-                  :src="album.coverUrl"
+                  :src="toCdnUrl(album.coverUrl)"
                   :alt="album.name"
                   class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
@@ -347,7 +347,7 @@
                     @click="openLightbox(photo)"
                   >
                     <img
-                      :src="photo.url"
+                      :src="toCdnUrl(photo.url)"
                       :alt="photo.caption || '照片'"
                       class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
@@ -443,7 +443,7 @@
               <!-- 下载按钮 -->
               <a
                 v-if="lightboxCurrentPhoto"
-                :href="lightboxCurrentPhoto.url"
+                :href="toCdnUrl(lightboxCurrentPhoto.url)"
                 :download="`photo-${lightbox.index + 1}.jpg`"
                 target="_blank"
                 class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
@@ -506,7 +506,7 @@
               >
                 <img
                   v-if="Math.abs(idx - lightbox.index) <= 1"
-                  :src="photo.url"
+                  :src="toCdnUrl(photo.url)"
                   :alt="photo.caption || '照片'"
                   class="max-h-[85vh] max-w-[90vw] object-contain"
                   :style="idx === lightbox.index ? {
@@ -577,6 +577,7 @@
 <script setup lang="ts">
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos } from '~/utils/api'
+import { toCdnUrl } from '~/utils/imageUrl'
 
 const { isDark, toggleTheme } = useTheme()
 

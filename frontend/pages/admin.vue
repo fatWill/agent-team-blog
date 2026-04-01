@@ -113,7 +113,7 @@
               <span v-if="!coverUploading" class="mt-1 text-xs text-gray-400 dark:text-gray-500">支持 JPG/PNG/GIF/WebP</span>
             </div>
             <div v-else class="relative inline-block">
-              <img :src="form.coverImage" alt="封面图预览" class="h-40 w-auto rounded-lg border border-gray-200 object-cover dark:border-gray-600" />
+              <img :src="toCdnUrl(form.coverImage)" alt="封面图预览" class="h-40 w-auto rounded-lg border border-gray-200 object-cover dark:border-gray-600" />
               <button type="button" class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-md transition-colors hover:bg-red-600" @click="form.coverImage = ''">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -171,7 +171,7 @@
         <div v-else-if="manageArticles.length > 0" class="space-y-3">
           <div v-for="article in manageArticles" :key="article.id" class="rounded-lg border border-gray-100 bg-white p-4 transition-colors dark:border-gray-700 dark:bg-gray-800">
             <div class="flex items-start gap-4">
-              <img v-if="article.coverImage" :src="article.coverImage" :alt="article.title" class="h-16 w-24 flex-shrink-0 rounded-md object-cover" />
+              <img v-if="article.coverImage" :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-16 w-24 flex-shrink-0 rounded-md object-cover" />
               <div v-else class="flex h-16 w-24 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
                 <svg class="h-6 w-6 text-gray-300 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v14.25a1.5 1.5 0 001.5 1.5z" /></svg>
               </div>
@@ -199,7 +199,7 @@
           <div class="flex flex-col items-center gap-4">
             <input ref="avatarFileInput" type="file" accept="image/*" class="hidden" @change="handleAvatarFileChange" />
             <div class="relative">
-              <img v-if="profileForm.avatar" :src="profileForm.avatar" alt="头像" class="h-24 w-24 rounded-full border-2 border-gray-200 object-cover dark:border-gray-600" />
+              <img v-if="profileForm.avatar" :src="toCdnUrl(profileForm.avatar)" alt="头像" class="h-24 w-24 rounded-full border-2 border-gray-200 object-cover dark:border-gray-600" />
               <div v-else class="flex h-24 w-24 items-center justify-center rounded-full border-2 border-gray-200 bg-gray-100 dark:border-gray-600 dark:bg-gray-700">
                 <svg class="h-10 w-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
               </div>
@@ -253,7 +253,7 @@
             <div class="flex items-center gap-4">
               <!-- 封面缩略图 -->
               <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
-                <img v-if="album.coverUrl" :src="album.coverUrl" :alt="album.name" class="h-full w-full object-cover" />
+                <img v-if="album.coverUrl" :src="toCdnUrl(album.coverUrl)" :alt="album.name" class="h-full w-full object-cover" />
                 <div v-else class="flex h-full w-full items-center justify-center">
                   <svg class="h-5 w-5 text-gray-300 dark:text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v14.25a1.5 1.5 0 001.5 1.5z" />
@@ -370,7 +370,7 @@
 
               <!-- 上传成功：正常显示图片 -->
               <template v-else>
-                <img :src="photo.url" :alt="photo.caption || '照片'" class="h-full w-full object-cover" />
+                <img :src="toCdnUrl(photo.url)" :alt="photo.caption || '照片'" class="h-full w-full object-cover" />
                 <!-- 删除按钮 -->
                 <button
                   class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
@@ -477,8 +477,7 @@ import {
   apiAddPhoto,
   apiDeletePhoto,
 } from '~/utils/api'
-
-/** 本地相册照片条目（含上传状态） */
+import { toCdnUrl } from '~/utils/imageUrl'
 interface AdminPhotoItem {
   id: number           // 正式照片为正数 DB id；占位项为负数临时 id
   albumId: number
