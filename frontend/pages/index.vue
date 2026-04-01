@@ -194,22 +194,41 @@
           <p class="text-red-600 dark:text-red-400">加载文章失败，请稍后重试</p>
           <button class="mt-3 text-sm text-primary-500 hover:text-primary-600" @click="fetchArticles">重新加载</button>
         </div>
-        <DynamicScroller
-          v-else-if="articles.length > 0"
-          :items="articles"
-          :min-item-size="100"
-          key-field="id"
-          class="article-scroller"
-        >
-          <template #default="{ item: article, index, active }">
-            <DynamicScrollerItem
-              :item="article"
-              :active="active"
-              :size-dependencies="[article.coverImage, article.summary]"
-              :data-index="index"
-              class="pb-4"
-            >
+        <ClientOnly v-else-if="articles.length > 0">
+          <DynamicScroller
+            :items="articles"
+            :min-item-size="100"
+            key-field="id"
+            class="article-scroller"
+          >
+            <template #default="{ item: article, index, active }">
+              <DynamicScrollerItem
+                :item="article"
+                :active="active"
+                :size-dependencies="[article.coverImage, article.summary]"
+                :data-index="index"
+                class="pb-4"
+              >
+                <NuxtLink
+                  :to="`/articles/${article.id}`"
+                  class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+                >
+                  <img v-if="article.coverImage" :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-40 w-full object-cover" />
+                  <div class="p-5">
+                    <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
+                    <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
+                    <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                  </div>
+                </NuxtLink>
+              </DynamicScrollerItem>
+            </template>
+          </DynamicScroller>
+          <!-- SSR fallback：静态文章列表，保证首屏 HTML 包含内容 -->
+          <template #fallback>
+            <div class="space-y-4">
               <NuxtLink
+                v-for="article in articles"
+                :key="article.id"
                 :to="`/articles/${article.id}`"
                 class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
               >
@@ -220,9 +239,9 @@
                   <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
                 </div>
               </NuxtLink>
-            </DynamicScrollerItem>
+            </div>
           </template>
-        </DynamicScroller>
+        </ClientOnly>
         <div v-else class="py-20 text-center">
           <p class="text-gray-400 dark:text-gray-500">暂无文章</p>
         </div>
@@ -314,82 +333,89 @@
           </div>
 
           <!-- 按年月分组展示照片（虚拟滚动） -->
-          <DynamicScroller
-            v-else-if="albumPhotos.length > 0"
-            :items="flatPhotoRows"
-            :min-item-size="40"
-            key-field="id"
-            class="photo-scroller"
-          >
-            <template #default="{ item: row, index, active }">
-              <DynamicScrollerItem
-                :item="row"
-                :active="active"
-                :size-dependencies="[row.type, row.type === 'grid' ? row.photos.length : row.label]"
-                :data-index="index"
-              >
-                <!-- 标题行 -->
-                <div v-if="row.type === 'header'" class="min-h-[40px] flex items-end pb-2 pt-4">
-                  <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {{ row.label }}
-                  </h3>
-                </div>
-                <!-- 图片网格行 -->
-                <div
-                  v-else-if="row.type === 'grid'"
-                  class="mb-2 grid grid-cols-2 gap-2 md:grid-cols-5"
-                  style="min-height: 120px;"
+          <ClientOnly v-else-if="albumPhotos.length > 0">
+            <DynamicScroller
+              :items="flatPhotoRows"
+              :min-item-size="40"
+              key-field="id"
+              class="photo-scroller"
+            >
+              <template #default="{ item: row, index, active }">
+                <DynamicScrollerItem
+                  :item="row"
+                  :active="active"
+                  :size-dependencies="[row.type, row.type === 'grid' ? row.photos.length : row.label]"
+                  :data-index="index"
                 >
-                  <button
-                    v-for="photo in row.photos"
-                    :key="photo.id"
-                    class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
-                    @click="openLightbox(photo)"
+                  <!-- 标题行 -->
+                  <div v-if="row.type === 'header'" class="min-h-[40px] flex items-end pb-2 pt-4">
+                    <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {{ row.label }}
+                    </h3>
+                  </div>
+                  <!-- 图片网格行 -->
+                  <div
+                    v-else-if="row.type === 'grid'"
+                    class="mb-2 grid grid-cols-2 gap-2 md:grid-cols-5"
+                    style="min-height: 120px;"
                   >
-                    <img
-                      :src="toCdnUrl(photo.url)"
-                      :alt="photo.caption || '照片'"
-                      class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <!-- 右下角点赞/踩按钮 -->
-                    <div class="absolute bottom-1.5 right-1.5 flex items-center gap-1">
-                      <!-- 点赞 -->
-                      <div
-                        class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
-                        @click.stop="handleLike(photo)"
-                      >
-                        <svg
-                          class="h-3 w-3 transition-colors duration-200"
-                          :class="photo.liked ? 'text-red-500 fill-red-500' : 'text-white/80 fill-none stroke-white/80'"
-                          viewBox="0 0 24 24"
-                          stroke-width="2"
+                    <button
+                      v-for="photo in row.photos"
+                      :key="photo.id"
+                      class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
+                      @click="openLightbox(photo)"
+                    >
+                      <img
+                        :src="toCdnUrl(photo.url)"
+                        :alt="photo.caption || '照片'"
+                        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <!-- 右下角点赞/踩按钮 -->
+                      <div class="absolute bottom-1.5 right-1.5 flex items-center gap-1">
+                        <!-- 点赞 -->
+                        <div
+                          class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
+                          @click.stop="handleLike(photo)"
                         >
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                        </svg>
-                        <span class="text-[10px] text-white font-medium leading-none">{{ photo.likes ?? 0 }}</span>
+                          <svg
+                            class="h-3 w-3 transition-colors duration-200"
+                            :class="photo.liked ? 'text-red-500 fill-red-500' : 'text-white/80 fill-none stroke-white/80'"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                          >
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                          </svg>
+                          <span class="text-[10px] text-white font-medium leading-none">{{ photo.likes ?? 0 }}</span>
+                        </div>
+                        <!-- 踩 -->
+                        <div
+                          class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
+                          @click.stop="handleDislike(photo)"
+                        >
+                          <span class="text-[11px] leading-none transition-transform duration-200" :class="photo.disliked ? 'scale-110' : ''">👎</span>
+                          <span class="text-[10px] text-white font-medium leading-none">{{ photo.dislikes ?? 0 }}</span>
+                        </div>
                       </div>
-                      <!-- 踩 -->
-                      <div
-                        class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
-                        @click.stop="handleDislike(photo)"
-                      >
-                        <span class="text-[11px] leading-none transition-transform duration-200" :class="photo.disliked ? 'scale-110' : ''">👎</span>
-                        <span class="text-[10px] text-white font-medium leading-none">{{ photo.dislikes ?? 0 }}</span>
+                      <!-- 飘动 +1 动画容器 -->
+                      <div class="pointer-events-none absolute inset-0 overflow-hidden">
+                        <span
+                          v-for="anim in (floatAnims[photo.id] || [])"
+                          :key="anim.id"
+                          class="float-plus-one absolute bottom-6 right-2 text-xs font-bold text-red-400 select-none"
+                        >+1</span>
                       </div>
-                    </div>
-                    <!-- 飘动 +1 动画容器 -->
-                    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-                      <span
-                        v-for="anim in (floatAnims[photo.id] || [])"
-                        :key="anim.id"
-                        class="float-plus-one absolute bottom-6 right-2 text-xs font-bold text-red-400 select-none"
-                      >+1</span>
-                    </div>
-                  </button>
-                </div>
-              </DynamicScrollerItem>
+                    </button>
+                  </div>
+                </DynamicScrollerItem>
+              </template>
+            </DynamicScroller>
+            <!-- SSR fallback：静态照片列表 -->
+            <template #fallback>
+              <div class="flex items-center justify-center py-20">
+                <AppLoading tip="加载中..." />
+              </div>
             </template>
-          </DynamicScroller>
+          </ClientOnly>
 
           <!-- 空状态 -->
           <div v-else class="py-20 text-center">
@@ -789,23 +815,43 @@ function selectTab(key: string) {
   drawerOpen.value = false
 }
 
-// ====== 文章数据 ======
-const articles = ref<ArticleListItem[]>([])
+// ====== 文章数据（SSR 预取） ======
 const loading = ref(false)
 const error = ref(false)
 
-// ====== 更新日志数据 ======
-const changelog = ref<ChangelogItem[]>([])
+const { data: articlesData, refresh: refreshArticles } = await useAsyncData(
+  'articles',
+  () => apiFetchArticles(),
+  { default: () => ({ list: [] as ArticleListItem[] }) }
+)
+const articles = computed(() => articlesData.value?.list ?? [])
+
+// ====== 更新日志数据（SSR 预取） ======
 const changelogLoading = ref(false)
 
-// ====== 博主个人资料 ======
-const profile = reactive<Profile>({ avatar: '', bio: '' })
+const { data: changelogData } = await useAsyncData(
+  'changelog',
+  () => $fetch<ChangelogResponse>('/api/changelog'),
+  { default: () => ({ changelog: [] as ChangelogItem[] }) }
+)
+const changelog = computed(() => changelogData.value?.changelog ?? [])
+
+// ====== 博主个人资料（SSR 预取） ======
+const { data: profileData } = await useAsyncData(
+  'profile',
+  () => apiGetProfile(),
+  { default: () => ({ avatar: '', bio: '' }) }
+)
+const profile = computed<Profile>(() => ({
+  avatar: profileData.value?.avatar || '',
+  bio: profileData.value?.bio || '',
+}))
 
 async function fetchProfile() {
+  // 保留此函数供管理后台修改后刷新使用
   try {
     const data = await apiGetProfile()
-    profile.avatar = data.avatar || ''
-    profile.bio = data.bio || ''
+    profileData.value = data
   } catch {
     // 静默处理
   }
@@ -815,9 +861,9 @@ async function fetchChangelog() {
   changelogLoading.value = true
   try {
     const res = await $fetch<ChangelogResponse>('/api/changelog')
-    changelog.value = res.changelog
+    changelogData.value = res
   } catch {
-    changelog.value = []
+    // 静默处理
   } finally {
     changelogLoading.value = false
   }
@@ -827,8 +873,7 @@ async function fetchArticles() {
   loading.value = true
   error.value = false
   try {
-    const res = await apiFetchArticles()
-    articles.value = res.list
+    await refreshArticles()
   } catch {
     error.value = true
   } finally {
@@ -1237,9 +1282,7 @@ function formatDate(dateStr: string): string {
 // 页面挂载
 onMounted(() => {
   deviceId.value = getOrCreateDeviceId()
-  fetchArticles()
-  fetchChangelog()
-  fetchProfile()
+  // articles / changelog / profile 已在 SSR 阶段预取，无需再次请求
   window.addEventListener('keydown', handleKeydown)
 })
 
