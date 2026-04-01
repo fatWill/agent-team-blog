@@ -39,6 +39,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 移动端 UI | `utils/mobileUI.ts` | 移动端 Toast/Dialog 命令式组件（仿 antd-mobile 风格） |
 | Loading 组件 | `components/AppLoading.vue` | 跨端 Loading 组件（PC=ASpin，移动端=自定义 spinner） |
 | 分片上传 | `utils/chunkedUpload.ts` | 分片上传工具（进度回调、断点续传、自动清理） |
+| CDN URL 转换 | `utils/imageUrl.ts` | 将 /uploads/ 路径转为 CDN 完整 URL（toCdnUrl） |
 | 数据库连接 | `server/utils/db.ts` | MySQL 连接池（mysql2，进程级单例） |
 | 文章 DAO | `server/utils/articles.ts` | 文章 CRUD 操作（MySQL） |
 | 更新日志 DAO | `server/utils/changelog.ts` | 更新日志查询（MySQL） |
@@ -123,6 +124,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-01: 新增 toCdnUrl 工具函数，所有图片 URL 统一走 CDN（cdn.fatwill.cloud）；覆盖首页头像/文章封面/相册/照片/灯箱及后台全部图片展示
 - 2026-04-01: 统一 UI 组件跨端适配：PC 端 antd（Spin/Modal/message），移动端自定义轻量组件（MobileToast/MobileDialog）；封装 useDevice composable 和 AppLoading 组件；修复相册虚拟滚动日期标题被覆盖
 - 2026-04-01: 引入 ant-design-vue@4.x；骨架屏替换为 Spin loading；alert/confirm 替换为 Modal.confirm + message；操作成功添加 message.success toast；修复相册虚拟滚动 header/grid 重叠
 - 2026-04-01: 文章列表和相册照片列表添加虚拟滚动（vue-virtual-scroller DynamicScroller），大幅精简 DOM 节点提升滚动性能
