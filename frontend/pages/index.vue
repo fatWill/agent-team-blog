@@ -1019,8 +1019,8 @@ function onTouchStart(e: TouchEvent) {
       // 放大模式：拖动平移
       lightbox.panning = true
       lightbox.swiping = false
-    } else {
-      // 正常模式：swipe 切换
+    } else if (albumPhotos.value.length > 1) {
+      // 正常模式：swipe 切换（仅多张图片时启用）
       lightbox.swiping = true
       lightbox.panning = false
     }
@@ -1098,10 +1098,9 @@ function onTouchEnd(e: TouchEvent) {
       nextPhoto()
     } else if (lightbox.swipeX > threshold) {
       prevPhoto()
-    } else {
-      // 未达到阈值，弹回
-      lightbox.swipeX = 0
     }
+    // 无论是否切换成功，都重置 swipeX（防止只有一张图时卡住）
+    lightbox.swipeX = 0
     lightbox.swiping = false
   }
 
@@ -1131,7 +1130,7 @@ function onMouseDown(e: MouseEvent) {
 
   if (lightbox.scale > 1) {
     lightbox.panning = true
-  } else {
+  } else if (albumPhotos.value.length > 1) {
     lightbox.swiping = true
   }
   e.preventDefault()
@@ -1149,8 +1148,8 @@ function onMouseMove(e: MouseEvent) {
     const maxPanY = (lightbox.scale - 1) * window.innerHeight * 0.5
     lightbox.panX = Math.max(-maxPan, Math.min(maxPan, mouseStartPanX + dx))
     lightbox.panY = Math.max(-maxPanY, Math.min(maxPanY, mouseStartPanY + dy))
-  } else {
-    // 正常模式：swipe 切换
+  } else if (lightbox.swiping) {
+    // 正常模式：swipe 切换（仅 swiping 激活时才更新偏移）
     const resistance = Math.abs(dy) > Math.abs(dx) ? 0.3 : 1
     lightbox.swipeX = dx * resistance
   }
@@ -1169,9 +1168,9 @@ function onMouseUp(_e: MouseEvent) {
       nextPhoto()
     } else if (lightbox.swipeX > threshold) {
       prevPhoto()
-    } else {
-      lightbox.swipeX = 0
     }
+    // 无论是否切换成功，都重置 swipeX（防止只有一张图时卡住）
+    lightbox.swipeX = 0
     lightbox.swiping = false
   }
 }
