@@ -76,11 +76,11 @@ export default defineEventHandler(async (event) => {
   const filename = `${Date.now()}-${randomString(8)}${ext}`
 
   // 确定存储目录
-  // 生产环境：cwd = .output/server，静态资源在 .output/public/uploads/
-  // 开发环境：cwd = 项目根目录，静态资源在 public/uploads/
+  // 生产环境：存储到独立目录 /root/blog-uploads/，与部署目录分离，避免 rsync 部署时被清除
+  // 开发环境：存储到项目根目录下 public/uploads/
   const isProduction = process.env.NODE_ENV === 'production'
   const uploadDir = isProduction
-    ? join(process.cwd(), '..', 'public', 'uploads')
+    ? '/root/blog-uploads'
     : join(process.cwd(), 'public', 'uploads')
 
   // 确保目录存在（mode 0o755 确保 Nginx 可访问）

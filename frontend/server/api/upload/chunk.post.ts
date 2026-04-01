@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
   // 开发环境：cwd = 项目根目录，临时目录在 tmp/
   const isProduction = process.env.NODE_ENV === 'production'
   const tmpDir = isProduction
-    ? join(process.cwd(), '..', 'tmp', uploadId)
+    ? join('/root/blog-uploads/tmp', uploadId)
     : join(process.cwd(), 'tmp', uploadId)
 
   // 确保目录存在

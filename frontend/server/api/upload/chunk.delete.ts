@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   // 确定临时目录
   const isProduction = process.env.NODE_ENV === 'production'
   const tmpDir = isProduction
-    ? join(process.cwd(), '..', 'tmp', uploadId)
+    ? join('/root/blog-uploads/tmp', uploadId)
     : join(process.cwd(), 'tmp', uploadId)
 
   // 删除临时目录（如果存在）

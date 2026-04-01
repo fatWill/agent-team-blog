@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
 
   const isProduction = process.env.NODE_ENV === 'production'
   const tmpDir = isProduction
-    ? join(process.cwd(), '..', 'tmp', uploadId)
+    ? join('/root/blog-uploads/tmp', uploadId)
     : join(process.cwd(), 'tmp', uploadId)
 
   // 校验临时目录是否存在
@@ -89,9 +89,9 @@ export default defineEventHandler(async (event) => {
   // 生成最终文件名，保留原始扩展名
   const finalFilename = `${Date.now()}-${randomString(8)}${ext}`
 
-  // 确定上传目录
+  // 确定上传目录（生产环境存到独立目录，避免被 rsync 清除）
   const uploadDir = isProduction
-    ? join(process.cwd(), '..', 'public', 'uploads')
+    ? '/root/blog-uploads'
     : join(process.cwd(), 'public', 'uploads')
 
   if (!existsSync(uploadDir)) {
