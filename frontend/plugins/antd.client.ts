@@ -1,4 +1,4 @@
-import { message, Modal } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
 import 'ant-design-vue/es/message/style'
 import 'ant-design-vue/es/modal/style'
 import 'ant-design-vue/es/spin/style'
@@ -10,11 +10,4 @@ export default defineNuxtPlugin(() => {
     duration: 2,
     maxCount: 3,
   })
-
-  return {
-    provide: {
-      message,
-      modal: Modal,
-    },
-  }
 })

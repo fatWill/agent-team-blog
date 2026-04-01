@@ -34,6 +34,10 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | API 服务 | `utils/api.ts` | 封装登录、文章 CRUD、图片上传、个人资料接口 |
 | 认证 Store | `stores/auth.ts` | Pinia 认证状态管理 |
 | 类型定义 | `types/index.ts` | 全局 TS 类型：文章、登录、Tab、Profile 等 |
+| 设备检测 | `composables/useDevice.ts` | 移动端/PC端检测（响应式 + 命令式） |
+| 统一 UI | `utils/ui.ts` | 跨端 Loading/Toast/Dialog 统一调用（PC=antd，移动端=自定义） |
+| 移动端 UI | `utils/mobileUI.ts` | 移动端 Toast/Dialog 命令式组件（仿 antd-mobile 风格） |
+| Loading 组件 | `components/AppLoading.vue` | 跨端 Loading 组件（PC=ASpin，移动端=自定义 spinner） |
 | 分片上传 | `utils/chunkedUpload.ts` | 分片上传工具（进度回调、断点续传、自动清理） |
 | 数据库连接 | `server/utils/db.ts` | MySQL 连接池（mysql2，进程级单例） |
 | 文章 DAO | `server/utils/articles.ts` | 文章 CRUD 操作（MySQL） |
@@ -119,6 +123,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-01: 统一 UI 组件跨端适配：PC 端 antd（Spin/Modal/message），移动端自定义轻量组件（MobileToast/MobileDialog）；封装 useDevice composable 和 AppLoading 组件；修复相册虚拟滚动日期标题被覆盖
 - 2026-04-01: 引入 ant-design-vue@4.x；骨架屏替换为 Spin loading；alert/confirm 替换为 Modal.confirm + message；操作成功添加 message.success toast；修复相册虚拟滚动 header/grid 重叠
 - 2026-04-01: 文章列表和相册照片列表添加虚拟滚动（vue-virtual-scroller DynamicScroller），大幅精简 DOM 节点提升滚动性能
 - 2026-03-31: 图片上传支持进度条和分片上传（>2MB 自动分片）；移除前端 5MB 大小限制；新增 chunkedUpload 工具函数

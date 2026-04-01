@@ -33,7 +33,7 @@
     <main class="mx-auto max-w-3xl px-4 pt-16 pb-10">
       <!-- 加载状态 -->
       <div v-if="loading" class="flex items-center justify-center py-20">
-        <ASpin size="large" tip="加载中..." />
+        <AppLoading tip="加载中..." />
       </div>
 
       <!-- 错误状态 -->
@@ -72,8 +72,6 @@
 </template>
 
 <script setup lang="ts">
-import { Spin as ASpin } from 'ant-design-vue'
-import 'ant-design-vue/es/spin/style'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'

@@ -188,7 +188,7 @@
       <!-- 文章 Tab -->
       <div v-if="activeTab === 'articles'">
         <div v-if="loading" class="flex items-center justify-center py-20">
-          <ASpin size="large" tip="加载中..." />
+          <AppLoading tip="加载中..." />
         </div>
         <div v-else-if="error" class="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
           <p class="text-red-600 dark:text-red-400">加载文章失败，请稍后重试</p>
@@ -244,7 +244,7 @@
 
           <!-- 加载中 -->
           <div v-if="albumsLoading" class="flex items-center justify-center py-20">
-            <ASpin size="large" tip="加载中..." />
+            <AppLoading tip="加载中..." />
           </div>
 
           <!-- 相册集网格 -->
@@ -310,7 +310,7 @@
 
           <!-- 加载中 -->
           <div v-if="photosLoading" class="flex items-center justify-center py-20">
-            <ASpin size="large" tip="加载中..." />
+            <AppLoading tip="加载中..." />
           </div>
 
           <!-- 按年月分组展示照片（虚拟滚动） -->
@@ -390,7 +390,7 @@
       <!-- 更新日志 Tab -->
       <div v-else-if="activeTab === 'changelog'">
         <div v-if="changelogLoading" class="flex items-center justify-center py-20">
-          <ASpin size="large" tip="加载中..." />
+          <AppLoading tip="加载中..." />
         </div>
         <div v-else class="relative">
           <div class="absolute left-[7px] top-2 bottom-2 w-px bg-gray-200 dark:bg-gray-700" />
@@ -575,8 +575,6 @@
 </template>
 
 <script setup lang="ts">
-import { Spin as ASpin } from 'ant-design-vue'
-import 'ant-design-vue/es/spin/style'
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos } from '~/utils/api'
 
