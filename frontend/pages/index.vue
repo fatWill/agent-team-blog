@@ -351,20 +351,31 @@
                       :alt="photo.caption || '照片'"
                       class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
-                    <!-- 右下角点赞按钮 -->
-                    <div
-                      class="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
-                      @click.stop="handleLike(photo)"
-                    >
-                      <svg
-                        class="h-3 w-3 transition-colors duration-200"
-                        :class="photo.liked ? 'text-red-500 fill-red-500' : 'text-white/80 fill-none stroke-white/80'"
-                        viewBox="0 0 24 24"
-                        stroke-width="2"
+                    <!-- 右下角点赞/踩按钮 -->
+                    <div class="absolute bottom-1.5 right-1.5 flex items-center gap-1">
+                      <!-- 点赞 -->
+                      <div
+                        class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
+                        @click.stop="handleLike(photo)"
                       >
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                      </svg>
-                      <span class="text-[10px] text-white font-medium leading-none">{{ photo.likes ?? 0 }}</span>
+                        <svg
+                          class="h-3 w-3 transition-colors duration-200"
+                          :class="photo.liked ? 'text-red-500 fill-red-500' : 'text-white/80 fill-none stroke-white/80'"
+                          viewBox="0 0 24 24"
+                          stroke-width="2"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                        </svg>
+                        <span class="text-[10px] text-white font-medium leading-none">{{ photo.likes ?? 0 }}</span>
+                      </div>
+                      <!-- 踩 -->
+                      <div
+                        class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
+                        @click.stop="handleDislike(photo)"
+                      >
+                        <span class="text-[11px] leading-none transition-transform duration-200" :class="photo.disliked ? 'scale-110' : ''">👎</span>
+                        <span class="text-[10px] text-white font-medium leading-none">{{ photo.dislikes ?? 0 }}</span>
+                      </div>
                     </div>
                     <!-- 飘动 +1 动画容器 -->
                     <div class="pointer-events-none absolute inset-0 overflow-hidden">
@@ -722,44 +733,42 @@ async function handleDislike(photo: PhotoItem) {
     photo.dislikes = Math.max(0, (photo.dislikes ?? 1) - 1)
   }
 
-  // TODO: 后端踩接口，参考点赞接口实现
-  // try {
-  //   const res = await $fetch<{ count: number; disliked: boolean }>(`/api/photos/${photo.id}/dislikes`, {
-  //     method: 'POST',
-  //     body: { deviceId: deviceId.value },
-  //   })
-  //   photo.dislikes = res.count
-  //   photo.disliked = res.disliked
-  // } catch {
-  //   // 回滚乐观更新
-  //   photo.disliked = wasDisliked
-  //   if (!wasDisliked) {
-  //     photo.dislikes = Math.max(0, (photo.dislikes ?? 1) - 1)
-  //   } else {
-  //     photo.dislikes = (photo.dislikes ?? 0) + 1
-  //   }
-  // }
+  try {
+    const res = await $fetch<{ count: number; disliked: boolean }>(`/api/photos/${photo.id}/dislikes`, {
+      method: 'POST',
+      body: { deviceId: deviceId.value, action: wasDisliked ? 'undislike' : 'dislike' },
+    })
+    photo.dislikes = res.count
+    photo.disliked = res.disliked
+  } catch {
+    // 回滚乐观更新
+    photo.disliked = wasDisliked
+    if (!wasDisliked) {
+      photo.dislikes = Math.max(0, (photo.dislikes ?? 1) - 1)
+    } else {
+      photo.dislikes = (photo.dislikes ?? 0) + 1
+    }
+  }
 }
 
 // ====== 批量拉取踩数 ======
-// TODO: 后端踩查询接口实现后取消注释
-// async function fetchDislikesForPhotos(photos: PhotoItem[]) {
-//   if (!photos.length || !deviceId.value) return
-//   await Promise.allSettled(
-//     photos.map(async (photo) => {
-//       try {
-//         const res = await $fetch<{ count: number; disliked: boolean }>(
-//           `/api/photos/${photo.id}/dislikes?deviceId=${encodeURIComponent(deviceId.value)}`
-//         )
-//         photo.dislikes = res.count
-//         photo.disliked = res.disliked
-//       } catch {
-//         photo.dislikes = 0
-//         photo.disliked = false
-//       }
-//     })
-//   )
-// }
+async function fetchDislikesForPhotos(photos: PhotoItem[]) {
+  if (!photos.length || !deviceId.value) return
+  await Promise.allSettled(
+    photos.map(async (photo) => {
+      try {
+        const res = await $fetch<{ count: number; disliked: boolean }>(
+          `/api/photos/${photo.id}/dislikes?deviceId=${encodeURIComponent(deviceId.value)}`
+        )
+        photo.dislikes = res.count
+        photo.disliked = res.disliked
+      } catch {
+        photo.dislikes = 0
+        photo.disliked = false
+      }
+    })
+  )
+}
 
 // Tab 导航
 const tabs: TabItem[] = [
@@ -896,8 +905,9 @@ async function openAlbum(album: AlbumItem) {
   try {
     const res = await apiGetPhotos(album.id)
     albumPhotos.value = res.list
-    // 拉取各照片点赞数
+    // 拉取各照片点赞数和踩数
     fetchLikesForPhotos(albumPhotos.value)
+    fetchDislikesForPhotos(albumPhotos.value)
   } catch {
     albumPhotos.value = []
   } finally {
