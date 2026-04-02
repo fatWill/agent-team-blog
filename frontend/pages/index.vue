@@ -811,7 +811,7 @@
 
 <script setup lang="ts">
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem, MessageItem, MessageListResponse } from '~/types'
-import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatus, apiGetMessages, apiCreateMessage, apiUpdateMessage } from '~/utils/api'
+import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetMessages, apiCreateMessage, apiUpdateMessage } from '~/utils/api'
 import { toCdnUrl } from '~/utils/imageUrl'
 
 const { isDark, toggleTheme } = useTheme()
@@ -1070,17 +1070,33 @@ function isArticleLiked(articleId: string): boolean {
 
 async function fetchArticleLikeStates() {
   if (!deviceId.value || !articles.value.length) return
-  await Promise.allSettled(
-    articles.value.map(async (article) => {
-      try {
-        const res = await apiGetArticleLikeStatus(article.id, deviceId.value)
-        articleLikeStates.value[article.id] = { liked: res.liked, likeCount: res.likeCount }
-      } catch {
-        articleLikeStates.value[article.id] = { liked: false, likeCount: article.likeCount ?? 0 }
+  const ids = articles.value.map(a => String(a.id))
+  try {
+    const res = await apiGetArticleLikeStatusBatch(ids, deviceId.value)
+    const likedSet = new Set(res.likedIds.map(String))
+    articles.value.forEach(article => {
+      articleLikeStates.value[String(article.id)] = {
+        liked: likedSet.has(String(article.id)),
+        likeCount: article.likeCount ?? 0,
       }
     })
-  )
+  } catch {
+    // 降级：用 SSR 的 likeCount，liked 默认 false
+    articles.value.forEach(article => {
+      articleLikeStates.value[String(article.id)] = { liked: false, likeCount: article.likeCount ?? 0 }
+    })
+  }
 }
+
+// 当 articles 数据就绪时，用 SSR likeCount 预填充（liked 默认 false，等 batch 接口回来后更新）
+watch(articles, (newArticles) => {
+  if (!newArticles?.length) return
+  newArticles.forEach(article => {
+    if (!articleLikeStates.value[String(article.id)]) {
+      articleLikeStates.value[String(article.id)] = { liked: false, likeCount: article.likeCount ?? 0 }
+    }
+  })
+}, { immediate: true })
 
 async function handleArticleLike(articleId: string, e?: Event) {
   e?.preventDefault()

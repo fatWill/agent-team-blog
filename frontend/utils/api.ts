@@ -200,6 +200,14 @@ export async function apiGetArticleLikeStatus(articleId: string, deviceId: strin
   return res
 }
 
+/** 批量查询文章点赞状态 */
+export async function apiGetArticleLikeStatusBatch(ids: string[], deviceId: string): Promise<{ likedIds: string[] }> {
+  const res = await $fetch<{ likedIds: string[] }>('/api/articles/like-status-batch', {
+    params: { deviceId, ids: ids.join(',') },
+  })
+  return res
+}
+
 // ====== 留言板 ======
 
 /** 获取留言列表 */
