@@ -104,7 +104,7 @@ export async function apiGetAlbums(): Promise<AlbumListResponse> {
 }
 
 /** 创建相册集 */
-export async function apiCreateAlbum(data: { name: string; description?: string }): Promise<AlbumItem> {
+export async function apiCreateAlbum(data: { name: string; description?: string; password?: string }): Promise<AlbumItem> {
   const res = await $fetch<AlbumItem>('/api/albums', {
     method: 'POST',
     body: data,
@@ -113,7 +113,7 @@ export async function apiCreateAlbum(data: { name: string; description?: string 
 }
 
 /** 更新相册集 */
-export async function apiUpdateAlbum(id: number, data: { name?: string; description?: string }): Promise<AlbumItem> {
+export async function apiUpdateAlbum(id: number, data: { name?: string; description?: string; password?: string }): Promise<AlbumItem> {
   const res = await $fetch<AlbumItem>(`/api/albums/${id}`, {
     method: 'PUT',
     body: data,
@@ -148,6 +148,33 @@ export async function apiAddPhoto(albumId: number, data: { url: string; caption?
 export async function apiDeletePhoto(id: number): Promise<{ ok: boolean }> {
   const res = await $fetch<{ ok: boolean }>(`/api/photos/${id}`, {
     method: 'DELETE',
+  })
+  return res
+}
+
+/** 验证相册集密码 */
+export async function apiVerifyAlbumPassword(albumId: number, password: string): Promise<{ success: boolean }> {
+  const res = await $fetch<{ success: boolean }>(`/api/albums/${albumId}/verify-password`, {
+    method: 'POST',
+    body: { password },
+  })
+  return res
+}
+
+/** 验证照片密码 */
+export async function apiVerifyPhotoPassword(photoId: number, password: string): Promise<{ success: boolean }> {
+  const res = await $fetch<{ success: boolean }>(`/api/photos/${photoId}/verify-password`, {
+    method: 'POST',
+    body: { password },
+  })
+  return res
+}
+
+/** 更新照片信息（caption、password） */
+export async function apiUpdatePhoto(id: number, data: { caption?: string; password?: string }): Promise<PhotoItem> {
+  const res = await $fetch<PhotoItem>(`/api/photos/${id}`, {
+    method: 'PUT',
+    body: data,
   })
   return res
 }

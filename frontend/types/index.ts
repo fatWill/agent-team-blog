@@ -84,6 +84,7 @@ export interface AlbumItem {
   description: string | null
   coverUrl: string | null
   photoCount: number
+  hasPassword: boolean
   createdAt: string
   updatedAt: string
 }
@@ -99,6 +100,7 @@ export interface PhotoItem {
   albumId: number
   url: string
   caption: string | null
+  hasPassword: boolean
   createdAt: string
   updatedAt: string
   /** 点赞数（前端运行时附加，非数据库字段） */

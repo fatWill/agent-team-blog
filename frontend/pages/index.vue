@@ -290,6 +290,10 @@
                 <span class="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
                   {{ album.photoCount }}
                 </span>
+                <!-- 锁定标识 -->
+                <div v-if="album.hasPassword && !isAlbumUnlocked(album.id)" class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
+                  <span class="text-3xl">🔒</span>
+                </div>
               </div>
               <h3 class="mt-2 truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ album.name }}</h3>
               <p v-if="album.description" class="truncate text-xs text-gray-400 dark:text-gray-500">{{ album.description }}</p>
@@ -369,7 +373,12 @@
                         :src="toCdnUrl(photo.url)"
                         :alt="photo.caption || '照片'"
                         class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        :class="{ 'blur-md': photo.hasPassword && !isPhotoUnlocked(photo.id) }"
                       />
+                      <!-- 照片锁定遮罩 -->
+                      <div v-if="photo.hasPassword && !isPhotoUnlocked(photo.id)" class="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <span class="text-2xl">🔒</span>
+                      </div>
                       <!-- 右下角点赞/踩按钮 -->
                       <div class="absolute bottom-1.5 right-1.5 flex items-center gap-1">
                         <!-- 点赞 -->
@@ -628,6 +637,51 @@
       </Transition>
     </Teleport>
 
+    <!-- ========== 密码验证弹窗 ========== -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div
+          v-if="passwordModal.visible"
+          class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50"
+          @click.self="closePasswordModal"
+        >
+          <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800 mx-4">
+            <h3 class="mb-1 text-lg font-bold text-gray-900 dark:text-gray-100">
+              🔒 {{ passwordModal.type === 'album' ? '相册已加密' : '照片已加密' }}
+            </h3>
+            <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">请输入密码以查看内容</p>
+            <form @submit.prevent="handlePasswordSubmit">
+              <input
+                id="password-input"
+                v-model="passwordModal.password"
+                type="password"
+                placeholder="请输入密码"
+                autocomplete="off"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              />
+              <p v-if="passwordModal.errorMsg" class="mt-2 text-sm text-red-500">{{ passwordModal.errorMsg }}</p>
+              <div class="mt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  @click="closePasswordModal"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  :disabled="passwordModal.loading"
+                  class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {{ passwordModal.loading ? '验证中...' : '确认' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- 页脚 -->
     <footer class="border-t border-gray-200/60 py-8 text-center text-sm text-gray-400 transition-colors dark:border-gray-700/60 dark:text-gray-500">
       <p>&copy; {{ new Date().getFullYear() }} fatwillzeng. All rights reserved.</p>
@@ -637,7 +691,7 @@
 
 <script setup lang="ts">
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
-import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos } from '~/utils/api'
+import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword } from '~/utils/api'
 import { toCdnUrl } from '~/utils/imageUrl'
 
 const { isDark, toggleTheme } = useTheme()
@@ -931,6 +985,94 @@ const flatPhotoRows = computed<PhotoListRow[]>(() => {
   return rows
 })
 
+// ====== 密码保护 ======
+const passwordModal = reactive({
+  visible: false,
+  type: '' as 'album' | 'photo',
+  targetId: 0,
+  password: '',
+  loading: false,
+  errorMsg: '',
+})
+
+/** 检查相册是否已解锁（sessionStorage） */
+function isAlbumUnlocked(albumId: number): boolean {
+  if (import.meta.server) return false
+  return sessionStorage.getItem(`unlocked_album_${albumId}`) === '1'
+}
+
+/** 检查照片是否已解锁（sessionStorage） */
+function isPhotoUnlocked(photoId: number): boolean {
+  if (import.meta.server) return false
+  return sessionStorage.getItem(`unlocked_photo_${photoId}`) === '1'
+}
+
+/** 标记相册已解锁 */
+function markAlbumUnlocked(albumId: number) {
+  sessionStorage.setItem(`unlocked_album_${albumId}`, '1')
+}
+
+/** 标记照片已解锁 */
+function markPhotoUnlocked(photoId: number) {
+  sessionStorage.setItem(`unlocked_photo_${photoId}`, '1')
+}
+
+function openPasswordModal(type: 'album' | 'photo', targetId: number) {
+  passwordModal.type = type
+  passwordModal.targetId = targetId
+  passwordModal.password = ''
+  passwordModal.loading = false
+  passwordModal.errorMsg = ''
+  passwordModal.visible = true
+  // 下一帧聚焦输入框
+  nextTick(() => {
+    const input = document.getElementById('password-input') as HTMLInputElement | null
+    input?.focus()
+  })
+}
+
+function closePasswordModal() {
+  passwordModal.visible = false
+  passwordModal.password = ''
+  passwordModal.errorMsg = ''
+}
+
+// 密码验证后的回调（由调用方设置）
+let passwordVerifiedCallback: (() => void) | null = null
+
+async function handlePasswordSubmit() {
+  if (!passwordModal.password.trim()) {
+    passwordModal.errorMsg = '请输入密码'
+    return
+  }
+  passwordModal.loading = true
+  passwordModal.errorMsg = ''
+  try {
+    let res: { success: boolean }
+    if (passwordModal.type === 'album') {
+      res = await apiVerifyAlbumPassword(passwordModal.targetId, passwordModal.password)
+    } else {
+      res = await apiVerifyPhotoPassword(passwordModal.targetId, passwordModal.password)
+    }
+    if (res.success) {
+      if (passwordModal.type === 'album') {
+        markAlbumUnlocked(passwordModal.targetId)
+      } else {
+        markPhotoUnlocked(passwordModal.targetId)
+      }
+      closePasswordModal()
+      passwordVerifiedCallback?.()
+      passwordVerifiedCallback = null
+    } else {
+      passwordModal.errorMsg = '密码错误，请重试'
+    }
+  } catch {
+    passwordModal.errorMsg = '验证失败，请重试'
+  } finally {
+    passwordModal.loading = false
+  }
+}
+
 async function fetchAlbums() {
   albumsLoading.value = true
   try {
@@ -945,6 +1087,12 @@ async function fetchAlbums() {
 }
 
 async function openAlbum(album: AlbumItem) {
+  // 有密码且未解锁，弹出密码框
+  if (album.hasPassword && !isAlbumUnlocked(album.id)) {
+    passwordVerifiedCallback = () => openAlbum(album)
+    openPasswordModal('album', album.id)
+    return
+  }
   selectedAlbum.value = album
   photosLoading.value = true
   try {
@@ -985,6 +1133,12 @@ const lightboxCurrentPhoto = computed(() => {
 })
 
 function openLightbox(photo: PhotoItem) {
+  // 有密码且未解锁，弹出密码框
+  if (photo.hasPassword && !isPhotoUnlocked(photo.id)) {
+    passwordVerifiedCallback = () => openLightbox(photo)
+    openPasswordModal('photo', photo.id)
+    return
+  }
   const idx = albumPhotos.value.findIndex(p => p.id === photo.id)
   lightbox.index = idx >= 0 ? idx : 0
   lightbox.scale = 1
@@ -1004,6 +1158,18 @@ function closeLightbox() {
 
 function prevPhoto() {
   if (lightbox.index > 0) {
+    const targetPhoto = albumPhotos.value[lightbox.index - 1]
+    if (targetPhoto?.hasPassword && !isPhotoUnlocked(targetPhoto.id)) {
+      passwordVerifiedCallback = () => {
+        lightbox.index--
+        lightbox.scale = 1
+        lightbox.swipeX = 0
+        lightbox.panX = 0
+        lightbox.panY = 0
+      }
+      openPasswordModal('photo', targetPhoto.id)
+      return
+    }
     lightbox.index--
     lightbox.scale = 1
     lightbox.swipeX = 0
@@ -1014,6 +1180,18 @@ function prevPhoto() {
 
 function nextPhoto() {
   if (lightbox.index < albumPhotos.value.length - 1) {
+    const targetPhoto = albumPhotos.value[lightbox.index + 1]
+    if (targetPhoto?.hasPassword && !isPhotoUnlocked(targetPhoto.id)) {
+      passwordVerifiedCallback = () => {
+        lightbox.index++
+        lightbox.scale = 1
+        lightbox.swipeX = 0
+        lightbox.panX = 0
+        lightbox.panY = 0
+      }
+      openPasswordModal('photo', targetPhoto.id)
+      return
+    }
     lightbox.index++
     lightbox.scale = 1
     lightbox.swipeX = 0
@@ -1321,6 +1499,15 @@ useHead({
 }
 .lightbox-fade-enter-from,
 .lightbox-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
   opacity: 0;
 }
 

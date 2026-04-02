@@ -262,7 +262,10 @@
               </div>
               <!-- 信息 -->
               <div class="min-w-0 flex-1">
-                <h3 class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ album.name }}</h3>
+                <h3 class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {{ album.name }}
+                  <span v-if="album.hasPassword" class="ml-1 text-xs">🔒</span>
+                </h3>
                 <p class="text-xs text-gray-400 dark:text-gray-500">{{ album.photoCount }} 张照片</p>
               </div>
               <!-- 操作按钮 -->
@@ -371,6 +374,15 @@
               <!-- 上传成功：正常显示图片 -->
               <template v-else>
                 <img :src="toCdnUrl(photo.url)" :alt="photo.caption || '照片'" class="h-full w-full object-cover" />
+                <!-- 锁图标（有密码时显示） -->
+                <span v-if="photo.hasPassword" class="absolute top-1 left-1 rounded-full bg-black/50 px-1.5 py-0.5 text-xs backdrop-blur-sm">🔒</span>
+                <!-- 设置密码按钮 -->
+                <button
+                  class="absolute left-1 bottom-1 flex h-6 items-center gap-0.5 rounded-full bg-black/50 px-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 backdrop-blur-sm"
+                  @click="openPhotoPasswordModal(photo)"
+                >
+                  🔒 密码
+                </button>
                 <!-- 删除按钮 -->
                 <button
                   class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
@@ -422,6 +434,19 @@
                     class="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                   />
                 </div>
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">密码保护（可选）</label>
+                  <input
+                    v-model="albumModal.password"
+                    type="password"
+                    :placeholder="albumModal.editingId && albumModal.hasPassword ? '输入新密码可修改，留空不变' : '留空则不加密'"
+                    autocomplete="new-password"
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                  />
+                  <p v-if="albumModal.editingId && albumModal.hasPassword" class="mt-1 text-xs text-amber-500 dark:text-amber-400">
+                    🔒 已设置密码。输入新密码可修改，留空则保持不变。
+                  </p>
+                </div>
               </div>
               <div class="mt-6 flex justify-end gap-3">
                 <button
@@ -437,6 +462,49 @@
                   class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {{ albumModal.saving ? '保存中...' : '确定' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ========== 照片密码设置 Modal ========== -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div
+          v-if="photoPasswordModal.visible"
+          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50"
+          @click.self="closePhotoPasswordModal"
+        >
+          <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800 mx-4">
+            <h3 class="mb-1 text-lg font-bold text-gray-900 dark:text-gray-100">🔒 设置照片密码</h3>
+            <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+              {{ photoPasswordModal.hasPassword ? '该照片已设置密码，可修改或清除' : '设置密码后需验证才能查看' }}
+            </p>
+            <form @submit.prevent="handleSavePhotoPassword">
+              <input
+                v-model="photoPasswordModal.password"
+                type="password"
+                :placeholder="photoPasswordModal.hasPassword ? '输入新密码，留空则清除密码' : '输入密码，留空则不加密'"
+                autocomplete="new-password"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              />
+              <div class="mt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  @click="closePhotoPasswordModal"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  :disabled="photoPasswordModal.saving"
+                  class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {{ photoPasswordModal.saving ? '保存中...' : '确定' }}
                 </button>
               </div>
             </form>
@@ -476,6 +544,7 @@ import {
   apiGetPhotos,
   apiAddPhoto,
   apiDeletePhoto,
+  apiUpdatePhoto,
 } from '~/utils/api'
 import { toCdnUrl } from '~/utils/imageUrl'
 interface AdminPhotoItem {
@@ -483,6 +552,7 @@ interface AdminPhotoItem {
   albumId: number
   url: string          // 占位时为空字符串，成功后为真实 url
   caption: string | null
+  hasPassword: boolean
   createdAt: string
   updatedAt: string
   // 扩展字段（仅本地使用）
@@ -756,6 +826,8 @@ const albumModal = reactive({
   editingId: null as number | null,
   name: '',
   description: '',
+  password: '',
+  hasPassword: false, // 编辑时原相册是否已设密码
   saving: false,
 })
 
@@ -778,7 +850,7 @@ async function selectAdminAlbum(album: AlbumItem) {
   adminPhotosLoading.value = true
   try {
     const res = await apiGetPhotos(album.id)
-    adminPhotos.value = res.list.map(p => ({ ...p, status: 'done' as const, uploadPercent: 100 }))
+    adminPhotos.value = res.list.map(p => ({ ...p, status: 'done' as const, uploadPercent: 100, hasPassword: p.hasPassword ?? false }))
   } catch { adminPhotos.value = [] }
   finally { adminPhotosLoading.value = false }
 }
@@ -787,6 +859,8 @@ function openAlbumModal(album?: AlbumItem) {
   albumModal.editingId = album?.id ?? null
   albumModal.name = album?.name ?? ''
   albumModal.description = album?.description ?? ''
+  albumModal.password = ''
+  albumModal.hasPassword = album?.hasPassword ?? false
   albumModal.saving = false
   albumModal.visible = true
 }
@@ -803,11 +877,13 @@ async function handleSaveAlbum() {
       await apiUpdateAlbum(albumModal.editingId, {
         name: albumModal.name.trim(),
         description: albumModal.description.trim() || undefined,
+        password: albumModal.password,
       })
     } else {
       await apiCreateAlbum({
         name: albumModal.name.trim(),
         description: albumModal.description.trim() || undefined,
+        password: albumModal.password || undefined,
       })
     }
     closeAlbumModal()
@@ -868,6 +944,7 @@ async function handlePhotoUpload(e: Event) {
     albumId,
     url: '',
     caption: null,
+    hasPassword: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     status: 'uploading' as const,
@@ -894,7 +971,7 @@ async function handlePhotoUpload(e: Event) {
       // 替换占位项为真实数据
       const idx = adminPhotos.value.findIndex(ph => ph.id === tempId)
       if (idx !== -1) {
-        adminPhotos.value[idx] = { ...photo, status: 'done' as const, uploadPercent: 100 }
+        adminPhotos.value[idx] = { ...photo, status: 'done' as const, uploadPercent: 100, hasPassword: photo.hasPassword ?? false }
       }
     } catch (err: unknown) {
       const fetchErr = err as { statusCode?: number }
@@ -914,6 +991,55 @@ async function handlePhotoUpload(e: Event) {
 
   input.value = ''
   await fetchAdminAlbums() // 刷新 photoCount 和封面
+}
+
+// ====== 照片密码设置 Modal ======
+const photoPasswordModal = reactive({
+  visible: false,
+  photoId: 0,
+  password: '',
+  hasPassword: false,
+  saving: false,
+})
+
+function openPhotoPasswordModal(photo: AdminPhotoItem) {
+  photoPasswordModal.photoId = photo.id
+  photoPasswordModal.password = ''
+  photoPasswordModal.hasPassword = photo.hasPassword
+  photoPasswordModal.saving = false
+  photoPasswordModal.visible = true
+}
+
+function closePhotoPasswordModal() {
+  photoPasswordModal.visible = false
+  photoPasswordModal.password = ''
+}
+
+async function handleSavePhotoPassword() {
+  photoPasswordModal.saving = true
+  try {
+    const updated = await apiUpdatePhoto(photoPasswordModal.photoId, {
+      password: photoPasswordModal.password,
+    })
+    // 更新本地列表中的 hasPassword 状态
+    const idx = adminPhotos.value.findIndex(p => p.id === photoPasswordModal.photoId)
+    if (idx !== -1) {
+      adminPhotos.value[idx].hasPassword = updated.hasPassword
+    }
+    closePhotoPasswordModal()
+    showSuccess(photoPasswordModal.password ? '密码设置成功' : '密码已清除')
+  } catch (err: unknown) {
+    const fetchErr = err as { statusCode?: number }
+    if (fetchErr?.statusCode === 401) {
+      showError('登录已过期，请重新登录')
+      authStore.setLoggedIn(false)
+      router.push('/login')
+    } else {
+      showError('保存失败，请重试')
+    }
+  } finally {
+    photoPasswordModal.saving = false
+  }
 }
 
 async function handleDeletePhoto(photo: AdminPhotoItem) {
