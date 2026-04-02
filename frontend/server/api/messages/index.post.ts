@@ -91,7 +91,17 @@ export default defineEventHandler(async (event) => {
   if (existRows.length > 0) {
     // 已有留言 → 视为修改
     const existing = existRows[0]
-    const lastModDate = existing.last_modified_date ? String(existing.last_modified_date) : null
+    const rawDate = existing.last_modified_date
+    let lastModDate: string | null = null
+    if (rawDate instanceof Date) {
+      const y = rawDate.getFullYear()
+      const m = String(rawDate.getMonth() + 1).padStart(2, '0')
+      const d = String(rawDate.getDate()).padStart(2, '0')
+      lastModDate = `${y}-${m}-${d}`
+    }
+    else if (rawDate) {
+      lastModDate = String(rawDate).slice(0, 10)
+    }
 
     if (lastModDate === todayStr) {
       throw createError({

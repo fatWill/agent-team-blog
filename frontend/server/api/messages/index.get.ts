@@ -32,7 +32,17 @@ export default defineEventHandler(async (event) => {
   const list = rows.map((row) => {
     const isOwn = deviceId !== '' && row.device_id === deviceId
     // canEdit: 是自己的留言 且 今天没修改过（last_modified_date 为 NULL 或不等于今天）
-    const lastModDate = row.last_modified_date ? String(row.last_modified_date) : null
+    const rawDate = row.last_modified_date
+    let lastModDate: string | null = null
+    if (rawDate instanceof Date) {
+      const y = rawDate.getFullYear()
+      const m = String(rawDate.getMonth() + 1).padStart(2, '0')
+      const d = String(rawDate.getDate()).padStart(2, '0')
+      lastModDate = `${y}-${m}-${d}`
+    }
+    else if (rawDate) {
+      lastModDate = String(rawDate).slice(0, 10)
+    }
     const canEdit = isOwn && lastModDate !== todayStr
 
     return {

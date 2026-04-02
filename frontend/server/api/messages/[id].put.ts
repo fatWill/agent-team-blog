@@ -51,7 +51,18 @@ export default defineEventHandler(async (event) => {
   const todayStr = utc8.toISOString().slice(0, 10)
 
   // 检查今天是否已修改过
-  const lastModDate = existing.last_modified_date ? String(existing.last_modified_date) : null
+  const rawDate = existing.last_modified_date
+  let lastModDate: string | null = null
+  if (rawDate instanceof Date) {
+    // MySQL DATE 类型返回的 Date 对象是本地时间，直接提取年月日（避免 toISOString 时区偏移）
+    const y = rawDate.getFullYear()
+    const m = String(rawDate.getMonth() + 1).padStart(2, '0')
+    const d = String(rawDate.getDate()).padStart(2, '0')
+    lastModDate = `${y}-${m}-${d}`
+  }
+  else if (rawDate) {
+    lastModDate = String(rawDate).slice(0, 10)
+  }
   if (lastModDate === todayStr) {
     throw createError({
       statusCode: 403,
