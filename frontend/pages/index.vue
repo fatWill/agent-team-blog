@@ -217,7 +217,26 @@
                   <div class="p-5">
                     <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
                     <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
-                    <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                    <div class="flex items-center justify-between">
+                      <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                      <button
+                        class="group/like flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                        @click.prevent.stop="handleArticleLike(article.id, $event)"
+                      >
+                        <svg
+                          class="h-3.5 w-3.5 transition-all duration-300"
+                          :class="[
+                            isArticleLiked(article.id) ? 'text-red-500 fill-red-500' : 'text-gray-400 fill-none stroke-gray-400 dark:text-gray-500 dark:stroke-gray-500',
+                            articleLikeAnimating[article.id] ? 'scale-125' : '',
+                          ]"
+                          viewBox="0 0 24 24"
+                          stroke-width="2"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                        </svg>
+                        <span :class="isArticleLiked(article.id) ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'">{{ getArticleLikeCount(article) }}</span>
+                      </button>
+                    </div>
                   </div>
                 </NuxtLink>
               </DynamicScrollerItem>
@@ -236,7 +255,15 @@
                 <div class="p-5">
                   <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
                   <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
-                  <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                  <div class="flex items-center justify-between">
+                    <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                    <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                      <svg class="h-3.5 w-3.5 fill-none stroke-gray-400 dark:stroke-gray-500" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                      </svg>
+                      {{ article.likeCount ?? 0 }}
+                    </span>
+                  </div>
                 </div>
               </NuxtLink>
             </div>
@@ -429,6 +456,99 @@
           <!-- 空状态 -->
           <div v-else class="py-20 text-center">
             <p class="text-gray-400 dark:text-gray-500">这个相册还没有照片</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== 留言板 Tab ========== -->
+      <div v-else-if="activeTab === 'messages'">
+        <div v-if="messagesLoading && !messagesLoaded" class="flex items-center justify-center py-20">
+          <AppLoading tip="加载中..." />
+        </div>
+        <div v-else>
+          <!-- 留言输入区 -->
+          <div class="mb-8 rounded-xl border border-gray-100 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <h3 class="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">
+              {{ msgForm.editingId ? '✏️ 修改留言' : '💬 写下你的留言' }}
+            </h3>
+            <div class="space-y-3">
+              <input
+                v-model="msgForm.nickname"
+                type="text"
+                maxlength="20"
+                placeholder="昵称（可选）"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              />
+              <textarea
+                id="msg-content-input"
+                v-model="msgForm.content"
+                maxlength="500"
+                rows="3"
+                placeholder="写下你想说的话...（最多500字）"
+                class="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              />
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ msgForm.content.length }}/500</span>
+                <div class="flex items-center gap-2">
+                  <button
+                    v-if="msgForm.editingId"
+                    class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                    @click="cancelEditMessage"
+                  >
+                    取消
+                  </button>
+                  <button
+                    :disabled="msgForm.submitting || !msgForm.content.trim()"
+                    class="rounded-lg bg-primary-500 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    @click="handleSubmitMessage"
+                  >
+                    {{ msgForm.submitting ? '提交中...' : (msgForm.editingId ? '保存修改' : (myMessage ? '修改留言' : '发布留言')) }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 留言列表 -->
+          <div v-if="messages.length > 0" class="space-y-4">
+            <div
+              v-for="msg in messages"
+              :key="msg.id"
+              class="rounded-xl border border-gray-100 bg-white p-5 transition-colors dark:border-gray-700 dark:bg-gray-800"
+              :class="{ 'ring-1 ring-primary-200 dark:ring-primary-800': msg.isOwn }"
+            >
+              <div class="mb-2 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ msg.nickname }}</span>
+                  <span v-if="msg.isOwn" class="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">我</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <time class="text-xs text-gray-400 dark:text-gray-500">{{ relativeTime(msg.createdAt) }}</time>
+                  <!-- 编辑按钮（仅自己的留言） -->
+                  <button
+                    v-if="msg.isOwn"
+                    :disabled="!msg.canEdit"
+                    class="flex items-center gap-1 text-xs transition-colors"
+                    :class="msg.canEdit ? 'text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400 cursor-pointer' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'"
+                    :title="msg.canEdit ? '编辑留言' : '今天已修改过'"
+                    @click="msg.canEdit && startEditMessage(msg)"
+                  >
+                    <span>✏️</span>
+                    <span class="text-[10px]" :class="msg.canEdit ? 'text-gray-400 dark:text-gray-500' : 'text-gray-300 dark:text-gray-600'">每天可改一次</span>
+                  </button>
+                </div>
+              </div>
+              <p class="whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-400">{{ msg.content }}</p>
+            </div>
+          </div>
+
+          <!-- 空状态 -->
+          <div v-else class="py-20 text-center">
+            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+              <span class="text-2xl">💬</span>
+            </div>
+            <p class="text-lg font-medium text-gray-600 dark:text-gray-400">还没有留言</p>
+            <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">快来写下第一条留言吧！</p>
           </div>
         </div>
       </div>
@@ -690,8 +810,8 @@
 </template>
 
 <script setup lang="ts">
-import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
-import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword } from '~/utils/api'
+import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem, MessageItem, MessageListResponse } from '~/types'
+import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatus, apiGetMessages, apiCreateMessage, apiUpdateMessage } from '~/utils/api'
 import { toCdnUrl } from '~/utils/imageUrl'
 
 const { isDark, toggleTheme } = useTheme()
@@ -856,6 +976,7 @@ const tabs: TabItem[] = [
   { key: 'life', label: '生活' },
   { key: 'tools', label: '小工具·小游戏' },
   { key: 'agent-team', label: 'agent team' },
+  { key: 'messages', label: '留言板' },
   { key: 'changelog', label: '更新日志' },
 ]
 const activeTab = ref('articles')
@@ -932,6 +1053,58 @@ async function fetchArticles() {
     error.value = true
   } finally {
     loading.value = false
+  }
+}
+
+// ====== 文章点赞 ======
+const articleLikeStates = ref<Record<string, { liked: boolean; likeCount: number }>>({})
+const articleLikeAnimating = ref<Record<string, boolean>>({})
+
+function getArticleLikeCount(article: ArticleListItem): number {
+  return articleLikeStates.value[article.id]?.likeCount ?? article.likeCount ?? 0
+}
+
+function isArticleLiked(articleId: string): boolean {
+  return articleLikeStates.value[articleId]?.liked ?? false
+}
+
+async function fetchArticleLikeStates() {
+  if (!deviceId.value || !articles.value.length) return
+  await Promise.allSettled(
+    articles.value.map(async (article) => {
+      try {
+        const res = await apiGetArticleLikeStatus(article.id, deviceId.value)
+        articleLikeStates.value[article.id] = { liked: res.liked, likeCount: res.likeCount }
+      } catch {
+        articleLikeStates.value[article.id] = { liked: false, likeCount: article.likeCount ?? 0 }
+      }
+    })
+  )
+}
+
+async function handleArticleLike(articleId: string, e?: Event) {
+  e?.preventDefault()
+  e?.stopPropagation()
+  if (!deviceId.value) return
+
+  // 乐观更新
+  const prev = articleLikeStates.value[articleId] || { liked: false, likeCount: 0 }
+  const wasLiked = prev.liked
+  articleLikeStates.value[articleId] = {
+    liked: !wasLiked,
+    likeCount: wasLiked ? Math.max(0, prev.likeCount - 1) : prev.likeCount + 1,
+  }
+
+  // 触发爱心动画
+  articleLikeAnimating.value[articleId] = true
+  setTimeout(() => { articleLikeAnimating.value[articleId] = false }, 600)
+
+  try {
+    const res = await apiToggleArticleLike(articleId, deviceId.value)
+    articleLikeStates.value[articleId] = { liked: res.liked, likeCount: res.likeCount }
+  } catch {
+    // 回滚
+    articleLikeStates.value[articleId] = prev
   }
 }
 
@@ -1441,10 +1614,114 @@ function onWheel(e: WheelEvent) {
   }
 }
 
+// ====== 留言板 ======
+const messages = ref<MessageItem[]>([])
+const messagesLoading = ref(false)
+const messagesLoaded = ref(false)
+
+// 留言输入表单
+const msgForm = reactive({
+  nickname: '',
+  content: '',
+  submitting: false,
+  editingId: null as number | null, // 正在编辑的留言 ID
+})
+
+/** 当前设备已发过的留言 */
+const myMessage = computed(() => messages.value.find(m => m.isOwn))
+
+/** 相对时间格式化 */
+function relativeTime(dateStr: string): string {
+  const now = Date.now()
+  const diff = now - new Date(dateStr).getTime()
+  const seconds = Math.floor(diff / 1000)
+  if (seconds < 60) return '刚刚'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}分钟前`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}小时前`
+  const days = Math.floor(hours / 24)
+  return `${days}天前`
+}
+
+async function fetchMessages() {
+  messagesLoading.value = true
+  try {
+    const res = await apiGetMessages(deviceId.value || undefined)
+    messages.value = res.list
+    messagesLoaded.value = true
+  } catch {
+    messages.value = []
+  } finally {
+    messagesLoading.value = false
+  }
+}
+
+async function handleSubmitMessage() {
+  if (!msgForm.content.trim()) return
+  if (!deviceId.value) return
+  msgForm.submitting = true
+  try {
+    if (msgForm.editingId) {
+      // 修改留言
+      const updated = await apiUpdateMessage(msgForm.editingId, {
+        deviceId: deviceId.value,
+        nickname: msgForm.nickname.trim() || undefined,
+        content: msgForm.content.trim(),
+      })
+      // 更新列表中的该条留言
+      const idx = messages.value.findIndex(m => m.id === msgForm.editingId)
+      if (idx !== -1) messages.value[idx] = updated
+      msgForm.editingId = null
+      msgForm.nickname = ''
+      msgForm.content = ''
+    } else {
+      // 新增留言
+      const created = await apiCreateMessage({
+        deviceId: deviceId.value,
+        nickname: msgForm.nickname.trim() || undefined,
+        content: msgForm.content.trim(),
+      })
+      // 插到列表头部
+      messages.value.unshift(created)
+      msgForm.nickname = ''
+      msgForm.content = ''
+    }
+  } catch (err: unknown) {
+    const fetchErr = err as { statusCode?: number; statusMessage?: string; data?: { statusMessage?: string } }
+    const errMsg = fetchErr?.data?.statusMessage || fetchErr?.statusMessage || '操作失败'
+    // 用简单的 alert 提示（后续可优化为 toast）
+    if (import.meta.client) {
+      alert(errMsg)
+    }
+  } finally {
+    msgForm.submitting = false
+  }
+}
+
+function startEditMessage(msg: MessageItem) {
+  msgForm.editingId = msg.id
+  msgForm.nickname = msg.nickname === '匿名' ? '' : msg.nickname
+  msgForm.content = msg.content
+  // 滚动到输入区
+  nextTick(() => {
+    document.getElementById('msg-content-input')?.focus()
+  })
+}
+
+function cancelEditMessage() {
+  msgForm.editingId = null
+  msgForm.nickname = ''
+  msgForm.content = ''
+}
+
 // 生活 Tab 切换时加载相册
 watch(activeTab, (val) => {
   if (val === 'life' && !albumsLoaded.value) {
     fetchAlbums()
+  }
+  if (val === 'messages' && !messagesLoaded.value) {
+    fetchMessages()
   }
 })
 
@@ -1461,6 +1738,8 @@ function formatDate(dateStr: string): string {
 onMounted(() => {
   deviceId.value = getOrCreateDeviceId()
   // articles / changelog / profile 已在 SSR 阶段预取，无需再次请求
+  // 客户端拉取文章点赞状态（依赖 localStorage deviceId，不做 SSR）
+  nextTick(() => fetchArticleLikeStates())
   window.addEventListener('keydown', handleKeydown)
 })
 
@@ -1533,5 +1812,13 @@ useHead({
 .float-plus-one {
   animation: floatUp 0.8s ease-out forwards;
   pointer-events: none;
+}
+
+/* 文章点赞爱心弹跳动画 */
+@keyframes heartBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.3); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
 }
 </style>

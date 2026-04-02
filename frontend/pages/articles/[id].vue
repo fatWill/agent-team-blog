@@ -61,6 +61,29 @@
         <div class="tiptap-renderer mt-8">
           <EditorContent v-if="editor" :editor="editor" />
         </div>
+
+        <!-- 点赞按钮 -->
+        <div class="mt-10 flex justify-center border-t border-gray-200/60 pt-6 dark:border-gray-700/60">
+          <button
+            class="group flex items-center gap-2 rounded-full border border-gray-200 px-6 py-3 transition-all duration-200 hover:border-red-200 hover:bg-red-50 dark:border-gray-600 dark:hover:border-red-800 dark:hover:bg-red-900/20"
+            @click="handleArticleLike"
+          >
+            <svg
+              class="h-5 w-5 transition-all duration-300"
+              :class="[
+                articleLiked ? 'text-red-500 fill-red-500' : 'text-gray-400 fill-none stroke-gray-400 dark:text-gray-500 dark:stroke-gray-500 group-hover:text-red-400 group-hover:stroke-red-400',
+                likeAnimating ? 'scale-125' : '',
+              ]"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+            </svg>
+            <span class="text-sm font-medium" :class="articleLiked ? 'text-red-500' : 'text-gray-500 dark:text-gray-400 group-hover:text-red-400'">
+              {{ articleLikeCount > 0 ? articleLikeCount : '点赞' }}
+            </span>
+          </button>
+        </div>
       </article>
     </main>
 
@@ -77,7 +100,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import type { ArticleDetail } from '~/types'
-import { apiFetchArticle } from '~/utils/api'
+import { apiFetchArticle, apiToggleArticleLike, apiGetArticleLikeStatus } from '~/utils/api'
 
 const route = useRoute()
 const { isDark, toggleTheme } = useTheme()
@@ -85,6 +108,62 @@ const { isDark, toggleTheme } = useTheme()
 const article = ref<ArticleDetail | null>(null)
 const loading = ref(true)
 const error = ref(false)
+
+// ====== 设备唯一 ID ======
+const deviceId = ref('')
+function getOrCreateDeviceId(): string {
+  if (import.meta.server) return ''
+  const KEY = 'blog_device_id'
+  let id = localStorage.getItem(KEY)
+  if (!id) {
+    id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0
+      const v = c === 'x' ? r : (r & 0x3) | 0x8
+      return v.toString(16)
+    })
+    localStorage.setItem(KEY, id)
+  }
+  return id
+}
+
+// ====== 文章点赞 ======
+const articleLiked = ref(false)
+const articleLikeCount = ref(0)
+const likeAnimating = ref(false)
+
+async function fetchLikeStatus() {
+  if (!deviceId.value || !article.value) return
+  try {
+    const res = await apiGetArticleLikeStatus(article.value.id, deviceId.value)
+    articleLiked.value = res.liked
+    articleLikeCount.value = res.likeCount
+  } catch {
+    articleLikeCount.value = article.value?.likeCount ?? 0
+  }
+}
+
+async function handleArticleLike() {
+  if (!deviceId.value || !article.value) return
+
+  // 乐观更新
+  const wasLiked = articleLiked.value
+  articleLiked.value = !wasLiked
+  articleLikeCount.value = wasLiked ? Math.max(0, articleLikeCount.value - 1) : articleLikeCount.value + 1
+
+  // 弹跳动画
+  likeAnimating.value = true
+  setTimeout(() => { likeAnimating.value = false }, 600)
+
+  try {
+    const res = await apiToggleArticleLike(article.value.id, deviceId.value)
+    articleLiked.value = res.liked
+    articleLikeCount.value = res.likeCount
+  } catch {
+    // 回滚
+    articleLiked.value = wasLiked
+    articleLikeCount.value = wasLiked ? articleLikeCount.value + 1 : Math.max(0, articleLikeCount.value - 1)
+  }
+}
 
 // Tiptap 只读编辑器
 const editor = useEditor({
@@ -109,9 +188,12 @@ async function loadArticle() {
   try {
     const data = await apiFetchArticle(id)
     article.value = data
+    articleLikeCount.value = data.likeCount ?? 0
     if (editor.value && data.content) {
       editor.value.commands.setContent(data.content)
     }
+    // 客户端拉取点赞状态
+    nextTick(() => fetchLikeStatus())
   } catch {
     error.value = true
   } finally {
@@ -129,6 +211,7 @@ function formatDate(dateStr: string): string {
 }
 
 onMounted(() => {
+  deviceId.value = getOrCreateDeviceId()
   loadArticle()
 })
 

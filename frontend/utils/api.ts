@@ -10,6 +10,8 @@ import type {
   AlbumListResponse,
   PhotoItem,
   PhotoListResponse,
+  MessageItem,
+  MessageListResponse,
 } from '~/types'
 
 /** 登录 */
@@ -173,6 +175,53 @@ export async function apiVerifyPhotoPassword(photoId: number, password: string):
 /** 更新照片信息（caption、password） */
 export async function apiUpdatePhoto(id: number, data: { caption?: string; password?: string }): Promise<PhotoItem> {
   const res = await $fetch<PhotoItem>(`/api/photos/${id}`, {
+    method: 'PUT',
+    body: data,
+  })
+  return res
+}
+
+// ====== 文章点赞 ======
+
+/** 文章点赞/取消点赞（切换） */
+export async function apiToggleArticleLike(articleId: string, deviceId: string): Promise<{ liked: boolean; likeCount: number }> {
+  const res = await $fetch<{ liked: boolean; likeCount: number }>(`/api/articles/${articleId}/like`, {
+    method: 'POST',
+    body: { deviceId },
+  })
+  return res
+}
+
+/** 查询文章点赞状态 */
+export async function apiGetArticleLikeStatus(articleId: string, deviceId: string): Promise<{ liked: boolean; likeCount: number }> {
+  const res = await $fetch<{ liked: boolean; likeCount: number }>(`/api/articles/${articleId}/like-status`, {
+    params: { deviceId },
+  })
+  return res
+}
+
+// ====== 留言板 ======
+
+/** 获取留言列表 */
+export async function apiGetMessages(deviceId?: string): Promise<MessageListResponse> {
+  const params: Record<string, string> = {}
+  if (deviceId) params.deviceId = deviceId
+  const res = await $fetch<MessageListResponse>('/api/messages', { params })
+  return res
+}
+
+/** 新增留言 */
+export async function apiCreateMessage(data: { deviceId: string; nickname?: string; content: string }): Promise<MessageItem> {
+  const res = await $fetch<MessageItem>('/api/messages', {
+    method: 'POST',
+    body: data,
+  })
+  return res
+}
+
+/** 修改留言 */
+export async function apiUpdateMessage(id: number, data: { deviceId: string; nickname?: string; content: string }): Promise<MessageItem> {
+  const res = await $fetch<MessageItem>(`/api/messages/${id}`, {
     method: 'PUT',
     body: data,
   })
