@@ -318,7 +318,7 @@
                   {{ album.photoCount }}
                 </span>
                 <!-- 锁定标识 -->
-                <div v-if="album.hasPassword && !isAlbumUnlocked(album.id)" class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
+                <div v-if="album.hasPassword && !isAlbumUnlocked(album.id)" class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[20px]">
                   <span class="text-3xl">🔒</span>
                 </div>
               </div>
