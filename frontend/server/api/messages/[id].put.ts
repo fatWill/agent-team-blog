@@ -1,27 +1,12 @@
-import { checkRateLimit, getClientIp } from '~/server/utils/rateLimit'
-import {
-  getMessageById,
-  updateMessage,
-  getTodayDateCST,
-} from '~/server/utils/messages'
+import { getPool } from '~/server/utils/db'
+import type { RowDataPacket } from 'mysql2/promise'
 
 /**
  * PUT /api/messages/:id
- * 修改留言（公开接口）
+ * 修改留言（公开接口，通过 deviceId 验证归属）
  * Body: { deviceId: string, nickname?: string, content: string }
- * - 验证 device_id 归属
- * - 每天只能修改一次
  */
 export default defineEventHandler(async (event) => {
-  // IP 限频检查
-  const ip = getClientIp(event)
-  if (!checkRateLimit(ip, 3)) {
-    throw createError({
-      statusCode: 429,
-      statusMessage: '操作太频繁，请稍后再试',
-    })
-  }
-
   const id = Number(event.context.params?.id)
   if (!id || isNaN(id)) {
     throw createError({ statusCode: 400, statusMessage: '无效的留言 ID' })
@@ -39,34 +24,61 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '留言内容不能为空' })
   }
 
-  const nickname = body?.nickname?.trim() || undefined
+  const nickname = body?.nickname?.trim() || null
+
+  const pool = getPool()
 
   // 查找留言
-  const existing = await getMessageById(id)
-  if (!existing) {
+  const [rows] = await pool.execute(
+    'SELECT id, device_id, last_modified_date FROM messages WHERE id = ? LIMIT 1',
+    [id],
+  ) as [RowDataPacket[], any]
+
+  if (rows.length === 0) {
     throw createError({ statusCode: 404, statusMessage: '留言不存在' })
   }
 
-  // 验证归属
+  const existing = rows[0]
+
+  // 验证设备归属
   if (existing.device_id !== deviceId) {
     throw createError({ statusCode: 403, statusMessage: '无权修改此留言' })
   }
 
-  // 检查每日修改限制
-  const today = getTodayDateCST()
-  if (existing.last_modified_date === today) {
+  // 计算今天的日期字符串（UTC+8）
+  const now = new Date()
+  const utc8 = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+  const todayStr = utc8.toISOString().slice(0, 10)
+
+  // 检查今天是否已修改过
+  const lastModDate = existing.last_modified_date ? String(existing.last_modified_date) : null
+  if (lastModDate === todayStr) {
     throw createError({
       statusCode: 403,
       statusMessage: '今天已经修改过了，明天再来吧',
     })
   }
 
-  // 执行更新
-  const message = await updateMessage(id, {
-    nickname,
-    content,
-    deviceId,
-  })
+  // 更新留言并记录修改日期
+  await pool.execute(
+    'UPDATE messages SET nickname = ?, content = ?, last_modified_date = ? WHERE id = ?',
+    [nickname, content, todayStr, id],
+  )
 
-  return message
+  // 查询更新后的记录
+  const [updatedRows] = await pool.execute(
+    'SELECT id, nickname, content, last_modified_date, created_at, updated_at FROM messages WHERE id = ?',
+    [id],
+  ) as [RowDataPacket[], any]
+
+  const row = updatedRows[0]
+  return {
+    id: row.id,
+    nickname: row.nickname || '匿名',
+    content: row.content,
+    isOwn: true,
+    canEdit: false, // 刚修改过，今天不能再改
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString(),
+  }
 })
