@@ -127,6 +127,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-02: 前端密码保护功能完整实现（v1.8.0）：相册集/照片锁图标+模糊遮罩、密码验证弹窗（支持回车提交）、sessionStorage 缓存解锁状态、灯箱左右切换自动检查密码、后台创建/编辑相册密码、照片密码设置弹窗
 - 2026-04-02: 相册和照片支持密码保护（bcrypt 哈希存储）；新增 verify-password 验证接口、照片 PUT 更新接口；查询接口返回 hasPassword 字段
 - 2026-04-01: 修复 SSR 500 错误：用 ClientOnly 包裹 DynamicScroller（vue-virtual-scroller 不支持 SSR），文章列表 fallback 渲染静态卡片保证首屏 HTML 包含内容；三个首屏接口（articles/profile/changelog）已通过 useAsyncData 预取
 - 2026-04-01: 新增 toCdnUrl 工具函数，所有图片 URL 统一走 CDN（cdn.fatwill.cloud）；覆盖首页头像/文章封面/相册/照片/灯箱及后台全部图片展示
