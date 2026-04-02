@@ -25,6 +25,8 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 登录 | `pages/login.vue` | ✅ 已实现 | 账号密码登录，成功后跳转 /admin |
 | 管理后台 | `pages/admin.vue` | ✅ 已实现 | Tiptap 编辑器，录入并发布文章 |
 | 相册 | `server/api/albums/`, `server/api/photos/` | ✅ 已实现 | 相册集 CRUD、照片管理、封面自动更新 |
+| 文章点赞 | `server/api/articles/[id]/like*.ts` | ✅ 已实现 | 文章点赞/取消、状态查询 |
+| 留言板 | `server/api/messages/` | ✅ 已实现 | 留言 CRUD、IP 限频、每日修改限制 |
 
 ## 共享层注册表
 
@@ -45,6 +47,8 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 更新日志 DAO | `server/utils/changelog.ts` | 更新日志查询（MySQL） |
 | 个人资料 DAO | `server/utils/profile.ts` | 博主资料读写（MySQL profile 表） |
 | 相册 DAO | `server/utils/albums.ts` | 相册集和照片 CRUD（MySQL albums/photos 表） |
+| 留言 DAO | `server/utils/messages.ts` | 留言 CRUD（MySQL messages 表） |
+| IP 限频 | `server/utils/rateLimit.ts` | 内存 Map 实现的 IP 限频工具 |
 
 ## 页面路由映射
 
@@ -82,6 +86,11 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 更新照片 | PUT | `/api/photos/:id` | 需鉴权，更新照片信息（caption、password） |
 | 相册验证密码 | POST | `/api/albums/:id/verify-password` | 公开接口，验证相册集密码 |
 | 照片验证密码 | POST | `/api/photos/:id/verify-password` | 公开接口，验证照片密码 |
+| 文章点赞 | POST | `/api/articles/:id/like` | 公开接口，点赞/取消点赞（切换） |
+| 文章点赞状态 | GET | `/api/articles/:id/like-status` | 公开接口，查询点赞状态 |
+| 留言列表 | GET | `/api/messages` | 公开接口，返回所有留言 |
+| 新增留言 | POST | `/api/messages` | 公开接口，新增/修改留言（IP 限频） |
+| 修改留言 | PUT | `/api/messages/:id` | 公开接口，修改留言（每日一次） |
 
 ## 版本号规范（用户明确要求）
 
@@ -116,6 +125,8 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | `profile` | 博主个人资料表 | `id` (int, 固定为1) | — |
 | `albums` | 相册集表 | `id` (int auto_increment) | — |
 | `photos` | 照片表 | `id` (int auto_increment) | `idx_album_id` |
+| `article_likes` | 文章点赞表 | `id` (int auto_increment) | `uq_article_device`, `idx_article_id` |
+| `messages` | 留言板表 | `id` (int auto_increment) | `uq_device_id` |
 
 ## 环境配置
 
@@ -127,6 +138,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-02: 新增文章点赞功能（article_likes 表、like_count 冗余字段、点赞/取消切换接口、状态查询接口）；新增留言板功能（messages 表、CRUD 接口、IP 限频、每日修改限制、deviceId 脱敏）
 - 2026-04-02: 前端密码保护功能完整实现（v1.8.0）：相册集/照片锁图标+模糊遮罩、密码验证弹窗（支持回车提交）、sessionStorage 缓存解锁状态、灯箱左右切换自动检查密码、后台创建/编辑相册密码、照片密码设置弹窗
 - 2026-04-02: 相册和照片支持密码保护（bcrypt 哈希存储）；新增 verify-password 验证接口、照片 PUT 更新接口；查询接口返回 hasPassword 字段
 - 2026-04-01: 修复 SSR 500 错误：用 ClientOnly 包裹 DynamicScroller（vue-virtual-scroller 不支持 SSR），文章列表 fallback 渲染静态卡片保证首屏 HTML 包含内容；三个首屏接口（articles/profile/changelog）已通过 useAsyncData 预取

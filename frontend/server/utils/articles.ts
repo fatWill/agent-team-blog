@@ -8,6 +8,7 @@ export interface Article {
   summary: string
   coverImage: string
   content: Record<string, any>  // Tiptap JSON DSL
+  likeCount: number
   createdAt: string
   updatedAt: string
 }
@@ -19,6 +20,7 @@ interface ArticleRow extends RowDataPacket {
   summary: string
   cover_image: string
   content: Record<string, any> | string
+  like_count: number
   created_at: Date
   updated_at: Date
 }
@@ -35,6 +37,7 @@ function rowToArticle(row: ArticleRow): Article {
     summary: row.summary,
     coverImage: row.cover_image || '',
     content,
+    likeCount: Number(row.like_count) || 0,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
   }
@@ -47,7 +50,7 @@ function rowToArticle(row: ArticleRow): Article {
 export async function getArticleList(title?: string): Promise<Omit<Article, 'content'>[]> {
   const pool = getPool()
 
-  let sql = 'SELECT id, title, summary, cover_image, created_at, updated_at FROM articles'
+  let sql = 'SELECT id, title, summary, cover_image, like_count, created_at, updated_at FROM articles'
   const params: any[] = []
 
   if (title && title.trim() !== '') {
@@ -63,6 +66,7 @@ export async function getArticleList(title?: string): Promise<Omit<Article, 'con
     title: row.title,
     summary: row.summary,
     coverImage: row.cover_image || '',
+    likeCount: Number(row.like_count) || 0,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
   }))
@@ -74,7 +78,7 @@ export async function getArticleList(title?: string): Promise<Omit<Article, 'con
 export async function getArticleById(id: string): Promise<Article | null> {
   const pool = getPool()
   const [rows] = await pool.query<ArticleRow[]>(
-    'SELECT id, title, summary, cover_image, content, created_at, updated_at FROM articles WHERE id = ?',
+    'SELECT id, title, summary, cover_image, content, like_count, created_at, updated_at FROM articles WHERE id = ?',
     [id],
   )
   if (rows.length === 0) return null
@@ -103,6 +107,7 @@ export async function createArticle(article: {
     summary: article.summary,
     coverImage: article.coverImage,
     content: article.content,
+    likeCount: 0,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
   }

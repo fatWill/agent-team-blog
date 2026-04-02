@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
     summary: article.summary,
     coverImage: article.coverImage,
     content: article.content,
+    likeCount: article.likeCount,
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,
   }
