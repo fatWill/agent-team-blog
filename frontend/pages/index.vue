@@ -1059,6 +1059,8 @@ async function fetchArticles() {
 // ====== 文章点赞 ======
 const articleLikeStates = ref<Record<string, { liked: boolean; likeCount: number }>>({})
 const articleLikeAnimating = ref<Record<string, boolean>>({})
+const articleLikeAbortControllers: Record<string, AbortController> = {}
+const articleLikeAbortControllers: Record<string, AbortController> = {}
 
 function getArticleLikeCount(article: ArticleListItem): number {
   return articleLikeStates.value[article.id]?.likeCount ?? article.likeCount ?? 0
@@ -1103,7 +1105,14 @@ async function handleArticleLike(articleId: string, e?: Event) {
   e?.stopPropagation()
   if (!deviceId.value) return
 
-  // 乐观更新
+  // 取消该文章上一次飞行中的请求
+  if (articleLikeAbortControllers[articleId]) {
+    articleLikeAbortControllers[articleId].abort()
+  }
+  const controller = new AbortController()
+  articleLikeAbortControllers[articleId] = controller
+
+  // 乐观更新（立即响应）
   const prev = articleLikeStates.value[articleId] || { liked: false, likeCount: 0 }
   const wasLiked = prev.liked
   articleLikeStates.value[articleId] = {
@@ -1116,11 +1125,21 @@ async function handleArticleLike(articleId: string, e?: Event) {
   setTimeout(() => { articleLikeAnimating.value[articleId] = false }, 600)
 
   try {
-    const res = await apiToggleArticleLike(articleId, deviceId.value)
-    articleLikeStates.value[articleId] = { liked: res.liked, likeCount: res.likeCount }
-  } catch {
-    // 回滚
+    const res = await apiToggleArticleLike(articleId, deviceId.value, controller.signal)
+    // 只有当这个请求仍是最新的（没被取消）时才更新状态
+    if (!controller.signal.aborted) {
+      articleLikeStates.value[articleId] = { liked: res.liked, likeCount: res.likeCount }
+    }
+  } catch (err: any) {
+    // 被取消的请求不回滚（UI 已经是最新乐观状态）
+    if (err?.name === 'AbortError' || controller.signal.aborted) return
+    // 真正的网络错误才回滚
     articleLikeStates.value[articleId] = prev
+  } finally {
+    // 清理 controller
+    if (articleLikeAbortControllers[articleId] === controller) {
+      delete articleLikeAbortControllers[articleId]
+    }
   }
 }
 

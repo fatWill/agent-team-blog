@@ -184,10 +184,11 @@ export async function apiUpdatePhoto(id: number, data: { caption?: string; passw
 // ====== 文章点赞 ======
 
 /** 文章点赞/取消点赞（切换） */
-export async function apiToggleArticleLike(articleId: string, deviceId: string): Promise<{ liked: boolean; likeCount: number }> {
+export async function apiToggleArticleLike(articleId: string, deviceId: string, signal?: AbortSignal): Promise<{ liked: boolean; likeCount: number }> {
   const res = await $fetch<{ liked: boolean; likeCount: number }>(`/api/articles/${articleId}/like`, {
     method: 'POST',
     body: { deviceId },
+    signal,
   })
   return res
 }
