@@ -79,6 +79,9 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 | 照片列表 | GET | `/api/albums/:id/photos` | 公开接口，获取相册下所有照片 |
 | 添加照片 | POST | `/api/albums/:id/photos` | 需鉴权，添加照片并自动更新封面 |
 | 删除照片 | DELETE | `/api/photos/:id` | 需鉴权，删除照片并自动更新封面 |
+| 更新照片 | PUT | `/api/photos/:id` | 需鉴权，更新照片信息（caption、password） |
+| 相册验证密码 | POST | `/api/albums/:id/verify-password` | 公开接口，验证相册集密码 |
+| 照片验证密码 | POST | `/api/photos/:id/verify-password` | 公开接口，验证照片密码 |
 
 ## 版本号规范（用户明确要求）
 
@@ -124,6 +127,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-02: 相册和照片支持密码保护（bcrypt 哈希存储）；新增 verify-password 验证接口、照片 PUT 更新接口；查询接口返回 hasPassword 字段
 - 2026-04-01: 修复 SSR 500 错误：用 ClientOnly 包裹 DynamicScroller（vue-virtual-scroller 不支持 SSR），文章列表 fallback 渲染静态卡片保证首屏 HTML 包含内容；三个首屏接口（articles/profile/changelog）已通过 useAsyncData 预取
 - 2026-04-01: 新增 toCdnUrl 工具函数，所有图片 URL 统一走 CDN（cdn.fatwill.cloud）；覆盖首页头像/文章封面/相册/照片/灯箱及后台全部图片展示
 - 2026-04-01: 统一 UI 组件跨端适配：PC 端 antd（Spin/Modal/message），移动端自定义轻量组件（MobileToast/MobileDialog）；封装 useDevice composable 和 AppLoading 组件；修复相册虚拟滚动日期标题被覆盖

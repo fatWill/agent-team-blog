@@ -1,4 +1,5 @@
 import { readBody } from 'h3'
+import bcrypt from 'bcryptjs'
 import { requireAuth } from '~/server/utils/auth'
 import { updateAlbum } from '~/server/utils/albums'
 
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody<{ name?: string; description?: string }>(event)
+  const body = await readBody<{ name?: string; description?: string; password?: string }>(event)
 
   if (body?.name !== undefined && body.name.trim() === '') {
     throw createError({
@@ -26,9 +27,19 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const updates: { name?: string; description?: string } = {}
+  const updates: { name?: string; description?: string; passwordHash?: string | null } = {}
   if (body?.name !== undefined) updates.name = body.name.trim()
   if (body?.description !== undefined) updates.description = body.description.trim()
+
+  // password 字段处理：空字符串 = 清除密码，非空 = bcrypt 哈希
+  if (body?.password !== undefined) {
+    if (body.password === '') {
+      updates.passwordHash = null
+    }
+    else {
+      updates.passwordHash = await bcrypt.hash(body.password.trim(), 10)
+    }
+  }
 
   const album = await updateAlbum(id, updates)
 

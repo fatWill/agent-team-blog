@@ -8,6 +8,7 @@ export interface AlbumItem {
   description: string | null
   coverUrl: string | null
   photoCount: number
+  hasPassword: boolean
   createdAt: string
   updatedAt: string
 }
@@ -18,6 +19,7 @@ export interface PhotoItem {
   albumId: number
   url: string
   caption: string | null
+  hasPassword: boolean
   createdAt: string
   updatedAt: string
 }
@@ -28,6 +30,7 @@ interface AlbumRow extends RowDataPacket {
   name: string
   description: string | null
   cover_url: string | null
+  password_hash: string | null
   photo_count: number
   created_at: Date
   updated_at: Date
@@ -39,6 +42,7 @@ interface PhotoRow extends RowDataPacket {
   album_id: number
   url: string
   caption: string | null
+  password_hash: string | null
   created_at: Date
   updated_at: Date
 }
@@ -53,6 +57,7 @@ function rowToAlbum(row: AlbumRow): AlbumItem {
     description: row.description ?? null,
     coverUrl: row.cover_url ?? null,
     photoCount: Number(row.photo_count) || 0,
+    hasPassword: !!row.password_hash,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
   }
@@ -67,6 +72,7 @@ function rowToPhoto(row: PhotoRow): PhotoItem {
     albumId: row.album_id,
     url: row.url,
     caption: row.caption ?? null,
+    hasPassword: !!row.password_hash,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
   }
@@ -81,7 +87,7 @@ export async function getAlbumList(): Promise<AlbumItem[]> {
 
   const sql = `
     SELECT
-      a.id, a.name, a.description, a.cover_url,
+      a.id, a.name, a.description, a.cover_url, a.password_hash,
       a.created_at, a.updated_at,
       IFNULL(pc.cnt, 0) AS photo_count
     FROM albums a
@@ -105,7 +111,7 @@ export async function getAlbumById(id: number): Promise<AlbumItem | null> {
 
   const sql = `
     SELECT
-      a.id, a.name, a.description, a.cover_url,
+      a.id, a.name, a.description, a.cover_url, a.password_hash,
       a.created_at, a.updated_at,
       IFNULL(pc.cnt, 0) AS photo_count
     FROM albums a
@@ -130,7 +136,7 @@ export async function getPhotosByAlbumId(albumId: number): Promise<PhotoItem[]> 
   const pool = getPool()
 
   const [rows] = await pool.query<PhotoRow[]>(
-    'SELECT id, album_id, url, caption, created_at, updated_at FROM photos WHERE album_id = ? ORDER BY created_at DESC',
+    'SELECT id, album_id, url, caption, password_hash, created_at, updated_at FROM photos WHERE album_id = ? ORDER BY created_at DESC',
     [albumId],
   )
   return rows.map(rowToPhoto)
@@ -139,12 +145,12 @@ export async function getPhotosByAlbumId(albumId: number): Promise<PhotoItem[]> 
 /**
  * 创建相册集
  */
-export async function createAlbum(name: string, description?: string): Promise<AlbumItem> {
+export async function createAlbum(name: string, description?: string, passwordHash?: string | null): Promise<AlbumItem> {
   const pool = getPool()
 
   const [result] = await pool.query<ResultSetHeader>(
-    'INSERT INTO albums (name, description) VALUES (?, ?)',
-    [name, description ?? null],
+    'INSERT INTO albums (name, description, password_hash) VALUES (?, ?, ?)',
+    [name, description ?? null, passwordHash ?? null],
   )
 
   return (await getAlbumById(result.insertId))!
@@ -153,7 +159,7 @@ export async function createAlbum(name: string, description?: string): Promise<A
 /**
  * 更新相册集
  */
-export async function updateAlbum(id: number, data: { name?: string; description?: string }): Promise<AlbumItem | null> {
+export async function updateAlbum(id: number, data: { name?: string; description?: string; passwordHash?: string | null }): Promise<AlbumItem | null> {
   const pool = getPool()
 
   const setClauses: string[] = []
@@ -166,6 +172,10 @@ export async function updateAlbum(id: number, data: { name?: string; description
   if (data.description !== undefined) {
     setClauses.push('description = ?')
     values.push(data.description)
+  }
+  if (data.passwordHash !== undefined) {
+    setClauses.push('password_hash = ?')
+    values.push(data.passwordHash)
   }
 
   if (setClauses.length === 0) return getAlbumById(id)
@@ -205,16 +215,16 @@ export async function deleteAlbum(id: number): Promise<boolean> {
 /**
  * 添加照片到相册
  */
-export async function addPhoto(albumId: number, url: string, caption?: string): Promise<PhotoItem> {
+export async function addPhoto(albumId: number, url: string, caption?: string, passwordHash?: string | null): Promise<PhotoItem> {
   const pool = getPool()
 
   const [result] = await pool.query<ResultSetHeader>(
-    'INSERT INTO photos (album_id, url, caption) VALUES (?, ?, ?)',
-    [albumId, url, caption ?? null],
+    'INSERT INTO photos (album_id, url, caption, password_hash) VALUES (?, ?, ?, ?)',
+    [albumId, url, caption ?? null, passwordHash ?? null],
   )
 
   const [rows] = await pool.query<PhotoRow[]>(
-    'SELECT id, album_id, url, caption, created_at, updated_at FROM photos WHERE id = ?',
+    'SELECT id, album_id, url, caption, password_hash, created_at, updated_at FROM photos WHERE id = ?',
     [result.insertId],
   )
 
@@ -265,4 +275,72 @@ export async function updateAlbumCover(albumId: number): Promise<void> {
     'UPDATE albums SET cover_url = ? WHERE id = ?',
     [coverUrl, albumId],
   )
+}
+
+/**
+ * 获取相册的 password_hash（用于密码验证）
+ */
+export async function getAlbumPasswordHash(id: number): Promise<string | null> {
+  const pool = getPool()
+
+  const [rows] = await pool.query<(RowDataPacket & { password_hash: string | null })[]>(
+    'SELECT password_hash FROM albums WHERE id = ? LIMIT 1',
+    [id],
+  )
+
+  if (rows.length === 0) return null
+  return rows[0].password_hash
+}
+
+/**
+ * 获取照片的 password_hash（用于密码验证）
+ */
+export async function getPhotoPasswordHash(id: number): Promise<string | null> {
+  const pool = getPool()
+
+  const [rows] = await pool.query<(RowDataPacket & { password_hash: string | null })[]>(
+    'SELECT password_hash FROM photos WHERE id = ? LIMIT 1',
+    [id],
+  )
+
+  if (rows.length === 0) return null
+  return rows[0].password_hash
+}
+
+/**
+ * 更新单张照片信息
+ */
+export async function updatePhoto(id: number, data: { caption?: string; passwordHash?: string | null }): Promise<PhotoItem | null> {
+  const pool = getPool()
+
+  const setClauses: string[] = []
+  const values: any[] = []
+
+  if (data.caption !== undefined) {
+    setClauses.push('caption = ?')
+    values.push(data.caption)
+  }
+  if (data.passwordHash !== undefined) {
+    setClauses.push('password_hash = ?')
+    values.push(data.passwordHash)
+  }
+
+  if (setClauses.length === 0) return null
+
+  values.push(id)
+
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE photos SET ${setClauses.join(', ')} WHERE id = ?`,
+    values,
+  )
+
+  if (result.affectedRows === 0) return null
+
+  const [rows] = await pool.query<PhotoRow[]>(
+    'SELECT id, album_id, url, caption, password_hash, created_at, updated_at FROM photos WHERE id = ?',
+    [id],
+  )
+
+  if (rows.length === 0) return null
+  return rowToPhoto(rows[0])
 }

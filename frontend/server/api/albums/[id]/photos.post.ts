@@ -1,4 +1,5 @@
 import { readBody } from 'h3'
+import bcrypt from 'bcryptjs'
 import { requireAuth } from '~/server/utils/auth'
 import { getAlbumById, addPhoto, updateAlbumCover } from '~/server/utils/albums'
 
@@ -27,7 +28,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody<{ url?: string; caption?: string }>(event)
+  const body = await readBody<{ url?: string; caption?: string; password?: string }>(event)
 
   if (!body?.url || body.url.trim() === '') {
     throw createError({
@@ -36,7 +37,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const photo = await addPhoto(albumId, body.url.trim(), body.caption?.trim())
+  // 如果设置了密码，bcrypt 哈希后存储
+  let passwordHash: string | null = null
+  if (body.password && body.password.trim() !== '') {
+    passwordHash = await bcrypt.hash(body.password.trim(), 10)
+  }
+
+  const photo = await addPhoto(albumId, body.url.trim(), body.caption?.trim(), passwordHash)
 
   // 更新相册封面
   await updateAlbumCover(albumId)
