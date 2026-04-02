@@ -1060,7 +1060,6 @@ async function fetchArticles() {
 const articleLikeStates = ref<Record<string, { liked: boolean; likeCount: number }>>({})
 const articleLikeAnimating = ref<Record<string, boolean>>({})
 const articleLikeAbortControllers: Record<string, AbortController> = {}
-const articleLikeAbortControllers: Record<string, AbortController> = {}
 
 function getArticleLikeCount(article: ArticleListItem): number {
   return articleLikeStates.value[article.id]?.likeCount ?? article.likeCount ?? 0
