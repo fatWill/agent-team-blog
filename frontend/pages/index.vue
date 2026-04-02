@@ -158,7 +158,7 @@
     </section>
 
     <!-- PC端 Tab 导航（仅 >= md 显示） -->
-    <nav class="sticky top-0 z-40 hidden border-b border-gray-200/60 bg-white/80 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80 md:block">
+    <nav class="sticky top-0 z-40 hidden border-b border-gray-200/60 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 md:block">
       <div class="mx-auto flex max-w-3xl gap-0 px-4">
         <button
           v-for="tab in tabs"
