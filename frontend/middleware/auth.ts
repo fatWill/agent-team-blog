@@ -14,7 +14,15 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // 客户端导航时：内存中已有登录状态，直接放行，无需重复请求服务端
   if (import.meta.client && authStore.isLoggedIn) return
 
-  // 首次进入（SSR 或内存无状态）：请求服务端验证 cookie
+  // 客户端导航时：如果没有 auth_token cookie，直接跳转登录页（避免无谓的网络请求）
+  if (import.meta.client) {
+    const hasToken = document.cookie.split(';').some(c => c.trim().startsWith('auth_token='))
+    if (!hasToken) {
+      return navigateTo(`/login?redirect=${encodeURIComponent(to.fullPath)}`, { replace: true })
+    }
+  }
+
+  // 首次进入（SSR 或内存无状态但有 cookie）：请求服务端验证 cookie
   const ok = await authStore.checkAuth()
 
   if (!ok) {
