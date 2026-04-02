@@ -211,7 +211,7 @@
               >
                 <NuxtLink
                   :to="`/articles/${article.id}`"
-                  class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+                  class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
                 >
                   <img v-if="article.coverImage" :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-40 w-full object-cover" />
                   <div class="p-5">
@@ -249,7 +249,7 @@
                 v-for="article in articles"
                 :key="article.id"
                 :to="`/articles/${article.id}`"
-                class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+                class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
               >
                 <img v-if="article.coverImage" :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-40 w-full object-cover" />
                 <div class="p-5">
