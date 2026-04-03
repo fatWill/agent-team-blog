@@ -92,9 +92,11 @@ let animId = 0
 let ctx: CanvasRenderingContext2D | null = null
 let canvasW = 0
 let canvasH = 0
-const LINE_COUNT = 18
+const MIN_LINE_GAP = 34 // 行间最小间距（px），确保不重叠
 const BTN_GAP = 16 // 按钮与文字之间的间距
 const LINE_START: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
+const DRAG_THRESHOLD = 8 // 拖拽触发阈值（px）
+let lineCount = 18 // 动态计算的行数
 
 // ====== 构建每行文字（随机 2-3 个片段拼接，重复多次）======
 function buildLineText(index: number): string {
@@ -110,8 +112,11 @@ function buildLineText(index: number): string {
 // ====== 初始化行数据 ======
 function initLines() {
   lines = []
-  const lineHeight = canvasH / LINE_COUNT
-  for (let i = 0; i < LINE_COUNT; i++) {
+  // 动态计算行数：确保行间距 >= MIN_LINE_GAP
+  lineCount = Math.max(6, Math.floor(canvasH / MIN_LINE_GAP))
+  const lineHeight = canvasH / lineCount
+
+  for (let i = 0; i < lineCount; i++) {
     const fontSize = 13 + (i % 4) // 13-16px
     // 速度 0.4~1.2，奇偶行方向相反
     const speed = (0.4 + ((i * 37) % 100) / 100 * 0.8) * (i % 2 === 0 ? 1 : -1)
@@ -119,7 +124,7 @@ function initLines() {
 
     lines.push({
       text,
-      y: lineHeight * (i + 0.5) + fontSize * 0.35,
+      y: lineHeight * (i + 0.5),
       offsetX: (i * 137) % 500, // 随机初始偏移
       speed,
       color: colors[i % colors.length]!,
@@ -295,11 +300,11 @@ function drawFrame() {
 }
 
 // ====== 按钮拖拽 ======
-let pointerDownTimer: ReturnType<typeof setTimeout> | null = null
-let isLongPress = false
-let hasMoved = false
+let hasDragged = false
 let startPointerX = 0
 let startPointerY = 0
+let dragOffsetX = 0
+let dragOffsetY = 0
 
 function getPointerPos(e: MouseEvent | TouchEvent): { x: number; y: number } {
   if ('touches' in e && e.touches.length > 0) {
@@ -312,8 +317,7 @@ function getPointerPos(e: MouseEvent | TouchEvent): { x: number; y: number } {
 }
 
 function onPointerDown(e: MouseEvent | TouchEvent) {
-  isLongPress = false
-  hasMoved = false
+  hasDragged = false
   const pos = getPointerPos(e)
   startPointerX = pos.x
   startPointerY = pos.y
@@ -321,49 +325,40 @@ function onPointerDown(e: MouseEvent | TouchEvent) {
   const el = btnRef.value
   if (!el) return
   const rect = el.getBoundingClientRect()
-  const offsetX = pos.x - rect.left
-  const offsetY = pos.y - rect.top
+  dragOffsetX = pos.x - rect.left
+  dragOffsetY = pos.y - rect.top
 
-  pointerDownTimer = setTimeout(() => {
-    isLongPress = true
+  const onMove = (ev: MouseEvent | TouchEvent) => {
+    const p = getPointerPos(ev)
+    const dx = p.x - startPointerX
+    const dy = p.y - startPointerY
+    const dist = Math.sqrt(dx * dx + dy * dy)
+
+    if (!hasDragged && dist < DRAG_THRESHOLD) return
+
+    ev.preventDefault()
+    hasDragged = true
     isDragging.value = true
-
-    const onMove = (ev: MouseEvent | TouchEvent) => {
-      ev.preventDefault()
-      hasMoved = true
-      const p = getPointerPos(ev)
-      btnLeft.value = p.x - offsetX
-      btnTop.value = p.y - offsetY
-    }
-
-    const onUp = () => {
-      isDragging.value = false
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-      document.removeEventListener('touchmove', onMove)
-      document.removeEventListener('touchend', onUp)
-    }
-
-    document.addEventListener('mousemove', onMove, { passive: false })
-    document.addEventListener('mouseup', onUp)
-    document.addEventListener('touchmove', onMove, { passive: false })
-    document.addEventListener('touchend', onUp)
-  }, 300)
-
-  const onEarlyUp = () => {
-    if (pointerDownTimer) {
-      clearTimeout(pointerDownTimer)
-      pointerDownTimer = null
-    }
-    if (!isLongPress && !hasMoved) {
-      navigateTo('/home')
-    }
-    document.removeEventListener('mouseup', onEarlyUp)
-    document.removeEventListener('touchend', onEarlyUp)
+    btnLeft.value = p.x - dragOffsetX
+    btnTop.value = p.y - dragOffsetY
   }
 
-  document.addEventListener('mouseup', onEarlyUp)
-  document.addEventListener('touchend', onEarlyUp)
+  const onUp = () => {
+    if (!hasDragged) {
+      // 没有拖动 → 视为点击跳转
+      navigateTo('/home')
+    }
+    isDragging.value = false
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+    document.removeEventListener('touchmove', onMove)
+    document.removeEventListener('touchend', onUp)
+  }
+
+  document.addEventListener('mousemove', onMove, { passive: false })
+  document.addEventListener('mouseup', onUp)
+  document.addEventListener('touchmove', onMove, { passive: false })
+  document.addEventListener('touchend', onUp)
 }
 
 // ====== resize ======
@@ -381,10 +376,10 @@ function handleResize() {
   if (ctx) ctx.scale(dpr, dpr)
 
   // 重新计算行 Y 坐标
-  const lineHeight = canvasH / LINE_COUNT
+  lineCount = Math.max(6, Math.floor(canvasH / MIN_LINE_GAP))
+  const lineHeight = canvasH / lineCount
   for (let i = 0; i < lines.length; i++) {
-    const fontSize = parseInt(lines[i]!.font)
-    lines[i]!.y = lineHeight * (i + 0.5) + fontSize * 0.35
+    lines[i]!.y = lineHeight * (i + 0.5)
   }
 
   // 重新居中按钮
@@ -428,7 +423,6 @@ onMounted(() => {
 onUnmounted(() => {
   cancelAnimationFrame(animId)
   window.removeEventListener('resize', handleResize)
-  if (pointerDownTimer) clearTimeout(pointerDownTimer)
 })
 </script>
 
