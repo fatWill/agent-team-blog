@@ -140,6 +140,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-04: 修复首页拖拽延迟(移除setTimeout改为移动距离阈值8px)+行间距重叠(动态行数+MIN_LINE_GAP=34px)
 - 2026-04-04: 恢复横排滚动+pretext动态宽度绕排：18行代码文字各自水平滚动（速度/方向不同），与按钮重叠行用layoutNextLine动态宽度截断+右侧续排
 - 2026-04-04: 首页用 pretext layoutNextLine 动态宽度参数实现真正绕排：按钮重叠行传入受限 width 重新排版，文字从 layout 源头绕开按钮（非 clip 裁切）；按钮右侧也有文字；拖拽按钮实时重新绕排
 - 2026-04-04: 首页重写为 pretext inline-flow 排版：参考 rich-note.ts demo，用 layoutNextLine 实现文字+按钮（chip）混合内联排版，按钮是原子元素不被截断，文字自然绕过按钮换行；纵向无限循环滚动
