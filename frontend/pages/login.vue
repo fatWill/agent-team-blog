@@ -3,7 +3,7 @@
     <div class="w-full max-w-sm">
       <!-- Logo -->
       <div class="mb-8 text-center">
-        <NuxtLink to="/" class="inline-block">
+        <NuxtLink to="/home" class="inline-block">
           <img src="/avatar.png" alt="fatwillzeng" class="mx-auto h-16 w-16 rounded-full ring-2 ring-gray-200 dark:ring-gray-700" />
         </NuxtLink>
         <h1 class="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">登录</h1>
@@ -58,7 +58,7 @@
 
       <!-- 返回首页 -->
       <div class="mt-6 text-center">
-        <NuxtLink to="/" class="text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+        <NuxtLink to="/home" class="text-sm text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
           ← 返回首页
         </NuxtLink>
       </div>
@@ -90,7 +90,7 @@ async function handleLogin() {
       password: form.password,
     })
     authStore.setLoggedIn(true)
-    const redirectTo = (route.query.redirect as string) || '/'
+    const redirectTo = (route.query.redirect as string) || '/home'
     router.replace(redirectTo)
   } catch (err: unknown) {
     const fetchErr = err as { data?: { statusMessage?: string } }

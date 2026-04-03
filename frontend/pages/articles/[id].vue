@@ -19,7 +19,7 @@
     <!-- 左上角固定：返回首页 -->
     <div class="fixed left-4 top-4 z-50">
       <NuxtLink
-        to="/"
+        to="/home"
         class="flex h-9 items-center gap-1.5 rounded-lg bg-white/80 px-3 text-sm text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -39,7 +39,7 @@
       <!-- 错误状态 -->
       <div v-else-if="error" class="py-20 text-center">
         <p class="text-red-500">文章加载失败</p>
-        <NuxtLink to="/" class="mt-3 inline-block text-sm text-primary-500 hover:text-primary-600">返回首页</NuxtLink>
+        <NuxtLink to="/home" class="mt-3 inline-block text-sm text-primary-500 hover:text-primary-600">返回首页</NuxtLink>
       </div>
 
       <!-- 文章详情 -->
