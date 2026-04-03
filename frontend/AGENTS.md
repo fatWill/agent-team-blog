@@ -20,7 +20,8 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 
 | 模块 | 路径 | 状态 | 说明 |
 |------|------|------|------|
-| 首页 | `pages/index.vue` | ✅ 已实现 | 个人信息、Tab 导航（文章/生活/小工具·小游戏/agent team/更新日志）、文章列表 |
+| 酷炫首页 | `pages/index.vue` | ✅ 已实现 | 代码滚动背景 + 卡通3D小花动画 + 入场/拖拽/打招呼交互 |
+| 博客主页 | `pages/home.vue` | ✅ 已实现 | 个人信息、Tab 导航（文章/生活/小工具·小游戏/agent team/更新日志/留言板）、文章列表 |
 | 文章详情 | `pages/articles/[id].vue` | ✅ 已实现 | Tiptap 只读渲染文章内容 |
 | 登录 | `pages/login.vue` | ✅ 已实现 | 账号密码登录，成功后跳转 /admin |
 | 管理后台 | `pages/admin.vue` | ✅ 已实现 | Tiptap 编辑器，录入并发布文章 |
@@ -54,7 +55,8 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 
 | 页面 | 路由 | 文件 | 依赖模块 |
 |------|------|------|----------|
-| 首页 | `/` | `pages/index.vue` | useTheme, api, types |
+| 酷炫首页 | `/` | `pages/index.vue` | 纯前端，无后端依赖 |
+| 博客主页 | `/home` | `pages/home.vue` | useTheme, api, types |
 | 文章详情 | `/articles/:id` | `pages/articles/[id].vue` | useTheme, api, Tiptap |
 | 登录 | `/login` | `pages/login.vue` | auth store, api |
 | 管理后台 | `/admin` | `pages/admin.vue` | auth store, api, Tiptap |
@@ -138,6 +140,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-03: 新建酷炫首页（/）：代码滚动背景+卡通3D小花（飞入/拖拽/打招呼动画）；原首页迁移到 /home；更新所有路由引用
 - 2026-04-02: 前端文章点赞+留言板 Tab 功能（v1.9.0）：文章列表/详情页点赞按钮（爱心动画+乐观更新+deviceId 机制）；留言板 Tab 完整实现（输入区+列表+编辑+相对时间+每日修改限制）
 - 2026-04-02: 新增文章点赞功能（article_likes 表、like_count 冗余字段、点赞/取消切换接口、状态查询接口）；新增留言板功能（messages 表、CRUD 接口、IP 限频、每日修改限制、deviceId 脱敏）
 - 2026-04-02: 前端密码保护功能完整实现（v1.8.0）：相册集/照片锁图标+模糊遮罩、密码验证弹窗（支持回车提交）、sessionStorage 缓存解锁状态、灯箱左右切换自动检查密码、后台创建/编辑相册密码、照片密码设置弹窗
