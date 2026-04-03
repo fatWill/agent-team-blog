@@ -140,6 +140,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-04: 首页重写为 pretext inline-flow 排版：参考 rich-note.ts demo，用 layoutNextLine 实现文字+按钮（chip）混合内联排版，按钮是原子元素不被截断，文字自然绕过按钮换行；纵向无限循环滚动
 - 2026-04-03: 首页重构：用 pretext layoutNextLine 精确测量文字宽度 + 分左右 clip 区域实现文字真正绕过按钮（替代 evenodd 遮挡），每行 2-3 片段拼接重复 4 次，18 行均匀分布
 - 2026-04-03: 重写首页（/）：去掉卡通花盆，改用 @chenglou/pretext + Canvas 实现代码文字背景绕按钮滚动（evenodd clip），按钮支持长按拖拽+短按跳转
 - 2026-04-03: 新建酷炫首页（/）：代码滚动背景+卡通3D小花（飞入/拖拽/打招呼动画）；原首页迁移到 /home；更新所有路由引用
