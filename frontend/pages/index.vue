@@ -1,18 +1,19 @@
 <template>
-  <div class="index-page">
+  <div class="landing-page">
     <canvas ref="canvasRef" class="bg-canvas" />
-    <button
+    <div
       ref="btnRef"
       class="enter-btn"
       :class="{ dragging: isDragging }"
       :style="{ left: btnLeft + 'px', top: btnTop + 'px' }"
-      @mousedown="onPointerDown"
+      @mousedown.prevent="onPointerDown"
       @touchstart.prevent="onPointerDown"
-      @click="onBtnClick"
     >
-      <span>进入博客</span>
-      <span class="arrow">→</span>
-    </button>
+      <span class="enter-text">进入博客</span>
+      <svg class="enter-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+      </svg>
+    </div>
     <div class="footer">fatwill.cloud</div>
   </div>
 </template>
@@ -22,8 +23,8 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   prepareWithSegments,
   layoutNextLine,
-  type LayoutCursor,
   type PreparedTextWithSegments,
+  type LayoutCursor,
 } from '@chenglou/pretext'
 
 useHead({
@@ -31,8 +32,8 @@ useHead({
   meta: [{ name: 'description', content: '全栈开发者 fatwillzeng 的个人博客' }],
 })
 
-// ---- 代码片段 ----
-const CODE_SNIPPETS = [
+// ====== 代码片段 ======
+const snippets = [
   '<div class="container mx-auto px-4 py-8">',
   'const handleClick = (e: MouseEvent) => { e.preventDefault(); router.push("/home") }',
   '.flex { display: flex; align-items: center; gap: 16px; justify-content: space-between; }',
@@ -41,12 +42,12 @@ const CODE_SNIPPETS = [
   'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;',
   'export default defineNuxtConfig({ ssr: true, modules: ["@pinia/nuxt", "@nuxtjs/tailwindcss"] })',
   'const [state, dispatch] = useReducer(reducer, initialState)',
-  '@keyframes fadeIn { from { opacity: 0; transform: translateY(10px) } to { opacity: 1 } }',
+  '@keyframes fadeIn { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }',
   'SELECT id, title, created_at FROM articles WHERE published = 1 ORDER BY created_at DESC LIMIT 10',
   '<template><NuxtPage /><ClientOnly><AppLoading /></ClientOnly></template>',
   'border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.12); backdrop-filter: blur(10px);',
   'async function fetchData<T>(url: string): Promise<T> { const res = await fetch(url); return res.json() }',
-  'git commit -m "feat: integrate @chenglou/pretext for inline text layout"',
+  'git commit -m "feat: integrate @chenglou/pretext for text layout engine"',
   'docker-compose up -d --build && docker ps -a | grep blog',
   'npm install @chenglou/pretext @pinia/nuxt @nuxtjs/tailwindcss --save',
   'interface Article { id: string; title: string; content: string; tags: string[]; createdAt: Date }',
@@ -57,393 +58,403 @@ const CODE_SNIPPETS = [
   'type Props = { title: string; description?: string; onClick?: () => void; className?: string }',
   'nginx -t && systemctl reload nginx  # test config and graceful reload',
   'const router = useRouter(); watch(() => route.path, () => { scrollTo(0, 0) })',
-  'z-index: 100; position: sticky; top: 0; backdrop-filter: saturate(180%) blur(20px);',
-  'Promise.all([fetchUser(), fetchPosts(), fetchComments()]).then(([user, posts, comments]) => {})',
-  'rsync -az --delete .output/ root@server:/root/blog-frontend/.output/ -e "ssh -i ~/.ssh/key"',
 ]
 
-const COLORS = [
-  '#7dd3fc', '#4ade80', '#fb923c', '#a78bfa', '#f472b6',
-  '#22d3ee', '#facc15', '#34d399', '#c084fc', '#f87171',
-  '#38bdf8', '#86efac', '#fbbf24', '#60a5fa',
+const colors = [
+  '#7dd3fc', '#4ade80', '#fb923c', '#a78bfa',
+  '#f472b6', '#22d3ee', '#facc15', '#34d399',
+  '#c084fc', '#f87171', '#38bdf8', '#86efac',
 ]
 
-const CODE_FONT = '13px "Fira Code", "Courier New", monospace'
-const LINE_HEIGHT = 26
-const PADDING_X = 16
-const TEXT_OPACITY = 0.22
-const BTN_GAP = 12 // 按钮与文字之间的间距
+// ====== 每行数据结构 ======
+interface TextLine {
+  text: string          // 完整文字（重复多次用于无缝循环）
+  y: number             // 行 baseline 的 y 坐标
+  offsetX: number       // 当前水平偏移
+  speed: number         // 每帧移动的像素（正=向右，负=向左）
+  color: string
+  font: string
+  opacity: number
+  prepared: PreparedTextWithSegments | null
+  measuredWidth: number // 整段文字宽度（用于循环）
+}
 
-// ---- refs ----
+// ====== Refs ======
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const btnRef = ref<HTMLButtonElement | null>(null)
+const btnRef = ref<HTMLElement | null>(null)
+const isDragging = ref(false)
 const btnLeft = ref(0)
 const btnTop = ref(0)
-const isDragging = ref(false)
 
-// ---- 状态 ----
+// ====== 动画数据 ======
+let lines: TextLine[] = []
+let animId = 0
 let ctx: CanvasRenderingContext2D | null = null
-let animFrameId = 0
-let offsetY = 0
-const scrollSpeed = 0.5
+let canvasW = 0
+let canvasH = 0
+const LINE_COUNT = 18
+const BTN_GAP = 16 // 按钮与文字之间的间距
+const LINE_START: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
 
-// 按钮尺寸（从 DOM 读取）
-let btnW = 160
-let btnH = 52
-
-// ---- 预处理文字 ----
-// 把所有代码片段拼接成一段长文字，用 prepareWithSegments 预处理
-// 然后用 layoutNextLine 逐行排版
-let preparedText: PreparedTextWithSegments | null = null
-let fullText = ''
-let colorRanges: Array<{ start: number; end: number; color: string }> = []
-
-// 预排版结果（全宽排版，用于计算总高度和循环）
-interface PreLayoutLine {
-  text: string
-  width: number
-  startCursor: LayoutCursor
-  endCursor: LayoutCursor
-  y: number // 内容坐标
-  colorIdx: number // 用于着色
-}
-
-let preLayoutLines: PreLayoutLine[] = []
-let totalContentHeight = 0
-
-/**
- * 构建预处理文本和颜色映射
- */
-function buildPreparedText() {
-  // 拼接所有代码片段，用分隔符连接
-  const separator = '   ·   '
+// ====== 构建每行文字（随机 2-3 个片段拼接，重复多次）======
+function buildLineText(index: number): string {
+  const count = 2 + (index % 2) // 2 或 3 个片段
   const parts: string[] = []
-  // 重复多次确保内容足够
-  for (let rep = 0; rep < 4; rep++) {
-    for (const snippet of CODE_SNIPPETS) {
-      parts.push(snippet)
-    }
+  for (let i = 0; i < count; i++) {
+    parts.push(snippets[(index * 3 + i * 7) % snippets.length]!)
   }
-  fullText = parts.join(separator)
-
-  // 构建颜色映射：每个代码片段对应一个颜色
-  colorRanges = []
-  let pos = 0
-  for (let rep = 0; rep < 4; rep++) {
-    for (let i = 0; i < CODE_SNIPPETS.length; i++) {
-      const start = pos
-      pos += CODE_SNIPPETS[i]!.length
-      colorRanges.push({ start, end: pos, color: COLORS[i % COLORS.length]! })
-      pos += separator.length // 跳过分隔符
-    }
-  }
-
-  // 用 pretext 预处理（正确的 API：text, font）
-  preparedText = prepareWithSegments(fullText, CODE_FONT)
+  const single = parts.join('  //  ')
+  return Array(4).fill(single).join('      ')
 }
 
-/**
- * 用全宽对文字进行预排版，记录每行的 cursor 和 y 坐标
- * 这些行在绘制时会根据按钮位置动态重新排版
- */
-function buildPreLayout() {
-  if (!preparedText) return
+// ====== 初始化行数据 ======
+function initLines() {
+  lines = []
+  const lineHeight = canvasH / LINE_COUNT
+  for (let i = 0; i < LINE_COUNT; i++) {
+    const fontSize = 13 + (i % 4) // 13-16px
+    // 速度 0.4~1.2，奇偶行方向相反
+    const speed = (0.4 + ((i * 37) % 100) / 100 * 0.8) * (i % 2 === 0 ? 1 : -1)
+    const text = buildLineText(i)
 
-  const cssW = canvasRef.value ? canvasRef.value.width / (window.devicePixelRatio || 1) : window.innerWidth
-  const contentWidth = cssW - PADDING_X * 2
-
-  preLayoutLines = []
-  let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
-  let y = 0
-  let lineIdx = 0
-  const maxHeight = window.innerHeight * 4 // 足够循环
-
-  while (y < maxHeight) {
-    const line = layoutNextLine(preparedText, cursor, contentWidth)
-    if (!line) break
-
-    preLayoutLines.push({
-      text: line.text,
-      width: line.width,
-      startCursor: { ...cursor },
-      endCursor: { ...line.end },
-      y,
-      colorIdx: lineIdx,
+    lines.push({
+      text,
+      y: lineHeight * (i + 0.5) + fontSize * 0.35,
+      offsetX: (i * 137) % 500, // 随机初始偏移
+      speed,
+      color: colors[i % colors.length]!,
+      font: `${fontSize}px "Fira Code", "Cascadia Code", "JetBrains Mono", Consolas, monospace`,
+      opacity: 0.15 + (i % 5) * 0.05, // 0.15 ~ 0.35
+      prepared: null,
+      measuredWidth: 0,
     })
-
-    cursor = line.end
-    y += LINE_HEIGHT
-    lineIdx++
   }
+}
 
-  totalContentHeight = y
+// ====== 用 pretext 预处理并测量每行宽度 ======
+function measureLines() {
+  for (const line of lines) {
+    try {
+      const prepared = prepareWithSegments(line.text, line.font)
+      line.prepared = prepared
+      const result = layoutNextLine(prepared, LINE_START, 100_000)
+      if (result) {
+        line.measuredWidth = result.width + 60 // 加间距
+      }
+    } catch {
+      // fallback: 用 canvas measureText
+      line.prepared = null
+      if (ctx) {
+        ctx.font = line.font
+        line.measuredWidth = ctx.measureText(line.text).width + 60
+      }
+    }
+  }
 }
 
 /**
- * 根据文本在 fullText 中的字符位置，获取对应的颜色
- * 简化方案：用行索引取颜色
- */
-function getLineColor(lineIdx: number): string {
-  return COLORS[lineIdx % COLORS.length]!
-}
-
-/**
- * 核心绘制函数
+ * 绘制一行横向滚动文字（无限循环）
  *
- * 关键逻辑：对于每一行，计算其屏幕 y 坐标后，
- * 判断是否与按钮区域重叠。如果重叠，则用 layoutNextLine
- * 传入受限宽度重新排版这行文字，文字从排版源头就绕开了按钮。
+ * 核心绕排逻辑：
+ * - 对于每个重复绘制的文字副本，检查其每个字符是否落在按钮区域
+ * - 如果行与按钮在 y 方向不重叠 → 正常绘制
+ * - 如果行与按钮在 y 方向重叠 → 用 layoutNextLine 动态宽度把文字截断到按钮左侧，
+ *   然后从按钮右侧继续绘制剩余文字
  */
-function drawFrame() {
-  if (!ctx || !canvasRef.value || !preparedText) {
-    animFrameId = requestAnimationFrame(drawFrame)
-    return
-  }
+function drawLine(
+  line: TextLine,
+  btnL: number,
+  btnT: number,
+  btnR: number,
+  btnB: number,
+) {
+  if (!ctx) return
+  const w = line.measuredWidth
+  if (w <= 0) return
 
-  const dpr = window.devicePixelRatio || 1
-  const w = canvasRef.value.width
-  const h = canvasRef.value.height
-  const cssW = w / dpr
-  const cssH = h / dpr
-
-  ctx.clearRect(0, 0, w, h)
   ctx.save()
-  ctx.scale(dpr, dpr)
+  ctx.globalAlpha = line.opacity
+  ctx.font = line.font
+  ctx.fillStyle = line.color
 
-  // 更新滚动
-  offsetY -= scrollSpeed
-  if (totalContentHeight > 0 && -offsetY >= totalContentHeight) {
-    offsetY += totalContentHeight
-  }
+  // 判断这行是否与按钮在 y 方向重叠
+  const fontSize = parseInt(line.font)
+  const lineTop = line.y - fontSize
+  const lineBottom = line.y + 4
+  const overlapsBtn = lineBottom >= btnT - BTN_GAP && lineTop <= btnB + BTN_GAP
 
-  // 按钮屏幕坐标
-  const bLeft = btnLeft.value
-  const bTop = btnTop.value
-  const bRight = bLeft + btnW
-  const bBottom = bTop + btnH + 4
+  // 计算循环起始 x
+  let x = ((line.offsetX % w) + w) % w - w
 
-  ctx.font = CODE_FONT
-  ctx.globalAlpha = TEXT_OPACITY
+  if (!overlapsBtn) {
+    // ===== 不与按钮重叠：正常水平循环绘制 =====
+    while (x < canvasW) {
+      ctx.fillText(line.text, x, line.y)
+      x += w
+    }
+  } else {
+    // ===== 与按钮重叠：用 pretext layoutNextLine 动态宽度绕排 =====
+    // 每个重复副本都需要检查是否与按钮水平重叠
+    while (x < canvasW) {
+      const textRight = x + w
 
-  // 绘制两遍实现无缝循环
-  for (let pass = 0; pass < 2; pass++) {
-    const passOffset = offsetY + pass * totalContentHeight
+      // 这个副本完全在按钮左侧或右侧，不需要绕排
+      if (textRight <= btnL - BTN_GAP || x >= btnR + BTN_GAP) {
+        ctx.fillText(line.text, x, line.y)
+        x += w
+        continue
+      }
 
-    for (let i = 0; i < preLayoutLines.length; i++) {
-      const pLine = preLayoutLines[i]!
-      const screenY = pLine.y + passOffset + LINE_HEIGHT // baseline
-
-      // 屏幕外的行跳过
-      if (screenY < -LINE_HEIGHT || screenY > cssH + LINE_HEIGHT) continue
-
-      // 判断这一行是否与按钮重叠
-      const lineTop = screenY - LINE_HEIGHT
-      const lineBottom = screenY
-      const overlapsWithBtn = lineBottom > bTop && lineTop < bBottom
-
-      const color = getLineColor(pLine.colorIdx)
-      ctx.fillStyle = color
-
-      if (!overlapsWithBtn) {
-        // ===== 普通行：全宽绘制 =====
-        ctx.fillText(pLine.text, PADDING_X, screenY)
-      } else {
-        // ===== 按钮重叠行：用 layoutNextLine 动态宽度重新排版 =====
-        // 核心用法：传入受限宽度，文字在 layout 阶段就只排在按钮左侧
-        const availableWidth = bLeft - PADDING_X - BTN_GAP
-
-        if (availableWidth > 40) {
-          // 对这行文字重新 prepare + layoutNextLine
-          // 用 pLine.text（已经是全宽排版的这行文字）重新排版
-          const linePrepared = prepareWithSegments(pLine.text, CODE_FONT)
-          const shorterLine = layoutNextLine(
-            linePrepared,
-            { segmentIndex: 0, graphemeIndex: 0 },
-            availableWidth,
-          )
-
-          if (shorterLine && shorterLine.text) {
-            ctx.fillText(shorterLine.text, PADDING_X, screenY)
+      // 这个副本与按钮水平重叠，需要绕排
+      if (line.prepared) {
+        // 左侧文字：从文字起点 x 到按钮左边界
+        const leftAvail = btnL - BTN_GAP - x
+        if (leftAvail > 10) {
+          const leftLine = layoutNextLine(line.prepared, LINE_START, leftAvail)
+          if (leftLine && leftLine.text) {
+            ctx.fillText(leftLine.text, x, line.y)
           }
         }
 
-        // 按钮右侧也可以绘制文字（如果有空间）
-        const rightStart = bRight + BTN_GAP
-        const rightAvailableWidth = cssW - rightStart - PADDING_X
-
-        if (rightAvailableWidth > 40) {
-          // 从 pLine.text 中取出按钮右侧应该显示的文字
-          // 用全宽排版的行文字，跳过左侧已显示的部分
-          const linePrepared = prepareWithSegments(pLine.text, CODE_FONT)
-
-          // 先用左侧宽度排版获取消耗掉的文字
-          const leftLine = layoutNextLine(
-            linePrepared,
-            { segmentIndex: 0, graphemeIndex: 0 },
-            availableWidth > 40 ? availableWidth : 0.001,
-          )
-
-          if (leftLine) {
-            // 从左侧消耗后的 cursor 继续排版右侧文字
-            const rightLine = layoutNextLine(linePrepared, leftLine.end, rightAvailableWidth)
-            if (rightLine && rightLine.text) {
-              ctx.fillText(rightLine.text, rightStart, screenY)
+        // 右侧文字：从按钮右边界到文字副本结束
+        const rightStart = btnR + BTN_GAP
+        if (rightStart < textRight && rightStart < canvasW) {
+          // 计算右侧文字应该从原文的哪个位置开始
+          // 方法：用 layoutNextLine 先消耗掉「从文字起点到按钮右边界」的宽度
+          const consumeWidth = rightStart - x
+          if (consumeWidth > 0) {
+            const consumed = layoutNextLine(line.prepared, LINE_START, consumeWidth)
+            if (consumed) {
+              // 从消耗后的 cursor 继续排版剩余文字
+              const rightAvail = Math.min(textRight, canvasW) - rightStart
+              if (rightAvail > 10) {
+                const rightLine = layoutNextLine(line.prepared, consumed.end, rightAvail)
+                if (rightLine && rightLine.text) {
+                  ctx.fillText(rightLine.text, rightStart, line.y)
+                }
+              }
             }
           }
         }
+      } else {
+        // fallback：没有 prepared 数据，用 clip 裁切
+        const leftEdge = btnL - BTN_GAP
+        const rightEdge = btnR + BTN_GAP
+
+        if (leftEdge > 0) {
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(0, lineTop - 4, leftEdge, lineBottom - lineTop + 8)
+          ctx.clip()
+          ctx.fillText(line.text, x, line.y)
+          ctx.restore()
+        }
+        if (rightEdge < canvasW) {
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(rightEdge, lineTop - 4, canvasW - rightEdge, lineBottom - lineTop + 8)
+          ctx.clip()
+          ctx.fillText(line.text, x, line.y)
+          ctx.restore()
+        }
       }
+
+      x += w
     }
   }
 
   ctx.restore()
-  animFrameId = requestAnimationFrame(drawFrame)
 }
 
-// ---- Canvas 初始化 ----
-function initCanvas() {
-  if (!canvasRef.value) return
-  ctx = canvasRef.value.getContext('2d')
-  resizeCanvas()
-}
-
-function resizeCanvas() {
-  if (!canvasRef.value) return
-  const dpr = window.devicePixelRatio || 1
-  canvasRef.value.width = window.innerWidth * dpr
-  canvasRef.value.height = window.innerHeight * dpr
-
-  if (btnRef.value) {
-    btnW = btnRef.value.offsetWidth || 160
-    btnH = btnRef.value.offsetHeight || 52
+// ====== 每帧绘制 ======
+function drawFrame() {
+  if (!ctx || !canvasRef.value) {
+    animId = requestAnimationFrame(drawFrame)
+    return
   }
 
-  buildPreLayout()
+  ctx.clearRect(0, 0, canvasW, canvasH)
+
+  // 获取按钮位置
+  const btnEl = btnRef.value
+  let bL = -9999, bT = -9999, bR = -9999, bB = -9999
+  if (btnEl) {
+    const rect = btnEl.getBoundingClientRect()
+    bL = rect.left
+    bT = rect.top
+    bR = rect.right
+    bB = rect.bottom
+  }
+
+  for (const line of lines) {
+    line.offsetX += line.speed
+    drawLine(line, bL, bT, bR, bB)
+  }
+
+  animId = requestAnimationFrame(drawFrame)
 }
 
-// ---- 长按拖拽 ----
-let dragStartX = 0
-let dragStartY = 0
-let btnStartX = 0
-let btnStartY = 0
-let pressTimer: ReturnType<typeof setTimeout> | null = null
-let pressMoved = false
-let pressStartTime = 0
+// ====== 按钮拖拽 ======
+let pointerDownTimer: ReturnType<typeof setTimeout> | null = null
+let isLongPress = false
+let hasMoved = false
+let startPointerX = 0
+let startPointerY = 0
+
+function getPointerPos(e: MouseEvent | TouchEvent): { x: number; y: number } {
+  if ('touches' in e && e.touches.length > 0) {
+    return { x: e.touches[0]!.clientX, y: e.touches[0]!.clientY }
+  }
+  if ('changedTouches' in e && e.changedTouches.length > 0) {
+    return { x: e.changedTouches[0]!.clientX, y: e.changedTouches[0]!.clientY }
+  }
+  return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY }
+}
 
 function onPointerDown(e: MouseEvent | TouchEvent) {
-  e.stopPropagation()
-  pressMoved = false
-  pressStartTime = Date.now()
+  isLongPress = false
+  hasMoved = false
+  const pos = getPointerPos(e)
+  startPointerX = pos.x
+  startPointerY = pos.y
 
-  const point = 'touches' in e ? e.touches[0]! : e
-  dragStartX = point.clientX
-  dragStartY = point.clientY
-  btnStartX = btnLeft.value
-  btnStartY = btnTop.value
+  const el = btnRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const offsetX = pos.x - rect.left
+  const offsetY = pos.y - rect.top
 
-  pressTimer = setTimeout(() => {
+  pointerDownTimer = setTimeout(() => {
+    isLongPress = true
     isDragging.value = true
+
+    const onMove = (ev: MouseEvent | TouchEvent) => {
+      ev.preventDefault()
+      hasMoved = true
+      const p = getPointerPos(ev)
+      btnLeft.value = p.x - offsetX
+      btnTop.value = p.y - offsetY
+    }
+
+    const onUp = () => {
+      isDragging.value = false
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.removeEventListener('touchmove', onMove)
+      document.removeEventListener('touchend', onUp)
+    }
+
+    document.addEventListener('mousemove', onMove, { passive: false })
+    document.addEventListener('mouseup', onUp)
+    document.addEventListener('touchmove', onMove, { passive: false })
+    document.addEventListener('touchend', onUp)
   }, 300)
 
-  const onMove = (e2: MouseEvent | TouchEvent) => {
-    const p = 'touches' in e2 ? e2.touches[0]! : (e2 as MouseEvent)
-    const dx = p.clientX - dragStartX
-    const dy = p.clientY - dragStartY
-
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-      pressMoved = true
+  const onEarlyUp = () => {
+    if (pointerDownTimer) {
+      clearTimeout(pointerDownTimer)
+      pointerDownTimer = null
     }
-
-    if (isDragging.value) {
-      btnLeft.value = btnStartX + dx
-      btnTop.value = btnStartY + dy
+    if (!isLongPress && !hasMoved) {
+      navigateTo('/home')
     }
+    document.removeEventListener('mouseup', onEarlyUp)
+    document.removeEventListener('touchend', onEarlyUp)
   }
 
-  const onUp = () => {
-    if (pressTimer) {
-      clearTimeout(pressTimer)
-      pressTimer = null
-    }
-    isDragging.value = false
-    document.removeEventListener('mousemove', onMove as any)
-    document.removeEventListener('mouseup', onUp)
-    document.removeEventListener('touchmove', onMove as any)
-    document.removeEventListener('touchend', onUp)
-  }
-
-  document.addEventListener('mousemove', onMove as any)
-  document.addEventListener('mouseup', onUp)
-  document.addEventListener('touchmove', onMove as any, { passive: true })
-  document.addEventListener('touchend', onUp)
+  document.addEventListener('mouseup', onEarlyUp)
+  document.addEventListener('touchend', onEarlyUp)
 }
 
-function onBtnClick() {
-  if (!pressMoved && Date.now() - pressStartTime < 300) {
-    navigateTo('/home')
+// ====== resize ======
+function handleResize() {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  const dpr = window.devicePixelRatio || 1
+  canvasW = window.innerWidth
+  canvasH = window.innerHeight
+  canvas.width = canvasW * dpr
+  canvas.height = canvasH * dpr
+  canvas.style.width = `${canvasW}px`
+  canvas.style.height = `${canvasH}px`
+  ctx = canvas.getContext('2d')
+  if (ctx) ctx.scale(dpr, dpr)
+
+  // 重新计算行 Y 坐标
+  const lineHeight = canvasH / LINE_COUNT
+  for (let i = 0; i < lines.length; i++) {
+    const fontSize = parseInt(lines[i]!.font)
+    lines[i]!.y = lineHeight * (i + 0.5) + fontSize * 0.35
   }
-}
 
-// ---- 生命周期 ----
-onMounted(async () => {
-  await nextTick()
-
-  // 读取按钮实际尺寸
+  // 重新居中按钮
   if (btnRef.value) {
-    btnW = btnRef.value.offsetWidth || 160
-    btnH = btnRef.value.offsetHeight || 52
+    const rect = btnRef.value.getBoundingClientRect()
+    btnLeft.value = (canvasW - rect.width) / 2
+    btnTop.value = (canvasH - rect.height) / 2
   }
+}
 
-  // 初始化按钮位置（屏幕右侧中央偏右）
-  btnLeft.value = window.innerWidth - btnW - 60
-  btnTop.value = window.innerHeight / 2 - btnH / 2
+// ====== 生命周期 ======
+onMounted(() => {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  const dpr = window.devicePixelRatio || 1
+  canvasW = window.innerWidth
+  canvasH = window.innerHeight
+  canvas.width = canvasW * dpr
+  canvas.height = canvasH * dpr
+  canvas.style.width = `${canvasW}px`
+  canvas.style.height = `${canvasH}px`
+  ctx = canvas.getContext('2d')
+  if (ctx) ctx.scale(dpr, dpr)
 
-  // 构建预处理文本
-  buildPreparedText()
+  initLines()
+  measureLines()
 
-  // 初始化 canvas
-  initCanvas()
+  // 初始化按钮位置（居中）
+  nextTick(() => {
+    if (btnRef.value) {
+      const rect = btnRef.value.getBoundingClientRect()
+      btnLeft.value = (canvasW - rect.width) / 2
+      btnTop.value = (canvasH - rect.height) / 2
+    }
+  })
 
-  // 启动动画
-  animFrameId = requestAnimationFrame(drawFrame)
-  window.addEventListener('resize', onResize)
+  animId = requestAnimationFrame(drawFrame)
+  window.addEventListener('resize', handleResize)
 })
 
-function onResize() {
-  if (btnRef.value) {
-    btnW = btnRef.value.offsetWidth || 160
-    btnH = btnRef.value.offsetHeight || 52
-  }
-  btnLeft.value = window.innerWidth - btnW - 60
-  btnTop.value = window.innerHeight / 2 - btnH / 2
-  resizeCanvas()
-}
-
 onUnmounted(() => {
-  cancelAnimationFrame(animFrameId)
-  animFrameId = 0
-  window.removeEventListener('resize', onResize)
-  if (pressTimer) clearTimeout(pressTimer)
+  cancelAnimationFrame(animId)
+  window.removeEventListener('resize', handleResize)
+  if (pointerDownTimer) clearTimeout(pointerDownTimer)
 })
 </script>
 
 <style scoped>
-.index-page {
-  position: fixed;
-  inset: 0;
-  background: #0d1117;
+.landing-page {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
+  background: #0d1117;
+  user-select: none;
 }
 
 .bg-canvas {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .enter-btn {
   position: fixed;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 16px 44px;
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(16px);
@@ -457,9 +468,6 @@ onUnmounted(() => {
   cursor: grab;
   user-select: none;
   box-shadow: 0 0 40px rgba(99, 102, 241, 0.12), 0 8px 32px rgba(0, 0, 0, 0.25);
-  display: flex;
-  align-items: center;
-  gap: 10px;
   transition: box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease;
   white-space: nowrap;
 }
@@ -473,11 +481,22 @@ onUnmounted(() => {
 .enter-btn.dragging {
   cursor: grabbing;
   transition: none;
+  box-shadow: 0 0 80px rgba(99, 102, 241, 0.35), 0 12px 48px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
-.arrow {
-  font-size: 18px;
-  opacity: 0.7;
+.enter-text {
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.enter-arrow {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.3s ease;
+}
+
+.enter-btn:hover .enter-arrow {
+  transform: translateX(4px);
 }
 
 .footer {
@@ -496,7 +515,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .enter-btn {
-    padding: 12px 30px;
+    padding: 14px 32px;
     font-size: 15px;
     letter-spacing: 1px;
   }
