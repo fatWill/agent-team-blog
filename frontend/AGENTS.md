@@ -140,6 +140,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-04: 修复文字重叠：measureLines改用canvas measureText测量真实宽度（layoutNextLine只测第一逻辑行，导致循环副本重叠）
 - 2026-04-04: 修复ctx.scale累积(改用setTransform每帧重置)+移除rAF内getBoundingClientRect(改用缓存变量)
 - 2026-04-04: 修复移动端Canvas代码行重叠(响应式字号11-12px+行间距42px，桌面端13-16px+36px；resize时完全重建行数据)
 - 2026-04-04: 修复首页拖拽延迟(移除setTimeout改为移动距离阈值8px)+行间距重叠(动态行数+MIN_LINE_GAP=34px)
