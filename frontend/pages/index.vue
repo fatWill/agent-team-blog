@@ -5,7 +5,7 @@
       ref="btnRef"
       class="enter-btn"
       :class="{ dragging: isDragging }"
-      :style="{ left: btnLeft + 'px', top: btnTop + 'px', visibility: btnVisible ? 'visible' : 'hidden' }"
+      :style="{ left: btnLeft + 'px', top: btnTop + 'px', opacity: btnVisible ? '' : '0', pointerEvents: btnVisible ? '' : 'none' }"
       @mousedown.prevent="onPointerDown"
       @touchstart.prevent="onPointerDown"
     >
@@ -110,6 +110,14 @@ function updateBtnCache() {
   cachedBtnT = rect.top
   cachedBtnR = rect.right
   cachedBtnB = rect.bottom
+}
+
+// 估算按钮尺寸（避免依赖 getBoundingClientRect，初始居中用）
+function estimateBtnSize(): { w: number; h: number } {
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    return { w: 140, h: 46 }
+  }
+  return { w: 160, h: 52 }
 }
 
 // 根据屏幕宽度判断是否为移动端，动态调整参数
@@ -419,15 +427,23 @@ onMounted(() => {
   ctx = canvas.getContext('2d')
   // 不在这里 scale！drawFrame 每帧用 setTransform 重置
 
+  // 先用估算值设置初始居中位置（此时按钮还是 opacity:0 不可见）
+  const { w, h } = estimateBtnSize()
+  btnLeft.value = (canvasW - w) / 2
+  btnTop.value = (canvasH - h) / 2
+
   initLines()
   measureLines()
 
   // 初始化按钮位置（居中）+ 缓存 + 启动动画
   nextTick(() => {
+    // nextTick 后 DOM 渲染完成，用真实尺寸修正居中位置
     if (btnRef.value) {
       const rect = btnRef.value.getBoundingClientRect()
-      btnLeft.value = (canvasW - rect.width) / 2
-      btnTop.value = (canvasH - rect.height) / 2
+      if (rect.width > 0) {
+        btnLeft.value = (canvasW - rect.width) / 2
+        btnTop.value = (canvasH - rect.height) / 2
+      }
     }
     updateBtnCache()
     animId = requestAnimationFrame(drawFrame)
