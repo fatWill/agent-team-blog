@@ -1,9 +1,9 @@
-package handlers
+package auth
 
 import (
 	"net/http"
 
-	"github.com/fatWill/agent-team-blog/backend/middleware"
+	"github.com/fatWill/agent-team-blog/backend/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
 

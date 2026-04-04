@@ -1,12 +1,13 @@
-package handlers
+package photo
 
 import (
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/fatWill/agent-team-blog/backend/internal/album"
 	"github.com/fatWill/agent-team-blog/backend/models"
-	"github.com/fatWill/agent-team-blog/backend/utils"
+	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -51,7 +52,7 @@ func UpdatePhoto(c *gin.Context) {
 		}
 	}
 
-	result := utils.DB.Model(&models.Photo{}).Where("id = ?", id).Updates(updates)
+	result := db.DB.Model(&models.Photo{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "更新照片失败"})
 		return
@@ -61,17 +62,17 @@ func UpdatePhoto(c *gin.Context) {
 		return
 	}
 
-	var photo models.Photo
-	utils.DB.Where("id = ?", id).First(&photo)
+	var p models.Photo
+	db.DB.Where("id = ?", id).First(&p)
 
 	c.JSON(http.StatusOK, models.PhotoListItem{
-		ID:          photo.ID,
-		AlbumID:     photo.AlbumID,
-		URL:         photo.URL,
-		Caption:     photo.Caption,
-		HasPassword: photo.PasswordHash != nil && *photo.PasswordHash != "",
-		CreatedAt:   photo.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
-		UpdatedAt:   photo.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
+		ID:          p.ID,
+		AlbumID:     p.AlbumID,
+		URL:         p.URL,
+		Caption:     p.Caption,
+		HasPassword: p.PasswordHash != nil && *p.PasswordHash != "",
+		CreatedAt:   p.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
+		UpdatedAt:   p.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
 	})
 }
 
@@ -83,23 +84,22 @@ func DeletePhoto(c *gin.Context) {
 		return
 	}
 
-	// 先查询 album_id
-	var photo models.Photo
-	if err := utils.DB.Select("album_id").Where("id = ?", id).First(&photo).Error; err != nil {
+	var p models.Photo
+	if err := db.DB.Select("album_id").Where("id = ?", id).First(&p).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "照片不存在"})
 		return
 	}
 
-	albumID := photo.AlbumID
+	albumID := p.AlbumID
 
-	result := utils.DB.Where("id = ?", id).Delete(&models.Photo{})
+	result := db.DB.Where("id = ?", id).Delete(&models.Photo{})
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "删除照片失败"})
 		return
 	}
 
 	// 更新相册封面
-	updateAlbumCover(albumID)
+	album.UpdateAlbumCover(albumID)
 
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -115,12 +115,12 @@ func GetPhotoLikes(c *gin.Context) {
 	deviceID := c.Query("deviceId")
 
 	var count int64
-	utils.DB.Model(&models.PhotoLike{}).Where("photo_id = ?", photoID).Count(&count)
+	db.DB.Model(&models.PhotoLike{}).Where("photo_id = ?", photoID).Count(&count)
 
 	liked := false
 	if deviceID != "" {
 		var likeCount int64
-		utils.DB.Model(&models.PhotoLike{}).Where("photo_id = ? AND device_id = ?", photoID, deviceID).Count(&likeCount)
+		db.DB.Model(&models.PhotoLike{}).Where("photo_id = ? AND device_id = ?", photoID, deviceID).Count(&likeCount)
 		liked = likeCount > 0
 	}
 
@@ -149,11 +149,10 @@ func PostPhotoLike(c *gin.Context) {
 		return
 	}
 
-	// INSERT IGNORE 等效
-	utils.DB.Exec("INSERT IGNORE INTO photo_likes (photo_id, device_id) VALUES (?, ?)", photoID, deviceID)
+	db.DB.Exec("INSERT IGNORE INTO photo_likes (photo_id, device_id) VALUES (?, ?)", photoID, deviceID)
 
 	var count int64
-	utils.DB.Model(&models.PhotoLike{}).Where("photo_id = ?", photoID).Count(&count)
+	db.DB.Model(&models.PhotoLike{}).Where("photo_id = ?", photoID).Count(&count)
 
 	c.JSON(http.StatusOK, gin.H{"count": count, "liked": true})
 }
@@ -169,12 +168,12 @@ func GetPhotoDislikes(c *gin.Context) {
 	deviceID := c.Query("deviceId")
 
 	var count int64
-	utils.DB.Model(&models.PhotoDislike{}).Where("photo_id = ?", photoID).Count(&count)
+	db.DB.Model(&models.PhotoDislike{}).Where("photo_id = ?", photoID).Count(&count)
 
 	disliked := false
 	if deviceID != "" {
 		var dislikeCount int64
-		utils.DB.Model(&models.PhotoDislike{}).Where("photo_id = ? AND device_id = ?", photoID, deviceID).Count(&dislikeCount)
+		db.DB.Model(&models.PhotoDislike{}).Where("photo_id = ? AND device_id = ?", photoID, deviceID).Count(&dislikeCount)
 		disliked = dislikeCount > 0
 	}
 
@@ -191,7 +190,7 @@ func PostPhotoDislike(c *gin.Context) {
 
 	var body struct {
 		DeviceID string `json:"deviceId"`
-		Action   string `json:"action"` // "dislike" | "undislike"
+		Action   string `json:"action"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "参数解析失败"})
@@ -210,16 +209,16 @@ func PostPhotoDislike(c *gin.Context) {
 	}
 
 	if action == "dislike" {
-		utils.DB.Exec("INSERT IGNORE INTO photo_dislikes (photo_id, device_id) VALUES (?, ?)", photoID, deviceID)
+		db.DB.Exec("INSERT IGNORE INTO photo_dislikes (photo_id, device_id) VALUES (?, ?)", photoID, deviceID)
 	} else {
-		utils.DB.Where("photo_id = ? AND device_id = ?", photoID, deviceID).Delete(&models.PhotoDislike{})
+		db.DB.Where("photo_id = ? AND device_id = ?", photoID, deviceID).Delete(&models.PhotoDislike{})
 	}
 
 	var count int64
-	utils.DB.Model(&models.PhotoDislike{}).Where("photo_id = ?", photoID).Count(&count)
+	db.DB.Model(&models.PhotoDislike{}).Where("photo_id = ?", photoID).Count(&count)
 
 	var dislikeCount int64
-	utils.DB.Model(&models.PhotoDislike{}).Where("photo_id = ? AND device_id = ?", photoID, deviceID).Count(&dislikeCount)
+	db.DB.Model(&models.PhotoDislike{}).Where("photo_id = ? AND device_id = ?", photoID, deviceID).Count(&dislikeCount)
 
 	c.JSON(http.StatusOK, gin.H{"count": count, "disliked": dislikeCount > 0})
 }
@@ -240,17 +239,17 @@ func VerifyPhotoPassword(c *gin.Context) {
 		return
 	}
 
-	var photo models.Photo
-	if err := utils.DB.Select("password_hash").Where("id = ?", photoID).First(&photo).Error; err != nil {
+	var p models.Photo
+	if err := db.DB.Select("password_hash").Where("id = ?", photoID).First(&p).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "照片不存在或未设置密码"})
 		return
 	}
 
-	if photo.PasswordHash == nil || *photo.PasswordHash == "" {
+	if p.PasswordHash == nil || *p.PasswordHash == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "照片不存在或未设置密码"})
 		return
 	}
 
-	success := bcrypt.CompareHashAndPassword([]byte(*photo.PasswordHash), []byte(body.Password)) == nil
+	success := bcrypt.CompareHashAndPassword([]byte(*p.PasswordHash), []byte(body.Password)) == nil
 	c.JSON(http.StatusOK, gin.H{"success": success})
 }

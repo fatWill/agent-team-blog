@@ -1,23 +1,23 @@
-package handlers
+package profile
 
 import (
 	"net/http"
 	"strings"
 
 	"github.com/fatWill/agent-team-blog/backend/models"
-	"github.com/fatWill/agent-team-blog/backend/utils"
+	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/gin-gonic/gin"
 )
 
 // GetProfile GET /api/profile
 func GetProfile(c *gin.Context) {
-	var profile models.Profile
-	if err := utils.DB.Where("id = 1").First(&profile).Error; err != nil {
+	var p models.Profile
+	if err := db.DB.Where("id = 1").First(&p).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"avatar": "", "bio": ""})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"avatar": profile.Avatar, "bio": profile.Bio})
+	c.JSON(http.StatusOK, gin.H{"avatar": p.Avatar, "bio": p.Bio})
 }
 
 // UpdateProfile PUT /api/profile
@@ -45,11 +45,10 @@ func UpdateProfile(c *gin.Context) {
 		updates["bio"] = strings.TrimSpace(*body.Bio)
 	}
 
-	utils.DB.Model(&models.Profile{}).Where("id = 1").Updates(updates)
+	db.DB.Model(&models.Profile{}).Where("id = 1").Updates(updates)
 
-	// 返回更新后的数据
-	var profile models.Profile
-	utils.DB.Where("id = 1").First(&profile)
+	var p models.Profile
+	db.DB.Where("id = 1").First(&p)
 
-	c.JSON(http.StatusOK, gin.H{"avatar": profile.Avatar, "bio": profile.Bio})
+	c.JSON(http.StatusOK, gin.H{"avatar": p.Avatar, "bio": p.Bio})
 }

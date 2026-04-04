@@ -1,4 +1,4 @@
-package handlers
+package theme
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/fatWill/agent-team-blog/backend/utils"
+	"github.com/fatWill/agent-team-blog/backend/internal/upload"
+	"github.com/fatWill/agent-team-blog/backend/pkg/rds"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,12 +24,12 @@ func GetTheme(c *gin.Context) {
 	key := fmt.Sprintf("theme:%s", uid)
 
 	ctx := context.Background()
-	theme, err := utils.RDB.Get(ctx, key).Result()
-	if err != nil || theme != "dark" {
-		theme = "light"
+	t, err := rds.RDB.Get(ctx, key).Result()
+	if err != nil || t != "dark" {
+		t = "light"
 	}
 
-	c.JSON(http.StatusOK, gin.H{"theme": theme})
+	c.JSON(http.StatusOK, gin.H{"theme": t})
 }
 
 // SaveTheme POST /api/theme
@@ -38,26 +39,23 @@ func SaveTheme(c *gin.Context) {
 	}
 	c.ShouldBindJSON(&body)
 
-	theme := "light"
+	t := "light"
 	if body.Theme == "dark" {
-		theme = "dark"
+		t = "dark"
 	}
 
-	// 确保 uid cookie 存在
 	uid, _ := c.Cookie("blog_uid")
 	if uid == "" {
-		uid = fmt.Sprintf("%d-%s", time.Now().UnixMilli(), randomString(6))
+		uid = fmt.Sprintf("%d-%s", time.Now().UnixMilli(), upload.RandomString(6))
 		c.SetCookie("blog_uid", uid, 60*60*24*30, "/", "", false, true)
 	}
 
 	key := fmt.Sprintf("theme:%s", uid)
 
 	ctx := context.Background()
-	// 主题偏好存 30 天
-	utils.RDB.Set(ctx, key, theme, 30*24*time.Hour)
+	rds.RDB.Set(ctx, key, t, 30*24*time.Hour)
 
-	// 同时写一个客户端可读的 cookie
-	c.SetCookie("color-mode", theme, 60*60*24*30, "/", "", false, false)
+	c.SetCookie("color-mode", t, 60*60*24*30, "/", "", false, false)
 
-	c.JSON(http.StatusOK, gin.H{"ok": true, "theme": theme})
+	c.JSON(http.StatusOK, gin.H{"ok": true, "theme": t})
 }

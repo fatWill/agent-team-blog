@@ -1,4 +1,4 @@
-package handlers
+package article
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/fatWill/agent-team-blog/backend/models"
-	"github.com/fatWill/agent-team-blog/backend/utils"
+	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -20,13 +20,13 @@ func GetArticles(c *gin.Context) {
 		models.Article
 	}
 
-	db := utils.DB.Select("id, title, summary, cover_image, like_count, created_at, updated_at")
+	q := db.DB.Select("id, title, summary, cover_image, like_count, created_at, updated_at")
 	if title != "" {
-		db = db.Where("title LIKE ?", "%"+title+"%")
+		q = q.Where("title LIKE ?", "%"+title+"%")
 	}
-	db = db.Order("created_at DESC")
+	q = q.Order("created_at DESC")
 
-	if err := db.Table("articles").Find(&articles).Error; err != nil {
+	if err := q.Table("articles").Find(&articles).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "查询文章列表失败"})
 		return
 	}
@@ -56,7 +56,7 @@ func GetArticle(c *gin.Context) {
 	}
 
 	var article models.Article
-	if err := utils.DB.Where("id = ?", id).First(&article).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&article).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "文章不存在"})
 		return
 	}
@@ -97,7 +97,7 @@ func CreateArticle(c *gin.Context) {
 		return
 	}
 
-	article := models.Article{
+	a := models.Article{
 		ID:         uuid.New().String(),
 		Title:      strings.TrimSpace(body.Title),
 		Summary:    strings.TrimSpace(body.Summary),
@@ -105,20 +105,20 @@ func CreateArticle(c *gin.Context) {
 		Content:    models.JSON(body.Content),
 	}
 
-	if err := utils.DB.Create(&article).Error; err != nil {
+	if err := db.DB.Create(&a).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "创建文章失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":         article.ID,
-		"title":      article.Title,
-		"summary":    article.Summary,
-		"coverImage": article.CoverImage,
-		"content":    article.Content,
-		"likeCount":  article.LikeCount,
-		"createdAt":  article.CreatedAt,
-		"updatedAt":  article.UpdatedAt,
+		"id":         a.ID,
+		"title":      a.Title,
+		"summary":    a.Summary,
+		"coverImage": a.CoverImage,
+		"content":    a.Content,
+		"likeCount":  a.LikeCount,
+		"createdAt":  a.CreatedAt,
+		"updatedAt":  a.UpdatedAt,
 	})
 }
 
@@ -169,7 +169,7 @@ func UpdateArticle(c *gin.Context) {
 		return
 	}
 
-	result := utils.DB.Model(&models.Article{}).Where("id = ?", id).Updates(updates)
+	result := db.DB.Model(&models.Article{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "更新文章失败"})
 		return
@@ -180,18 +180,18 @@ func UpdateArticle(c *gin.Context) {
 	}
 
 	// 返回更新后的文章
-	var article models.Article
-	utils.DB.Where("id = ?", id).First(&article)
+	var a models.Article
+	db.DB.Where("id = ?", id).First(&a)
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":         article.ID,
-		"title":      article.Title,
-		"summary":    article.Summary,
-		"coverImage": article.CoverImage,
-		"content":    article.Content,
-		"likeCount":  article.LikeCount,
-		"createdAt":  article.CreatedAt,
-		"updatedAt":  article.UpdatedAt,
+		"id":         a.ID,
+		"title":      a.Title,
+		"summary":    a.Summary,
+		"coverImage": a.CoverImage,
+		"content":    a.Content,
+		"likeCount":  a.LikeCount,
+		"createdAt":  a.CreatedAt,
+		"updatedAt":  a.UpdatedAt,
 	})
 }
 
@@ -203,7 +203,7 @@ func DeleteArticle(c *gin.Context) {
 		return
 	}
 
-	result := utils.DB.Where("id = ?", id).Delete(&models.Article{})
+	result := db.DB.Where("id = ?", id).Delete(&models.Article{})
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "删除文章失败"})
 		return
@@ -240,7 +240,7 @@ func LikeArticle(c *gin.Context) {
 
 	// 检查文章是否存在
 	var count int64
-	utils.DB.Model(&models.Article{}).Where("id = ?", articleID).Count(&count)
+	db.DB.Model(&models.Article{}).Where("id = ?", articleID).Count(&count)
 	if count == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "文章不存在"})
 		return
@@ -248,28 +248,28 @@ func LikeArticle(c *gin.Context) {
 
 	// 检查是否已点赞
 	var likeCount int64
-	utils.DB.Model(&models.ArticleLike{}).Where("article_id = ? AND device_id = ?", articleID, deviceID).Count(&likeCount)
+	db.DB.Model(&models.ArticleLike{}).Where("article_id = ? AND device_id = ?", articleID, deviceID).Count(&likeCount)
 
 	var liked bool
 	if likeCount > 0 {
 		// 已点赞 → 取消
-		utils.DB.Where("article_id = ? AND device_id = ?", articleID, deviceID).Delete(&models.ArticleLike{})
-		utils.DB.Model(&models.Article{}).Where("id = ?", articleID).
-			Update("like_count", gormExpr("GREATEST(like_count - 1, 0)"))
+		db.DB.Where("article_id = ? AND device_id = ?", articleID, deviceID).Delete(&models.ArticleLike{})
+		db.DB.Model(&models.Article{}).Where("id = ?", articleID).
+			Update("like_count", gorm.Expr("GREATEST(like_count - 1, 0)"))
 		liked = false
 	} else {
 		// 未点赞 → 点赞
-		utils.DB.Create(&models.ArticleLike{ArticleID: articleID, DeviceID: deviceID})
-		utils.DB.Model(&models.Article{}).Where("id = ?", articleID).
-			Update("like_count", gormExpr("like_count + 1"))
+		db.DB.Create(&models.ArticleLike{ArticleID: articleID, DeviceID: deviceID})
+		db.DB.Model(&models.Article{}).Where("id = ?", articleID).
+			Update("like_count", gorm.Expr("like_count + 1"))
 		liked = true
 	}
 
 	// 查询最新计数
-	var article models.Article
-	utils.DB.Select("like_count").Where("id = ?", articleID).First(&article)
+	var a models.Article
+	db.DB.Select("like_count").Where("id = ?", articleID).First(&a)
 
-	c.JSON(http.StatusOK, gin.H{"liked": liked, "likeCount": article.LikeCount})
+	c.JSON(http.StatusOK, gin.H{"liked": liked, "likeCount": a.LikeCount})
 }
 
 // GetArticleLikeStatus GET /api/articles/:id/like-status
@@ -282,20 +282,20 @@ func GetArticleLikeStatus(c *gin.Context) {
 
 	deviceID := strings.TrimSpace(c.Query("deviceId"))
 
-	var article models.Article
-	if err := utils.DB.Select("like_count").Where("id = ?", articleID).First(&article).Error; err != nil {
+	var a models.Article
+	if err := db.DB.Select("like_count").Where("id = ?", articleID).First(&a).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "文章不存在"})
 		return
 	}
 
 	liked := false
 	if deviceID != "" {
-		var count int64
-		utils.DB.Model(&models.ArticleLike{}).Where("article_id = ? AND device_id = ?", articleID, deviceID).Count(&count)
-		liked = count > 0
+		var cnt int64
+		db.DB.Model(&models.ArticleLike{}).Where("article_id = ? AND device_id = ?", articleID, deviceID).Count(&cnt)
+		liked = cnt > 0
 	}
 
-	c.JSON(http.StatusOK, gin.H{"liked": liked, "likeCount": article.LikeCount})
+	c.JSON(http.StatusOK, gin.H{"liked": liked, "likeCount": a.LikeCount})
 }
 
 // GetArticleLikeStatusBatch GET /api/articles/like-status-batch
@@ -331,7 +331,7 @@ func GetArticleLikeStatusBatch(c *gin.Context) {
 	}
 
 	var likes []models.ArticleLike
-	utils.DB.Select("article_id").Where("article_id IN ? AND device_id = ?", ids, deviceID).Find(&likes)
+	db.DB.Select("article_id").Where("article_id IN ? AND device_id = ?", ids, deviceID).Find(&likes)
 
 	likedIds := make([]string, 0, len(likes))
 	for _, l := range likes {
@@ -339,9 +339,4 @@ func GetArticleLikeStatusBatch(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"likedIds": likedIds})
-}
-
-// gormExpr GORM 原生表达式
-func gormExpr(expr string) interface{} {
-	return gorm.Expr(expr)
 }

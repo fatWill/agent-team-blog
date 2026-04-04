@@ -1,4 +1,4 @@
-package utils
+package db
 
 import (
 	"fmt"
@@ -9,10 +9,11 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// DB 全局数据库实例
 var DB *gorm.DB
 
-// InitDB 初始化 MySQL 连接
-func InitDB(cfg *config.DBConfig) error {
+// Init 初始化 MySQL 连接
+func Init(cfg *config.DBConfig) error {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName,
 	)

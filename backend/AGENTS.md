@@ -28,7 +28,7 @@ Agent 收到任务后，**必须按以下优先级依次读取**：
 4. `docs/http-api.md` — HTTP API 设计规范 + 错误码体系
 5. `docs/architecture.md` — 整体架构概览
 
-## 当前目录结构（实际现状）
+## 当前目录结构
 
 ```
 backend/
@@ -38,27 +38,37 @@ backend/
 ├── go.mod / go.sum        # Go Modules 依赖管理
 ├── config/
 │   └── config.go          # 配置结构体 + 环境变量加载
-├── handlers/              # HTTP 处理器（业务逻辑 + 参数绑定 + 响应封装）
-│   ├── auth.go            # 登录、退出、鉴权检查
-│   ├── articles.go        # 文章 CRUD + 点赞
-│   ├── albums.go          # 相册 CRUD + 密码验证
-│   ├── photos.go          # 照片 CRUD + 点赞/踩 + 密码验证
-│   ├── upload.go          # 图片上传（直传 + 分片上传）
-│   ├── profile.go         # 博主个人资料
-│   ├── messages.go        # 留言板 CRUD
-│   ├── changelog.go       # 更新日志查询
-│   └── theme.go           # 主题偏好（Redis 存储）
-├── middleware/
-│   ├── auth.go            # Token 鉴权中间件（30天滚动续期）
-│   └── ratelimit.go       # IP 限频中间件（内存 Map）
-├── models/
+├── models/                # 📦 数据模型层（GORM struct + DTO）
 │   ├── article.go         # Article / ArticleListItem / ArticleLike
-│   ├── album.go           # Album / Photo / PhotoLike / PhotoDislike
-│   ├── misc.go            # Profile / Message / Changelog
+│   ├── album.go           # Album / Photo / PhotoLike / PhotoDislike + ListItem
+│   ├── misc.go            # Profile / Message / Changelog + ListItem
 │   └── json.go            # 自定义 JSON 类型（MySQL JSON 字段）
-├── utils/
-│   ├── db.go              # MySQL 连接池初始化（MaxOpen=10, MaxIdle=5）
-│   └── redis.go           # Redis 客户端初始化
+├── internal/              # 🏗️ 业务核心（按领域分组）
+│   ├── article/
+│   │   └── handler.go     # 文章 CRUD + 点赞
+│   ├── album/
+│   │   └── handler.go     # 相册 CRUD + 密码验证 + UpdateAlbumCover
+│   ├── photo/
+│   │   └── handler.go     # 照片 CRUD + 点赞/踩 + 密码验证
+│   ├── auth/
+│   │   └── handler.go     # 登录、退出、鉴权检查
+│   ├── upload/
+│   │   └── handler.go     # 图片上传（直传 + 分片）+ RandomString
+│   ├── guestbook/
+│   │   └── handler.go     # 留言板 CRUD
+│   ├── profile/
+│   │   └── handler.go     # 博主个人资料
+│   ├── changelog/
+│   │   └── handler.go     # 更新日志查询
+│   └── theme/
+│       └── handler.go     # 主题偏好（Redis 存储）
+├── pkg/                   # 🔗 基础设施层（可跨领域引用）
+│   ├── db/
+│   │   └── db.go          # MySQL 连接池初始化（MaxOpen=10, MaxIdle=5）
+│   ├── rds/
+│   │   └── rds.go         # Redis 客户端初始化
+│   └── middleware/
+│       └── middleware.go   # Token 鉴权（30天滚动续期）+ IP 限频
 └── docs/                  # 📚 工程文档体系
     ├── architecture.md    # 整体架构概览
     ├── coding-conventions.md  # Go 编码规范
@@ -73,7 +83,19 @@ backend/
         └── changelog.md   # 更新日志接口
 ```
 
-> **⚠️ 架构现状说明**：当前项目采用扁平化的 Handler 模式（handlers/ 直接包含业务逻辑和数据库操作），未按 DDD 分层（model → repository → service → controller）。所有 SQL 操作通过全局 `utils.DB` 在 handler 中直接完成。待后续重构为标准 DDD 分层架构。
+## 领域模块注册表
+
+| 模块 | 包路径 | 说明 | 跨模块依赖 |
+|------|--------|------|-----------|
+| article | `internal/article/` | 文章 CRUD、点赞 | — |
+| album | `internal/album/` | 相册 CRUD、密码验证 | — |
+| photo | `internal/photo/` | 照片 CRUD、点赞/踩、密码验证 | → `album.UpdateAlbumCover` |
+| auth | `internal/auth/` | 登录、退出、鉴权检查 | → `pkg/middleware` |
+| upload | `internal/upload/` | 图片上传（直传+分片） | — |
+| guestbook | `internal/guestbook/` | 留言板 CRUD | → `pkg/middleware.GetClientIP` |
+| profile | `internal/profile/` | 博主个人资料 | — |
+| changelog | `internal/changelog/` | 更新日志查询 | — |
+| theme | `internal/theme/` | 主题偏好 | → `upload.RandomString` |
 
 ## 路由注册表（完整 API 清单）
 
@@ -81,84 +103,84 @@ backend/
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
 |------|------|------|---------|------|
-| POST | `/api/auth/login` | ❌ | `Login` | 账号密码登录，写入 httpOnly Cookie |
-| POST | `/api/auth/logout` | ❌ | `Logout` | 退出登录，删除 Redis Token |
-| GET | `/api/auth/check` | ✅ | `AuthCheck` | 验证 Token 有效性 |
+| POST | `/api/auth/login` | ❌ | `auth.Login` | 账号密码登录，写入 httpOnly Cookie |
+| POST | `/api/auth/logout` | ❌ | `auth.Logout` | 退出登录，删除 Redis Token |
+| GET | `/api/auth/check` | ✅ | `auth.AuthCheck` | 验证 Token 有效性 |
 
 ### 文章 (`/api/articles`)
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
 |------|------|------|---------|------|
-| GET | `/api/articles` | ❌ | `GetArticles` | 文章列表（支持 `?title=` 模糊搜索） |
-| GET | `/api/articles/like-status-batch` | ❌ | `GetArticleLikeStatusBatch` | 批量查询点赞状态（最多 100 篇） |
-| GET | `/api/articles/:id` | ❌ | `GetArticle` | 文章详情（含 content JSON） |
-| GET | `/api/articles/:id/like-status` | ❌ | `GetArticleLikeStatus` | 单篇文章点赞状态 |
-| POST | `/api/articles/:id/like` | ❌ | `LikeArticle` | 点赞/取消切换 |
-| POST | `/api/articles` | ✅ | `CreateArticle` | 创建文章（UUID 主键） |
-| PUT | `/api/articles/:id` | ✅ | `UpdateArticle` | 更新文章 |
-| DELETE | `/api/articles/:id` | ✅ | `DeleteArticle` | 删除文章 |
+| GET | `/api/articles` | ❌ | `article.GetArticles` | 文章列表（支持 `?title=` 模糊搜索） |
+| GET | `/api/articles/like-status-batch` | ❌ | `article.GetArticleLikeStatusBatch` | 批量查询点赞状态（最多 100 篇） |
+| GET | `/api/articles/:id` | ❌ | `article.GetArticle` | 文章详情（含 content JSON） |
+| GET | `/api/articles/:id/like-status` | ❌ | `article.GetArticleLikeStatus` | 单篇文章点赞状态 |
+| POST | `/api/articles/:id/like` | ❌ | `article.LikeArticle` | 点赞/取消切换 |
+| POST | `/api/articles` | ✅ | `article.CreateArticle` | 创建文章（UUID 主键） |
+| PUT | `/api/articles/:id` | ✅ | `article.UpdateArticle` | 更新文章 |
+| DELETE | `/api/articles/:id` | ✅ | `article.DeleteArticle` | 删除文章 |
 
 ### 相册 (`/api/albums`)
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
 |------|------|------|---------|------|
-| GET | `/api/albums` | ❌ | `GetAlbums` | 相册列表（含 photoCount、hasPassword） |
-| GET | `/api/albums/:id/photos` | ❌ | `GetAlbumPhotos` | 相册照片列表 |
-| POST | `/api/albums/:id/verify-password` | ❌ | `VerifyAlbumPassword` | 验证相册密码 |
-| POST | `/api/albums` | ✅ | `CreateAlbum` | 创建相册 |
-| PUT | `/api/albums/:id` | ✅ | `UpdateAlbum` | 更新相册 |
-| DELETE | `/api/albums/:id` | ✅ | `DeleteAlbum` | 删除相册（级联删除照片） |
-| POST | `/api/albums/:id/photos` | ✅ | `AddAlbumPhoto` | 添加照片（自动更新封面） |
+| GET | `/api/albums` | ❌ | `album.GetAlbums` | 相册列表（含 photoCount、hasPassword） |
+| GET | `/api/albums/:id/photos` | ❌ | `album.GetAlbumPhotos` | 相册照片列表 |
+| POST | `/api/albums/:id/verify-password` | ❌ | `album.VerifyAlbumPassword` | 验证相册密码 |
+| POST | `/api/albums` | ✅ | `album.CreateAlbum` | 创建相册 |
+| PUT | `/api/albums/:id` | ✅ | `album.UpdateAlbum` | 更新相册 |
+| DELETE | `/api/albums/:id` | ✅ | `album.DeleteAlbum` | 删除相册（级联删除照片） |
+| POST | `/api/albums/:id/photos` | ✅ | `album.AddAlbumPhoto` | 添加照片（自动更新封面） |
 
 ### 照片 (`/api/photos`)
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
 |------|------|------|---------|------|
-| GET | `/api/photos/:id/likes` | ❌ | `GetPhotoLikes` | 获取点赞数 + 当前设备是否已赞 |
-| POST | `/api/photos/:id/likes` | ❌ | `PostPhotoLike` | 点赞（幂等，INSERT IGNORE） |
-| GET | `/api/photos/:id/dislikes` | ❌ | `GetPhotoDislikes` | 获取踩数 + 当前设备是否已踩 |
-| POST | `/api/photos/:id/dislikes` | ❌ | `PostPhotoDislike` | 踩/取消踩（action 参数） |
-| POST | `/api/photos/:id/verify-password` | ❌ | `VerifyPhotoPassword` | 验证照片密码 |
-| PUT | `/api/photos/:id` | ✅ | `UpdatePhoto` | 更新照片信息 |
-| DELETE | `/api/photos/:id` | ✅ | `DeletePhoto` | 删除照片（自动更新封面） |
+| GET | `/api/photos/:id/likes` | ❌ | `photo.GetPhotoLikes` | 获取点赞数 + 当前设备是否已赞 |
+| POST | `/api/photos/:id/likes` | ❌ | `photo.PostPhotoLike` | 点赞（幂等，INSERT IGNORE） |
+| GET | `/api/photos/:id/dislikes` | ❌ | `photo.GetPhotoDislikes` | 获取踩数 + 当前设备是否已踩 |
+| POST | `/api/photos/:id/dislikes` | ❌ | `photo.PostPhotoDislike` | 踩/取消踩（action 参数） |
+| POST | `/api/photos/:id/verify-password` | ❌ | `photo.VerifyPhotoPassword` | 验证照片密码 |
+| PUT | `/api/photos/:id` | ✅ | `photo.UpdatePhoto` | 更新照片信息 |
+| DELETE | `/api/photos/:id` | ✅ | `photo.DeletePhoto` | 删除照片（自动更新封面） |
 
 ### 上传 (`/api/upload`，全部需鉴权)
 
 | 方法 | 路径 | Handler | 说明 |
 |------|------|---------|------|
-| POST | `/api/upload` | `Upload` | 直传图片（jpg/jpeg/png/gif/webp） |
-| POST | `/api/upload/chunk` | `UploadChunk` | 上传单个分片 |
-| POST | `/api/upload/merge` | `MergeChunks` | 合并分片 → 返回最终 URL |
-| DELETE | `/api/upload/chunk` | `CancelChunkUpload` | 取消上传，清理临时分片 |
+| POST | `/api/upload` | `upload.Upload` | 直传图片（jpg/jpeg/png/gif/webp） |
+| POST | `/api/upload/chunk` | `upload.UploadChunk` | 上传单个分片 |
+| POST | `/api/upload/merge` | `upload.MergeChunks` | 合并分片 → 返回最终 URL |
+| DELETE | `/api/upload/chunk` | `upload.CancelChunkUpload` | 取消上传，清理临时分片 |
 
 ### 个人资料
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
 |------|------|------|---------|------|
-| GET | `/api/profile` | ❌ | `GetProfile` | 获取博主资料 |
-| PUT | `/api/profile` | ✅ | `UpdateProfile` | 更新博主资料 |
+| GET | `/api/profile` | ❌ | `profile.GetProfile` | 获取博主资料 |
+| PUT | `/api/profile` | ✅ | `profile.UpdateProfile` | 更新博主资料 |
 
 ### 留言板
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
 |------|------|------|---------|------|
-| GET | `/api/messages` | ❌ | `GetMessages` | 留言列表（含 isOwn、canEdit） |
-| POST | `/api/messages` | ❌（IP 限频 3/min） | `CreateMessage` | 新增/修改留言（每设备一条） |
-| PUT | `/api/messages/:id` | ❌ | `UpdateMessage` | 修改留言（每日一次，UTC+8） |
-| DELETE | `/api/messages/:id` | ✅ | `DeleteMessage` | 删除留言（管理员） |
+| GET | `/api/messages` | ❌ | `guestbook.GetMessages` | 留言列表（含 isOwn、canEdit） |
+| POST | `/api/messages` | ❌（IP 限频 3/min） | `guestbook.CreateMessage` | 新增/修改留言（每设备一条） |
+| PUT | `/api/messages/:id` | ❌ | `guestbook.UpdateMessage` | 修改留言（每日一次，UTC+8） |
+| DELETE | `/api/messages/:id` | ✅ | `guestbook.DeleteMessage` | 删除留言（管理员） |
 
 ### 主题
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
 |------|------|------|---------|------|
-| GET | `/api/theme` | ❌ | `GetTheme` | 获取主题偏好 |
-| POST | `/api/theme` | ❌ | `SaveTheme` | 保存主题偏好 |
+| GET | `/api/theme` | ❌ | `theme.GetTheme` | 获取主题偏好 |
+| POST | `/api/theme` | ❌ | `theme.SaveTheme` | 保存主题偏好 |
 
 ### 更新日志
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
 |------|------|------|---------|------|
-| GET | `/api/changelog` | ❌ | `GetChangelog` | 更新日志列表（按 id DESC） |
+| GET | `/api/changelog` | ❌ | `changelog.GetChangelog` | 更新日志列表（按 id DESC） |
 
 ## 数据库表注册表
 
@@ -189,7 +211,7 @@ backend/
 | `auth_token:{token}` | 30 天（滚动续期） | Redis | 用户登录态 |
 | `theme:{uid}` | 30 天 | Redis | 用户主题偏好（light/dark） |
 
-> IP 限频使用**内存 Map**（`middleware/ratelimit.go`），非 Redis。每 5 分钟清理过期条目。
+> IP 限频使用**内存 Map**（`pkg/middleware/middleware.go`），非 Redis。每 5 分钟清理过期条目。
 
 ## 环境变量配置
 
@@ -226,19 +248,20 @@ backend/
 ## 开发规范速查
 
 ### 新增接口流程
-1. 在 `models/` 中定义结构体
-2. 在 `handlers/` 对应文件中实现 handler
+1. 在 `models/` 中定义结构体（如需新表/新 DTO）
+2. 在 `internal/<domain>/handler.go` 中实现 handler
 3. 在 `main.go` → `registerRoutes()` 注册路由
-4. 需鉴权的接口加 `auth` 中间件
-5. 编译验证：`go build .`
+4. 需鉴权的接口加 `authMW` 中间件
+5. 编译验证：`go build ./...`
 6. 更新接口文档：`docs/api/<domain>.md`
-7. 更新本文件路由注册表
+7. 更新本文件路由注册表和领域模块注册表
 
 ### Git 提交规范
 ```
 feat(backend agent): 简要描述
 fix(backend agent): 简要描述
 docs(backend agent): 简要描述
+refactor(backend agent): 简要描述
 ```
 
 ### 更新日志规范
@@ -251,3 +274,4 @@ docs(backend agent): 简要描述
 - 2026-04-04: 创建 AGENTS.md，补全后端项目中枢索引文档
 - 2026-04-04: 登录态有效期从 72h 延长至 30 天，支持滚动续期
 - 2026-04-04: 补全 docs/ 文档体系（architecture、coding-conventions、mysql、http-api、api/*）
+- 2026-04-04: **DDD 分层重构** — 从扁平 handlers/ 重组为 internal/<domain>/ 按领域分组；基础设施移入 pkg/（db、rds、middleware）

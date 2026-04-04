@@ -1,4 +1,4 @@
-package handlers
+package upload
 
 import (
 	"crypto/rand"
@@ -27,7 +27,6 @@ var (
 	uploadIDRegex = regexp.MustCompile(`^[\w-]+$`)
 )
 
-// uploadCfg 上传配置
 var uploadCfg *config.UploadConfig
 
 // SetUploadConfig 设置上传配置
@@ -35,8 +34,8 @@ func SetUploadConfig(cfg *config.UploadConfig) {
 	uploadCfg = cfg
 }
 
-// randomString 生成随机字符串
-func randomString(n int) string {
+// RandomString 生成随机字符串（导出供其他模块使用）
+func RandomString(n int) string {
 	bytes := make([]byte, n)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)[:n]
@@ -51,38 +50,32 @@ func Upload(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// 校验 MIME 类型
 	contentType := header.Header.Get("Content-Type")
 	if contentType != "" && !allowedMIMEs[contentType] {
 		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp"})
 		return
 	}
 
-	// 校验扩展名
 	ext := strings.ToLower(filepath.Ext(header.Filename))
 	if !allowedExtensions[ext] {
 		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp"})
 		return
 	}
 
-	// 确保上传目录存在
 	if err := os.MkdirAll(uploadCfg.Dir, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "创建上传目录失败"})
 		return
 	}
 
-	// 生成唯一文件名
-	filename := fmt.Sprintf("%d-%s%s", time.Now().UnixMilli(), randomString(8), ext)
+	filename := fmt.Sprintf("%d-%s%s", time.Now().UnixMilli(), RandomString(8), ext)
 	filePath := filepath.Join(uploadCfg.Dir, filename)
 
-	// 读取文件内容
 	data, err := io.ReadAll(file)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "读取文件失败"})
 		return
 	}
 
-	// 写入磁盘
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "保存文件失败"})
 		return
@@ -173,7 +166,6 @@ func MergeChunks(c *gin.Context) {
 		return
 	}
 
-	// 按序读取所有分片并合并
 	var merged []byte
 	for i := 0; i < body.TotalChunks; i++ {
 		chunkPath := filepath.Join(tmpDir, strconv.Itoa(i))
@@ -185,10 +177,9 @@ func MergeChunks(c *gin.Context) {
 		merged = append(merged, data...)
 	}
 
-	// 确保上传目录存在
 	os.MkdirAll(uploadCfg.Dir, 0755)
 
-	filename := fmt.Sprintf("%d-%s%s", time.Now().UnixMilli(), randomString(8), ext)
+	filename := fmt.Sprintf("%d-%s%s", time.Now().UnixMilli(), RandomString(8), ext)
 	filePath := filepath.Join(uploadCfg.Dir, filename)
 
 	if err := os.WriteFile(filePath, merged, 0644); err != nil {
@@ -196,7 +187,6 @@ func MergeChunks(c *gin.Context) {
 		return
 	}
 
-	// 清理临时目录
 	os.RemoveAll(tmpDir)
 
 	c.JSON(http.StatusOK, gin.H{"url": "/uploads/" + filename})

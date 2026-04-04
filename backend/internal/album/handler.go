@@ -1,4 +1,4 @@
-package handlers
+package album
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/fatWill/agent-team-blog/backend/models"
-	"github.com/fatWill/agent-team-blog/backend/utils"
+	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,7 +25,7 @@ func GetAlbums(c *gin.Context) {
 	}
 
 	var rows []albumRow
-	err := utils.DB.Raw(`
+	err := db.DB.Raw(`
 		SELECT
 			a.id, a.name, a.description, a.cover_url, a.password_hash,
 			a.created_at, a.updated_at,
@@ -79,13 +79,13 @@ func CreateAlbum(c *gin.Context) {
 		return
 	}
 
-	album := models.Album{
+	a := models.Album{
 		Name: strings.TrimSpace(body.Name),
 	}
 
 	if body.Description != "" {
 		desc := strings.TrimSpace(body.Description)
-		album.Description = &desc
+		a.Description = &desc
 	}
 
 	if strings.TrimSpace(body.Password) != "" {
@@ -95,23 +95,23 @@ func CreateAlbum(c *gin.Context) {
 			return
 		}
 		hashStr := string(hash)
-		album.PasswordHash = &hashStr
+		a.PasswordHash = &hashStr
 	}
 
-	if err := utils.DB.Create(&album).Error; err != nil {
+	if err := db.DB.Create(&a).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "创建相册失败"})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.AlbumListItem{
-		ID:          album.ID,
-		Name:        album.Name,
-		Description: album.Description,
-		CoverURL:    album.CoverURL,
+		ID:          a.ID,
+		Name:        a.Name,
+		Description: a.Description,
+		CoverURL:    a.CoverURL,
 		PhotoCount:  0,
-		HasPassword: album.PasswordHash != nil,
-		CreatedAt:   album.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
-		UpdatedAt:   album.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
+		HasPassword: a.PasswordHash != nil,
+		CreatedAt:   a.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
+		UpdatedAt:   a.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
 	})
 }
 
@@ -148,7 +148,6 @@ func UpdateAlbum(c *gin.Context) {
 	}
 	if body.Password != nil {
 		if *body.Password == "" {
-			// 清除密码
 			updates["password_hash"] = nil
 		} else {
 			hash, err := bcrypt.GenerateFromPassword([]byte(strings.TrimSpace(*body.Password)), 10)
@@ -165,7 +164,7 @@ func UpdateAlbum(c *gin.Context) {
 		return
 	}
 
-	result := utils.DB.Model(&models.Album{}).Where("id = ?", id).Updates(updates)
+	result := db.DB.Model(&models.Album{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "更新相册失败"})
 		return
@@ -175,22 +174,21 @@ func UpdateAlbum(c *gin.Context) {
 		return
 	}
 
-	// 返回更新后的相册
-	var album models.Album
-	utils.DB.Where("id = ?", id).First(&album)
+	var alb models.Album
+	db.DB.Where("id = ?", id).First(&alb)
 
 	var photoCount int64
-	utils.DB.Model(&models.Photo{}).Where("album_id = ?", id).Count(&photoCount)
+	db.DB.Model(&models.Photo{}).Where("album_id = ?", id).Count(&photoCount)
 
 	c.JSON(http.StatusOK, models.AlbumListItem{
-		ID:          album.ID,
-		Name:        album.Name,
-		Description: album.Description,
-		CoverURL:    album.CoverURL,
+		ID:          alb.ID,
+		Name:        alb.Name,
+		Description: alb.Description,
+		CoverURL:    alb.CoverURL,
 		PhotoCount:  int(photoCount),
-		HasPassword: album.PasswordHash != nil && *album.PasswordHash != "",
-		CreatedAt:   album.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
-		UpdatedAt:   album.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
+		HasPassword: alb.PasswordHash != nil && *alb.PasswordHash != "",
+		CreatedAt:   alb.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
+		UpdatedAt:   alb.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
 	})
 }
 
@@ -203,9 +201,9 @@ func DeleteAlbum(c *gin.Context) {
 	}
 
 	// 先删除关联照片
-	utils.DB.Where("album_id = ?", id).Delete(&models.Photo{})
+	db.DB.Where("album_id = ?", id).Delete(&models.Photo{})
 
-	result := utils.DB.Where("id = ?", id).Delete(&models.Album{})
+	result := db.DB.Where("id = ?", id).Delete(&models.Album{})
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "删除相册失败"})
 		return
@@ -226,16 +224,15 @@ func GetAlbumPhotos(c *gin.Context) {
 		return
 	}
 
-	// 检查相册是否存在
 	var albumCount int64
-	utils.DB.Model(&models.Album{}).Where("id = ?", albumID).Count(&albumCount)
+	db.DB.Model(&models.Album{}).Where("id = ?", albumID).Count(&albumCount)
 	if albumCount == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "相册不存在"})
 		return
 	}
 
 	var photos []models.Photo
-	utils.DB.Where("album_id = ?", albumID).Order("created_at DESC").Find(&photos)
+	db.DB.Where("album_id = ?", albumID).Order("created_at DESC").Find(&photos)
 
 	list := make([]models.PhotoListItem, 0, len(photos))
 	for _, p := range photos {
@@ -261,9 +258,8 @@ func AddAlbumPhoto(c *gin.Context) {
 		return
 	}
 
-	// 检查相册是否存在
 	var albumCount int64
-	utils.DB.Model(&models.Album{}).Where("id = ?", albumID).Count(&albumCount)
+	db.DB.Model(&models.Album{}).Where("id = ?", albumID).Count(&albumCount)
 	if albumCount == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "相册不存在"})
 		return
@@ -305,13 +301,13 @@ func AddAlbumPhoto(c *gin.Context) {
 		photo.PasswordHash = &hashStr
 	}
 
-	if err := utils.DB.Create(&photo).Error; err != nil {
+	if err := db.DB.Create(&photo).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "添加照片失败"})
 		return
 	}
 
 	// 更新相册封面
-	updateAlbumCover(albumID)
+	UpdateAlbumCover(albumID)
 
 	c.JSON(http.StatusOK, models.PhotoListItem{
 		ID:          photo.ID,
@@ -340,30 +336,29 @@ func VerifyAlbumPassword(c *gin.Context) {
 		return
 	}
 
-	var album models.Album
-	if err := utils.DB.Select("password_hash").Where("id = ?", albumID).First(&album).Error; err != nil {
+	var alb models.Album
+	if err := db.DB.Select("password_hash").Where("id = ?", albumID).First(&alb).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "相册不存在或未设置密码"})
 		return
 	}
 
-	if album.PasswordHash == nil || *album.PasswordHash == "" {
+	if alb.PasswordHash == nil || *alb.PasswordHash == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "相册不存在或未设置密码"})
 		return
 	}
 
-	success := bcrypt.CompareHashAndPassword([]byte(*album.PasswordHash), []byte(body.Password)) == nil
+	success := bcrypt.CompareHashAndPassword([]byte(*alb.PasswordHash), []byte(body.Password)) == nil
 	c.JSON(http.StatusOK, gin.H{"success": success})
 }
 
-// updateAlbumCover 更新相册封面（取最新照片）
-func updateAlbumCover(albumID uint64) {
+// UpdateAlbumCover 更新相册封面（取最新照片），导出供 photo handler 调用
+func UpdateAlbumCover(albumID uint64) {
 	var photo models.Photo
-	err := utils.DB.Select("url").Where("album_id = ?", albumID).Order("created_at DESC").First(&photo).Error
+	err := db.DB.Select("url").Where("album_id = ?", albumID).Order("created_at DESC").First(&photo).Error
 
 	if err != nil {
-		// 无照片，封面设为 null
-		utils.DB.Model(&models.Album{}).Where("id = ?", albumID).Update("cover_url", nil)
+		db.DB.Model(&models.Album{}).Where("id = ?", albumID).Update("cover_url", nil)
 	} else {
-		utils.DB.Model(&models.Album{}).Where("id = ?", albumID).Update("cover_url", photo.URL)
+		db.DB.Model(&models.Album{}).Where("id = ?", albumID).Update("cover_url", photo.URL)
 	}
 }

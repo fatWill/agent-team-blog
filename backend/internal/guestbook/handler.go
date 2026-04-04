@@ -1,4 +1,4 @@
-package handlers
+package guestbook
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatWill/agent-team-blog/backend/middleware"
 	"github.com/fatWill/agent-team-blog/backend/models"
-	"github.com/fatWill/agent-team-blog/backend/utils"
+	"github.com/fatWill/agent-team-blog/backend/pkg/db"
+	"github.com/fatWill/agent-team-blog/backend/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,7 +24,7 @@ func GetMessages(c *gin.Context) {
 	deviceID := strings.TrimSpace(c.Query("deviceId"))
 
 	var messages []models.Message
-	utils.DB.Order("created_at DESC").Find(&messages)
+	db.DB.Order("created_at DESC").Find(&messages)
 
 	today := getTodayCST()
 
@@ -32,11 +32,9 @@ func GetMessages(c *gin.Context) {
 	for _, m := range messages {
 		isOwn := deviceID != "" && m.DeviceID == deviceID
 
-		// 处理 last_modified_date
 		var lastModDate string
 		if m.LastModifiedDate != nil {
 			lastModDate = *m.LastModifiedDate
-			// 如果是日期格式 "2006-01-02T00:00:00..." 则截取前10位
 			if len(lastModDate) > 10 {
 				lastModDate = lastModDate[:10]
 			}
@@ -65,8 +63,6 @@ func GetMessages(c *gin.Context) {
 
 // CreateMessage POST /api/messages
 func CreateMessage(c *gin.Context) {
-	// IP 限频在中间件中处理
-
 	var body struct {
 		DeviceID string `json:"deviceId"`
 		Nickname string `json:"nickname"`
@@ -98,12 +94,10 @@ func CreateMessage(c *gin.Context) {
 	clientIP := middleware.GetClientIP(c)
 	today := getTodayCST()
 
-	// 检查该设备是否已有留言
 	var existing models.Message
-	err := utils.DB.Where("device_id = ?", deviceID).First(&existing).Error
+	err := db.DB.Where("device_id = ?", deviceID).First(&existing).Error
 
 	if err == nil {
-		// 已有留言 → 视为修改
 		var lastModDate string
 		if existing.LastModifiedDate != nil {
 			lastModDate = *existing.LastModifiedDate
@@ -117,16 +111,14 @@ func CreateMessage(c *gin.Context) {
 			return
 		}
 
-		// 更新留言
-		utils.DB.Model(&existing).Updates(map[string]interface{}{
+		db.DB.Model(&existing).Updates(map[string]interface{}{
 			"nickname":           nickname,
 			"content":            content,
 			"last_modified_date": today,
 			"ip":                 clientIP,
 		})
 
-		// 查询更新后的记录
-		utils.DB.Where("id = ?", existing.ID).First(&existing)
+		db.DB.Where("id = ?", existing.ID).First(&existing)
 
 		displayNickname := "匿名"
 		if existing.Nickname != nil && *existing.Nickname != "" {
@@ -145,7 +137,6 @@ func CreateMessage(c *gin.Context) {
 		return
 	}
 
-	// 新增留言
 	msg := models.Message{
 		DeviceID: deviceID,
 		Nickname: nickname,
@@ -153,7 +144,7 @@ func CreateMessage(c *gin.Context) {
 		IP:       &clientIP,
 	}
 
-	if err := utils.DB.Create(&msg).Error; err != nil {
+	if err := db.DB.Create(&msg).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": fmt.Sprintf("创建留言失败: %v", err)})
 		return
 	}
@@ -210,14 +201,12 @@ func UpdateMessage(c *gin.Context) {
 		nickname = &n
 	}
 
-	// 查找留言
 	var msg models.Message
-	if err := utils.DB.Where("id = ?", id).First(&msg).Error; err != nil {
+	if err := db.DB.Where("id = ?", id).First(&msg).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "留言不存在"})
 		return
 	}
 
-	// 验证设备归属
 	if msg.DeviceID != deviceID {
 		c.JSON(http.StatusForbidden, gin.H{"error": true, "statusCode": 403, "statusMessage": "无权修改此留言"})
 		return
@@ -225,7 +214,6 @@ func UpdateMessage(c *gin.Context) {
 
 	today := getTodayCST()
 
-	// 检查今天是否已修改过
 	if msg.LastModifiedDate != nil {
 		lastModDate := *msg.LastModifiedDate
 		if len(lastModDate) > 10 {
@@ -237,15 +225,13 @@ func UpdateMessage(c *gin.Context) {
 		}
 	}
 
-	// 更新留言
-	utils.DB.Model(&msg).Updates(map[string]interface{}{
+	db.DB.Model(&msg).Updates(map[string]interface{}{
 		"nickname":           nickname,
 		"content":            content,
 		"last_modified_date": today,
 	})
 
-	// 查询更新后的记录
-	utils.DB.Where("id = ?", id).First(&msg)
+	db.DB.Where("id = ?", id).First(&msg)
 
 	displayNickname := "匿名"
 	if msg.Nickname != nil && *msg.Nickname != "" {
@@ -271,7 +257,7 @@ func DeleteMessage(c *gin.Context) {
 		return
 	}
 
-	result := utils.DB.Where("id = ?", id).Delete(&models.Message{})
+	result := db.DB.Where("id = ?", id).Delete(&models.Message{})
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除留言失败"})
 		return
