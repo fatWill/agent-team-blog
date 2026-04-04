@@ -87,6 +87,44 @@ func uploadToCOS(data []byte, key string) (string, error) {
 	return fmt.Sprintf("%s/%s", strings.TrimRight(cosCfg.BaseURL, "/"), key), nil
 }
 
+// DeleteFromCOS 根据完整 URL 删除 COS 对象（导出供其他模块调用）
+// url 格式：https://assets.fatwill.cloud/upload/20260405/xxx.jpg
+// 提取 key：upload/20260405/xxx.jpg
+func DeleteFromCOS(fileURL string) error {
+	if cosClient == nil {
+		return fmt.Errorf("COS 客户端未初始化")
+	}
+	if fileURL == "" {
+		return nil
+	}
+	// 从完整 URL 中提取 COS key
+	baseURL := strings.TrimRight(cosCfg.BaseURL, "/") + "/"
+	if !strings.HasPrefix(fileURL, baseURL) {
+		// 非 COS 管理的 URL，跳过删除
+		return nil
+	}
+	key := strings.TrimPrefix(fileURL, baseURL)
+	if key == "" {
+		return nil
+	}
+	_, err := cosClient.Object.Delete(context.Background(), key)
+	if err != nil {
+		return fmt.Errorf("删除 COS 对象失败: %w", err)
+	}
+	return nil
+}
+
+// BatchDeleteFromCOS 批量删除 COS 对象
+func BatchDeleteFromCOS(fileURLs []string) {
+	for _, u := range fileURLs {
+		if u != "" {
+			if err := DeleteFromCOS(u); err != nil {
+				log.Printf("⚠️  COS 删除失败 [%s]: %v", u, err)
+			}
+		}
+	}
+}
+
 // Upload POST /api/upload
 func Upload(c *gin.Context) {
 	file, header, err := c.Request.FormFile("file")

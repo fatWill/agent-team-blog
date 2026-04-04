@@ -229,8 +229,13 @@ backend/
 | `REDIS_HOST` | `127.0.0.1` | Redis 主机 |
 | `REDIS_PORT` | `6379` | Redis 端口 |
 | `REDIS_PASSWORD` | *(见配置)* | Redis 密码 |
-| `UPLOAD_DIR` | `/root/blog-uploads` | 图片存储目录 |
+| `UPLOAD_DIR` | `/root/blog-uploads` | 分片临时文件存储目录 |
 | `UPLOAD_TMP_DIR` | `/root/blog-uploads/tmp` | 分片临时目录 |
+| `COS_ID` | *(必填)* | 腾讯云 COS SecretID |
+| `COS_KEY` | *(必填)* | 腾讯云 COS SecretKey |
+| `COS_BUCKET` | `fatwill-cloud-1253664788` | COS Bucket 名称 |
+| `COS_REGION` | `ap-guangzhou` | COS 地域 |
+| `COS_BASE_URL` | `https://assets.fatwill.cloud` | COS CDN 访问域名 |
 
 ## 部署信息
 
@@ -271,6 +276,7 @@ refactor(backend agent): 简要描述
 
 ## 变更日志
 
+- 2026-04-05: **图片存储迁移至腾讯云 COS** — 上传直接写入 COS，删除照片/相册时异步清理 COS 对象；新增 `docs/api/upload.md` 接口文档
 - 2026-04-04: 创建 AGENTS.md，补全后端项目中枢索引文档
 - 2026-04-04: 登录态有效期从 72h 延长至 30 天，支持滚动续期
 - 2026-04-04: 补全 docs/ 文档体系（architecture、coding-conventions、mysql、http-api、api/*）

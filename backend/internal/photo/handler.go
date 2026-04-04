@@ -1,11 +1,13 @@
 package photo
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/fatWill/agent-team-blog/backend/internal/album"
+	"github.com/fatWill/agent-team-blog/backend/internal/upload"
 	"github.com/fatWill/agent-team-blog/backend/models"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/gin-gonic/gin"
@@ -85,18 +87,26 @@ func DeletePhoto(c *gin.Context) {
 	}
 
 	var p models.Photo
-	if err := db.DB.Select("album_id").Where("id = ?", id).First(&p).Error; err != nil {
+	if err := db.DB.Select("id, album_id, url").Where("id = ?", id).First(&p).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "照片不存在"})
 		return
 	}
 
 	albumID := p.AlbumID
+	photoURL := p.URL
 
 	result := db.DB.Where("id = ?", id).Delete(&models.Photo{})
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "删除照片失败"})
 		return
 	}
+
+	// 异步删除 COS 对象（不阻塞响应）
+	go func() {
+		if err := upload.DeleteFromCOS(photoURL); err != nil {
+			log.Printf("⚠️  删除照片 COS 对象失败 [id=%d, url=%s]: %v", id, photoURL, err)
+		}
+	}()
 
 	// 更新相册封面
 	album.UpdateAlbumCover(albumID)

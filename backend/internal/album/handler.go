@@ -1,10 +1,12 @@
 package album
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/fatWill/agent-team-blog/backend/internal/upload"
 	"github.com/fatWill/agent-team-blog/backend/models"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/gin-gonic/gin"
@@ -200,7 +202,11 @@ func DeleteAlbum(c *gin.Context) {
 		return
 	}
 
-	// 先删除关联照片
+	// 先收集所有照片 URL，用于后续 COS 清理
+	var photoURLs []string
+	db.DB.Model(&models.Photo{}).Where("album_id = ?", id).Pluck("url", &photoURLs)
+
+	// 删除关联照片
 	db.DB.Where("album_id = ?", id).Delete(&models.Photo{})
 
 	result := db.DB.Where("id = ?", id).Delete(&models.Album{})
@@ -211,6 +217,14 @@ func DeleteAlbum(c *gin.Context) {
 	if result.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "相册不存在"})
 		return
+	}
+
+	// 异步批量删除 COS 对象（不阻塞响应）
+	if len(photoURLs) > 0 {
+		go func() {
+			upload.BatchDeleteFromCOS(photoURLs)
+			log.Printf("✅ 相册 %d 的 %d 张照片 COS 对象已清理", id, len(photoURLs))
+		}()
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": true})

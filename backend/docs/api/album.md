@@ -16,7 +16,7 @@
       "id": 1,
       "name": "旅行照片",
       "description": "2026年春节旅行",
-      "coverUrl": "/uploads/cover.jpg",
+      "coverUrl": "https://assets.fatwill.cloud/upload/20260101/cover.jpg",
       "photoCount": 12,
       "hasPassword": false,
       "createdAt": "2026-01-01T12:00:00.000Z",
@@ -116,7 +116,7 @@
     {
       "id": 1,
       "albumId": 1,
-      "url": "/uploads/photo.jpg",
+      "url": "https://assets.fatwill.cloud/upload/20260101/photo.jpg",
       "caption": "夕阳下",
       "hasPassword": false,
       "createdAt": "2026-01-01T12:00:00.000Z",
