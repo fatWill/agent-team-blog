@@ -163,24 +163,20 @@ function initLines() {
   }
 }
 
-// ====== 用 pretext 预处理并测量每行宽度 ======
+// ====== 用 pretext 预处理（绕排用）+ canvas measureText 测量真实宽度 ======
 function measureLines() {
+  if (!ctx) return
   for (const line of lines) {
+    // 用 pretext 预处理（绕排时需要）
     try {
-      const prepared = prepareWithSegments(line.text, line.font)
-      line.prepared = prepared
-      const result = layoutNextLine(prepared, LINE_START, 100_000)
-      if (result) {
-        line.measuredWidth = result.width + 60 // 加间距
-      }
+      line.prepared = prepareWithSegments(line.text, line.font)
     } catch {
-      // fallback: 用 canvas measureText
       line.prepared = null
-      if (ctx) {
-        ctx.font = line.font
-        line.measuredWidth = ctx.measureText(line.text).width + 60
-      }
     }
+
+    // 用 canvas measureText 测量实际像素宽度（比 layoutNextLine 更可靠）
+    ctx.font = line.font
+    line.measuredWidth = ctx.measureText(line.text).width + 80
   }
 }
 
