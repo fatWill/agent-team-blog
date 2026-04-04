@@ -8,6 +8,7 @@ type Config struct {
 	DB     DBConfig
 	Redis  RedisConfig
 	Upload UploadConfig
+	COS    COSConfig
 }
 
 // ServerConfig 服务器配置
@@ -30,6 +31,15 @@ type RedisConfig struct {
 	Host     string
 	Port     string
 	Password string
+}
+
+// COSConfig 腾讯云 COS 配置
+type COSConfig struct {
+	SecretID  string
+	SecretKey string
+	Bucket    string
+	Region    string
+	BaseURL   string // CDN 访问域名，如 https://assets.fatwill.cloud
 }
 
 // UploadConfig 上传配置
@@ -60,6 +70,13 @@ func Load() *Config {
 		Upload: UploadConfig{
 			Dir:    getEnv("UPLOAD_DIR", "/root/blog-uploads"),
 			TmpDir: getEnv("UPLOAD_TMP_DIR", "/root/blog-uploads/tmp"),
+		},
+		COS: COSConfig{
+			SecretID:  getEnv("COS_ID", ""),
+			SecretKey: getEnv("COS_KEY", ""),
+			Bucket:    getEnv("COS_BUCKET", "fatwill-cloud-1253664788"),
+			Region:    getEnv("COS_REGION", "ap-guangzhou"),
+			BaseURL:   getEnv("COS_BASE_URL", "https://assets.fatwill.cloud"),
 		},
 	}
 }

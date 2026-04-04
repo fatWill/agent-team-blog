@@ -1,11 +1,15 @@
 package upload
 
 import (
+	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +19,7 @@ import (
 
 	"github.com/fatWill/agent-team-blog/backend/config"
 	"github.com/gin-gonic/gin"
+	cos "github.com/tencentyun/cos-go-sdk-v5"
 )
 
 var (
@@ -27,18 +32,59 @@ var (
 	uploadIDRegex = regexp.MustCompile(`^[\w-]+$`)
 )
 
-var uploadCfg *config.UploadConfig
+var (
+	uploadCfg *config.UploadConfig
+	cosCfg    *config.COSConfig
+	cosClient *cos.Client
+)
 
 // SetUploadConfig 设置上传配置
 func SetUploadConfig(cfg *config.UploadConfig) {
 	uploadCfg = cfg
 }
 
+// SetCOSConfig 设置 COS 配置并初始化客户端
+func SetCOSConfig(cfg *config.COSConfig) {
+	cosCfg = cfg
+	if cfg.SecretID == "" || cfg.SecretKey == "" {
+		log.Println("⚠️  COS_ID 或 COS_KEY 未设置，上传功能将不可用")
+		return
+	}
+	u, _ := url.Parse(fmt.Sprintf("https://%s.cos.%s.myqcloud.com", cfg.Bucket, cfg.Region))
+	cosClient = cos.NewClient(&cos.BaseURL{BucketURL: u}, &http.Client{
+		Transport: &cos.AuthorizationTransport{
+			SecretID:  cfg.SecretID,
+			SecretKey: cfg.SecretKey,
+		},
+	})
+	log.Println("✅ COS 客户端初始化成功")
+}
+
 // RandomString 生成随机字符串（导出供其他模块使用）
 func RandomString(n int) string {
-	bytes := make([]byte, n)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)[:n]
+	b := make([]byte, n)
+	rand.Read(b)
+	return hex.EncodeToString(b)[:n]
+}
+
+// cosKey 生成 COS 存储路径：upload/YYYYMMDD/时间戳-随机串.ext
+func cosKey(ext string) string {
+	now := time.Now()
+	dateDir := now.Format("20060102")
+	filename := fmt.Sprintf("%d-%s%s", now.UnixMilli(), RandomString(8), ext)
+	return fmt.Sprintf("upload/%s/%s", dateDir, filename)
+}
+
+// uploadToCOS 将数据上传到 COS，返回公开访问 URL
+func uploadToCOS(data []byte, key string) (string, error) {
+	if cosClient == nil {
+		return "", fmt.Errorf("COS 客户端未初始化，请检查 COS_ID 和 COS_KEY 环境变量")
+	}
+	_, err := cosClient.Object.Put(context.Background(), key, bytes.NewReader(data), nil)
+	if err != nil {
+		return "", fmt.Errorf("上传 COS 失败: %w", err)
+	}
+	return fmt.Sprintf("%s/%s", strings.TrimRight(cosCfg.BaseURL, "/"), key), nil
 }
 
 // Upload POST /api/upload
@@ -62,29 +108,24 @@ func Upload(c *gin.Context) {
 		return
 	}
 
-	if err := os.MkdirAll(uploadCfg.Dir, 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "创建上传目录失败"})
-		return
-	}
-
-	filename := fmt.Sprintf("%d-%s%s", time.Now().UnixMilli(), RandomString(8), ext)
-	filePath := filepath.Join(uploadCfg.Dir, filename)
-
 	data, err := io.ReadAll(file)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "读取文件失败"})
 		return
 	}
 
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "保存文件失败"})
+	key := cosKey(ext)
+	fileURL, err := uploadToCOS(data, key)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"url": "/uploads/" + filename})
+	c.JSON(http.StatusOK, gin.H{"url": fileURL})
 }
 
 // UploadChunk POST /api/upload/chunk
+// 分片仍然临时保存到本地，不上传 COS
 func UploadChunk(c *gin.Context) {
 	file, _, err := c.Request.FormFile("file")
 	if err != nil {
@@ -137,6 +178,7 @@ func UploadChunk(c *gin.Context) {
 }
 
 // MergeChunks POST /api/upload/merge
+// 合并本地分片后上传到 COS，然后清理本地临时文件
 func MergeChunks(c *gin.Context) {
 	var body struct {
 		UploadID    string `json:"uploadId"`
@@ -166,6 +208,7 @@ func MergeChunks(c *gin.Context) {
 		return
 	}
 
+	// 合并分片
 	var merged []byte
 	for i := 0; i < body.TotalChunks; i++ {
 		chunkPath := filepath.Join(tmpDir, strconv.Itoa(i))
@@ -177,19 +220,18 @@ func MergeChunks(c *gin.Context) {
 		merged = append(merged, data...)
 	}
 
-	os.MkdirAll(uploadCfg.Dir, 0755)
-
-	filename := fmt.Sprintf("%d-%s%s", time.Now().UnixMilli(), RandomString(8), ext)
-	filePath := filepath.Join(uploadCfg.Dir, filename)
-
-	if err := os.WriteFile(filePath, merged, 0644); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": "保存合并文件失败"})
+	// 上传到 COS
+	key := cosKey(ext)
+	fileURL, err := uploadToCOS(merged, key)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": err.Error()})
 		return
 	}
 
+	// 清理本地临时文件
 	os.RemoveAll(tmpDir)
 
-	c.JSON(http.StatusOK, gin.H{"url": "/uploads/" + filename})
+	c.JSON(http.StatusOK, gin.H{"url": fileURL})
 }
 
 // CancelChunkUpload DELETE /api/upload/chunk

@@ -35,6 +35,11 @@
 | `UPLOAD_TMP_DIR` | `/root/blog-uploads/tmp` | 分片上传临时目录 |
 | `ADMIN_USERNAME` | `admin` | 管理后台用户名 |
 | `ADMIN_PASSWORD` | *(必填)* | 管理后台密码 |
+| `COS_ID` | *(必填)* | 腾讯云 COS SecretId |
+| `COS_KEY` | *(必填)* | 腾讯云 COS SecretKey |
+| `COS_BUCKET` | `fatwill-cloud-1253664788` | COS 存储桶名称 |
+| `COS_REGION` | `ap-guangzhou` | COS 地域 |
+| `COS_BASE_URL` | `https://assets.fatwill.cloud` | COS CDN 访问域名 |
 
 ### 启动
 

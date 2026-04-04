@@ -39,6 +39,7 @@ func main() {
 
 	// 设置上传配置
 	upload.SetUploadConfig(&cfg.Upload)
+	upload.SetCOSConfig(&cfg.COS)
 
 	// 创建 Gin 引擎
 	gin.SetMode(gin.ReleaseMode)
