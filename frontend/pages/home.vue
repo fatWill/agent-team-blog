@@ -886,10 +886,6 @@
       </Transition>
     </Teleport>
 
-    <!-- 页脚 -->
-    <footer class="border-t border-gray-200/60 py-8 text-center text-sm text-gray-400 transition-colors dark:border-gray-700/60 dark:text-gray-500">
-      <p>&copy; {{ new Date().getFullYear() }} fatwillzeng. All rights reserved.</p>
-    </footer>
   </div>
 </template>
 
