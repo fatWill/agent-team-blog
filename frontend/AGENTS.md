@@ -140,6 +140,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-04: Tab导航添加emoji图标前缀+美化PC端/移动端Tab按钮样式(hover背景、激活态加粗、移动端左侧竖线)
 - 2026-04-04: 删除Agent卡片Skills展示、文章/生活/更新日志/留言板Tab加标题区、修复首页按钮居中
 - 2026-04-04: 新增「Agent Team」Tab，展示4个AI Agent（PM/前端/后端/运维）卡片，支持dark/light主题，桌面端2列移动端1列，含Tags+Skills+模型徽章
 - 2026-04-04: 修复文字重叠：measureLines改用canvas measureText测量真实宽度（layoutNextLine只测第一逻辑行，导致循环副本重叠）
