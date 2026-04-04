@@ -5,7 +5,7 @@
       ref="btnRef"
       class="enter-btn"
       :class="{ dragging: isDragging }"
-      :style="{ left: btnLeft + 'px', top: btnTop + 'px' }"
+      :style="{ left: btnLeft + 'px', top: btnTop + 'px', visibility: btnVisible ? 'visible' : 'hidden' }"
       @mousedown.prevent="onPointerDown"
       @touchstart.prevent="onPointerDown"
     >
@@ -14,7 +14,6 @@
         <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
       </svg>
     </div>
-    <div class="footer">fatwill.cloud</div>
   </div>
 </template>
 
@@ -85,6 +84,7 @@ const btnRef = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
 const btnLeft = ref(0)
 const btnTop = ref(0)
+const btnVisible = ref(false)
 
 // ====== 动画数据 ======
 let lines: TextLine[] = []
@@ -431,6 +431,10 @@ onMounted(() => {
     }
     updateBtnCache()
     animId = requestAnimationFrame(drawFrame)
+    // 下一帧再显示，避免左上角闪烁
+    requestAnimationFrame(() => {
+      btnVisible.value = true
+    })
   })
 
   window.addEventListener('resize', handleResize)
@@ -480,6 +484,7 @@ onUnmounted(() => {
   box-shadow: 0 0 40px rgba(99, 102, 241, 0.12), 0 8px 32px rgba(0, 0, 0, 0.25);
   transition: box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease;
   white-space: nowrap;
+  animation: btnEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .enter-btn:hover {
@@ -509,18 +514,15 @@ onUnmounted(() => {
   transform: translateX(4px);
 }
 
-.footer {
-  position: fixed;
-  bottom: 20px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.18);
-  font-size: 12px;
-  font-family: 'Fira Code', monospace;
-  letter-spacing: 3px;
-  pointer-events: none;
-  z-index: 5;
+@keyframes btnEntrance {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 768px) {
