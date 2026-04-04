@@ -115,9 +115,13 @@ function updateBtnCache() {
 // 估算按钮尺寸（避免依赖 getBoundingClientRect，初始居中用）
 function estimateBtnSize(): { w: number; h: number } {
   if (typeof window !== 'undefined' && window.innerWidth < 768) {
-    return { w: 140, h: 46 }
+    // 移动端: padding 14px 32px, font-size 15px, gap 10px, arrow 20px
+    // 宽度 ≈ 32 + text(~75px) + 10 + 20 + 32 ≈ 169, 高度 ≈ 14 + 15*1.2 + 14 ≈ 46
+    return { w: 169, h: 46 }
   }
-  return { w: 160, h: 52 }
+  // 桌面端: padding 16px 44px, font-size 17px, gap 10px, arrow 20px
+  // 宽度 ≈ 44 + text(~85px) + 10 + 20 + 44 ≈ 203, 高度 ≈ 16 + 17*1.2 + 16 ≈ 52
+  return { w: 203, h: 52 }
 }
 
 // 根据屏幕宽度判断是否为移动端，动态调整参数
@@ -406,9 +410,9 @@ function handleResize() {
 
   // 重新居中按钮并更新缓存
   if (btnRef.value) {
-    const rect = btnRef.value.getBoundingClientRect()
-    btnLeft.value = (canvasW - rect.width) / 2
-    btnTop.value = (canvasH - rect.height) / 2
+    const { w, h } = estimateBtnSize()
+    btnLeft.value = (canvasW - w) / 2
+    btnTop.value = (canvasH - h) / 2
   }
   nextTick(() => updateBtnCache())
 }
@@ -437,20 +441,16 @@ onMounted(() => {
 
   // 初始化按钮位置（居中）+ 缓存 + 启动动画
   nextTick(() => {
-    // nextTick 后 DOM 渲染完成，用真实尺寸修正居中位置
-    if (btnRef.value) {
-      const rect = btnRef.value.getBoundingClientRect()
-      if (rect.width > 0) {
-        btnLeft.value = (canvasW - rect.width) / 2
-        btnTop.value = (canvasH - rect.height) / 2
-      }
-    }
     updateBtnCache()
     animId = requestAnimationFrame(drawFrame)
     // 下一帧再显示，避免左上角闪烁
     requestAnimationFrame(() => {
       btnVisible.value = true
     })
+    // 动画结束后（0.6s）用真实尺寸更新缓存
+    setTimeout(() => {
+      updateBtnCache()
+    }, 700)
   })
 
   window.addEventListener('resize', handleResize)

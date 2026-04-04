@@ -187,6 +187,10 @@
     <main class="mx-auto max-w-3xl px-4 py-8">
       <!-- 文章 Tab -->
       <div v-if="activeTab === 'articles'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📝 文章</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">记录技术探索与思考的点滴</p>
+        </div>
         <div v-if="loading" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
         </div>
@@ -279,13 +283,9 @@
         <!-- 相册集列表（默认视图） -->
         <div v-if="!selectedAlbum">
           <!-- 标题区 -->
-          <div class="mb-6 flex items-center justify-between">
-            <div>
-              <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">我的相册</h2>
-              <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">
-                共 {{ albumTotalPhotos }} 张照片
-              </p>
-            </div>
+          <div class="mb-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📷 生活</h2>
+            <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">用镜头定格美好的瞬间 · 共 {{ albumTotalPhotos }} 张照片</p>
           </div>
 
           <!-- 加载中 -->
@@ -462,6 +462,10 @@
 
       <!-- ========== 留言板 Tab ========== -->
       <div v-else-if="activeTab === 'messages'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">💬 留言板</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">欢迎留下你的足迹与想法</p>
+        </div>
         <div v-if="messagesLoading && !messagesLoaded" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
         </div>
@@ -601,7 +605,7 @@
               </p>
 
               <!-- Tags 标签组 -->
-              <div class="mb-3 flex flex-wrap gap-1.5">
+              <div class="flex flex-wrap gap-1.5">
                 <span
                   v-for="tag in agent.tags"
                   :key="tag"
@@ -612,17 +616,6 @@
                   ]"
                 >
                   {{ tag }}
-                </span>
-              </div>
-
-              <!-- Skills 列表 -->
-              <div class="flex flex-wrap gap-1.5">
-                <span
-                  v-for="skill in agent.skills"
-                  :key="skill"
-                  class="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                >
-                  🔧 {{ skill }}
                 </span>
               </div>
             </div>
@@ -637,6 +630,10 @@
 
       <!-- 更新日志 Tab -->
       <div v-else-if="activeTab === 'changelog'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📋 更新日志</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">记录每一次迭代与成长</p>
+        </div>
         <div v-if="changelogLoading" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
         </div>
