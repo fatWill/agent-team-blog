@@ -24,7 +24,7 @@
           </svg>
         </NuxtLink>
         <a
-          href="https://github.com/fatwillzeng"
+          href="https://github.com/fatwill"
           target="_blank"
           rel="noopener noreferrer"
           class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
@@ -104,7 +104,7 @@
         </svg>
       </NuxtLink>
       <a
-        href="https://github.com/fatwillzeng"
+        href="https://github.com/fatwill"
         target="_blank"
         rel="noopener noreferrer"
         class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
@@ -134,7 +134,7 @@
         <img
           v-if="profile.avatar"
           :src="toCdnUrl(profile.avatar)"
-          alt="fatwillzeng 头像"
+          alt="fatwill 头像"
           class="h-20 w-20 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700"
         />
         <div
@@ -146,7 +146,7 @@
           </svg>
         </div>
         <div class="flex-1">
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">fatwillzeng</h1>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">fatwill</h1>
           <p v-if="profile.bio" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {{ profile.bio }}
           </p>
@@ -1938,9 +1938,9 @@ onUnmounted(() => {
 })
 
 useHead({
-  title: 'fatwillzeng - 个人博客',
+  title: 'fatwill - 个人博客',
   meta: [
-    { name: 'description', content: '全栈开发者 fatwillzeng 的个人博客，分享技术与生活。' },
+    { name: 'description', content: '全栈开发者 fatwill 的个人博客，分享技术与生活。' },
   ],
 })
 </script>

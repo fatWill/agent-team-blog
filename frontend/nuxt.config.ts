@@ -29,14 +29,14 @@ export default defineNuxtConfig({
   app: {
     cdnURL: 'https://cdn.fatwill.cloud',
     head: {
-      title: 'fatwillzeng - 个人博客',
+      title: 'fatwill - 个人博客',
       htmlAttrs: {
         lang: 'zh-CN',
       },
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: '全栈开发者 fatwillzeng 的个人博客，分享技术与生活。' },
+        { name: 'description', content: '全栈开发者 fatwill 的个人博客，分享技术与生活。' },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },

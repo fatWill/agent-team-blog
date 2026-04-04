@@ -1184,7 +1184,7 @@ onUnmounted(() => {
   if (searchTimer) clearTimeout(searchTimer)
 })
 
-useHead({ title: '管理后台 - fatwillzeng' })
+useHead({ title: '管理后台 - fatwill' })
 </script>
 
 <style scoped>

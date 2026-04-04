@@ -1,7 +1,7 @@
 # AGENTS.md - 项目中枢索引
 
 ## 项目概述
-fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构建，支持 Dark/Light 主题切换。
+fatwill 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构建，支持 Dark/Light 主题切换。
 
 ## 技术栈速览
 - **框架**: Nuxt 3.21.2 + Vue 3.5

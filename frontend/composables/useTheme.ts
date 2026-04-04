@@ -6,7 +6,7 @@
 export function useTheme() {
   // 服务端/客户端均可读取 cookie
   const colorModeCookie = useCookie<'light' | 'dark'>('color-mode', {
-    default: () => 'light',
+    default: () => 'dark',
     maxAge: 60 * 60 * 24 * 30,
     path: '/',
   })

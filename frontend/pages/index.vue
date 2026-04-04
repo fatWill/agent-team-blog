@@ -28,7 +28,7 @@ import {
 
 useHead({
   title: 'fatwill.cloud',
-  meta: [{ name: 'description', content: '全栈开发者 fatwillzeng 的个人博客' }],
+  meta: [{ name: 'description', content: '全栈开发者 fatwill 的个人博客' }],
 })
 
 // ====== 代码片段 ======

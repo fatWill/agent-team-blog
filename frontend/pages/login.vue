@@ -4,7 +4,7 @@
       <!-- Logo -->
       <div class="mb-8 text-center">
         <NuxtLink to="/home" class="inline-block">
-          <img src="/avatar.png" alt="fatwillzeng" class="mx-auto h-16 w-16 rounded-full ring-2 ring-gray-200 dark:ring-gray-700" />
+          <img src="/avatar.png" alt="fatwill" class="mx-auto h-16 w-16 rounded-full ring-2 ring-gray-200 dark:ring-gray-700" />
         </NuxtLink>
         <h1 class="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">登录</h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">登录后可进入管理后台</p>
@@ -107,6 +107,6 @@ onMounted(() => {
 })
 
 useHead({
-  title: '登录 - fatwillzeng',
+  title: '登录 - fatwill',
 })
 </script>
