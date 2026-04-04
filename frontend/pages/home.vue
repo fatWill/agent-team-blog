@@ -157,6 +157,27 @@
       </div>
     </section>
 
+    <!-- PC端 Tab 导航（仅 >= md 显示） -->
+    <nav class="mx-auto hidden max-w-3xl px-4 md:block">
+      <div class="flex gap-1 border-b border-gray-200/60 dark:border-gray-700/60">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="relative px-3.5 py-2.5 text-[13px] transition-all duration-200"
+          :class="activeTab === tab.key
+            ? 'font-semibold text-primary-600 dark:text-primary-400'
+            : 'font-medium text-gray-500 hover:bg-gray-100/60 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800/40 dark:hover:text-gray-300'"
+          @click="selectTab(tab.key)"
+        >
+          {{ tab.label }}
+          <span
+            v-if="activeTab === tab.key"
+            class="absolute bottom-0 left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-primary-500 transition-all duration-300"
+          />
+        </button>
+      </div>
+    </nav>
+
     <!-- 内容区域 -->
     <main class="mx-auto max-w-3xl px-4 pt-3 pb-8">
       <!-- 文章 Tab -->
