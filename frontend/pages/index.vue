@@ -97,6 +97,21 @@ const LINE_START: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
 const DRAG_THRESHOLD = 8 // 拖拽触发阈值（px）
 let lineCount = 18 // 动态计算的行数
 
+// 按钮位置缓存（避免在 rAF 中调用 getBoundingClientRect 触发回流）
+let cachedBtnL = -9999
+let cachedBtnT = -9999
+let cachedBtnR = -9999
+let cachedBtnB = -9999
+
+function updateBtnCache() {
+  if (!btnRef.value) return
+  const rect = btnRef.value.getBoundingClientRect()
+  cachedBtnL = rect.left
+  cachedBtnT = rect.top
+  cachedBtnR = rect.right
+  cachedBtnB = rect.bottom
+}
+
 // 根据屏幕宽度判断是否为移动端，动态调整参数
 function isMobile(): boolean {
   return canvasW < 768
@@ -290,22 +305,14 @@ function drawFrame() {
     return
   }
 
+  // 每帧重置变换矩阵，避免 scale 累积
+  const dpr = window.devicePixelRatio || 1
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, canvasW, canvasH)
-
-  // 获取按钮位置
-  const btnEl = btnRef.value
-  let bL = -9999, bT = -9999, bR = -9999, bB = -9999
-  if (btnEl) {
-    const rect = btnEl.getBoundingClientRect()
-    bL = rect.left
-    bT = rect.top
-    bR = rect.right
-    bB = rect.bottom
-  }
 
   for (const line of lines) {
     line.offsetX += line.speed
-    drawLine(line, bL, bT, bR, bB)
+    drawLine(line, cachedBtnL, cachedBtnT, cachedBtnR, cachedBtnB)
   }
 
   animId = requestAnimationFrame(drawFrame)
@@ -353,6 +360,8 @@ function onPointerDown(e: MouseEvent | TouchEvent) {
     isDragging.value = true
     btnLeft.value = p.x - dragOffsetX
     btnTop.value = p.y - dragOffsetY
+    // 拖拽时同步更新按钮位置缓存
+    updateBtnCache()
   }
 
   const onUp = () => {
@@ -385,18 +394,19 @@ function handleResize() {
   canvas.style.width = `${canvasW}px`
   canvas.style.height = `${canvasH}px`
   ctx = canvas.getContext('2d')
-  if (ctx) ctx.scale(dpr, dpr)
+  // 不在这里 scale！drawFrame 每帧用 setTransform 重置
 
   // 完全重建行数据（行数/字号可能因屏幕尺寸变化而不同）
   initLines()
   measureLines()
 
-  // 重新居中按钮
+  // 重新居中按钮并更新缓存
   if (btnRef.value) {
     const rect = btnRef.value.getBoundingClientRect()
     btnLeft.value = (canvasW - rect.width) / 2
     btnTop.value = (canvasH - rect.height) / 2
   }
+  nextTick(() => updateBtnCache())
 }
 
 // ====== 生命周期 ======
@@ -411,21 +421,22 @@ onMounted(() => {
   canvas.style.width = `${canvasW}px`
   canvas.style.height = `${canvasH}px`
   ctx = canvas.getContext('2d')
-  if (ctx) ctx.scale(dpr, dpr)
+  // 不在这里 scale！drawFrame 每帧用 setTransform 重置
 
   initLines()
   measureLines()
 
-  // 初始化按钮位置（居中）
+  // 初始化按钮位置（居中）+ 缓存 + 启动动画
   nextTick(() => {
     if (btnRef.value) {
       const rect = btnRef.value.getBoundingClientRect()
       btnLeft.value = (canvasW - rect.width) / 2
       btnTop.value = (canvasH - rect.height) / 2
     }
+    updateBtnCache()
+    animId = requestAnimationFrame(drawFrame)
   })
 
-  animId = requestAnimationFrame(drawFrame)
   window.addEventListener('resize', handleResize)
 })
 
