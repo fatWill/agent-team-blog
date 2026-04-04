@@ -75,14 +75,14 @@
               </svg>
             </button>
           </div>
-          <nav class="px-3 py-4">
+          <nav class="space-y-1 px-3 py-4">
             <button
               v-for="tab in tabs"
               :key="tab.key"
-              class="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+              class="flex w-full items-center rounded-lg px-3 py-2.5 text-sm transition-all duration-200"
               :class="activeTab === tab.key
-                ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400'
-                : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800'"
+                ? 'border-l-[3px] border-primary-500 bg-primary-50/80 pl-[9px] font-semibold text-primary-600 dark:bg-primary-900/20 dark:text-primary-400'
+                : 'border-l-[3px] border-transparent pl-[9px] font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800/60 dark:hover:text-gray-300'"
               @click="selectTab(tab.key)"
             >
               {{ tab.label }}
@@ -158,21 +158,21 @@
     </section>
 
     <!-- PC端 Tab 导航（仅 >= md 显示） -->
-    <nav class="sticky top-0 z-40 hidden border-b border-gray-200/60 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 md:block">
-      <div class="mx-auto flex max-w-3xl gap-0 px-4">
+    <nav class="sticky top-0 z-40 hidden border-b border-gray-200/60 bg-white/80 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80 md:block">
+      <div class="mx-auto flex max-w-3xl gap-1 px-4">
         <button
           v-for="tab in tabs"
           :key="tab.key"
-          class="relative px-4 py-3 text-sm font-medium transition-colors"
+          class="relative rounded-lg px-3.5 py-2.5 text-[13px] transition-all duration-200"
           :class="activeTab === tab.key
-            ? 'text-gray-900 dark:text-gray-100'
-            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'"
+            ? 'font-semibold text-primary-600 dark:text-primary-400'
+            : 'font-medium text-gray-500 hover:bg-gray-100/70 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-300'"
           @click="activeTab = tab.key"
         >
           {{ tab.label }}
           <span
             v-if="activeTab === tab.key"
-            class="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary-500"
+            class="absolute bottom-0 left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-primary-500 transition-all duration-300"
           />
         </button>
       </div>
@@ -1131,12 +1131,12 @@ const agentColorMap: Record<string, { border: string; bg: string; tag: string; t
 
 // Tab 导航
 const tabs: TabItem[] = [
-  { key: 'articles', label: '文章' },
-  { key: 'life', label: '生活' },
-  { key: 'tools', label: '小工具·小游戏' },
+  { key: 'articles', label: '📝 文章' },
+  { key: 'life', label: '📷 生活' },
+  { key: 'tools', label: '🛠️ 小工具·小游戏' },
   { key: 'agent-team', label: '🤖 Agent Team' },
-  { key: 'messages', label: '留言板' },
-  { key: 'changelog', label: '更新日志' },
+  { key: 'messages', label: '💬 留言板' },
+  { key: 'changelog', label: '📋 更新日志' },
 ]
 const activeTab = ref('articles')
 
