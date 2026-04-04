@@ -553,6 +553,88 @@
         </div>
       </div>
 
+      <!-- ========== Agent Team Tab ========== -->
+      <div v-else-if="activeTab === 'agent-team'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">🤖 Agent Team</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">构建这个博客的 AI Agent 团队</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div
+            v-for="agent in agents"
+            :key="agent.name"
+            class="relative overflow-hidden rounded-xl border border-l-4 bg-white transition-all duration-200 hover:shadow-md dark:bg-gray-800"
+            :class="[
+              agentColorMap[agent.color]?.border || 'border-l-gray-500',
+              'border-gray-100 dark:border-gray-700',
+            ]"
+          >
+            <!-- 右上角模型徽章 -->
+            <div class="absolute right-3 top-3">
+              <span
+                class="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                :class="[
+                  agentColorMap[agent.color]?.badge || 'bg-gray-100 dark:bg-gray-700',
+                  agentColorMap[agent.color]?.badgeText || 'text-gray-600 dark:text-gray-400',
+                ]"
+              >
+                {{ agent.model }}
+              </span>
+            </div>
+
+            <div class="p-5">
+              <!-- 顶部：图标 + 名称 + 英文名 -->
+              <div class="mb-3 flex items-center gap-3 pr-28">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xl" :class="agentColorMap[agent.color]?.bg || 'bg-gray-50 dark:bg-gray-700'">
+                  {{ agent.icon }}
+                </span>
+                <div class="min-w-0">
+                  <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ agent.name }}</h3>
+                  <p class="truncate text-xs text-gray-400 dark:text-gray-500">{{ agent.englishName }}</p>
+                </div>
+              </div>
+
+              <!-- 中部：角色描述 -->
+              <p class="mb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400 line-clamp-3">
+                {{ agent.role }}
+              </p>
+
+              <!-- Tags 标签组 -->
+              <div class="mb-3 flex flex-wrap gap-1.5">
+                <span
+                  v-for="tag in agent.tags"
+                  :key="tag"
+                  class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  :class="[
+                    agentColorMap[agent.color]?.tag || 'bg-gray-100 dark:bg-gray-700',
+                    agentColorMap[agent.color]?.tagText || 'text-gray-600 dark:text-gray-400',
+                  ]"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+
+              <!-- Skills 列表 -->
+              <div class="flex flex-wrap gap-1.5">
+                <span
+                  v-for="skill in agent.skills"
+                  :key="skill"
+                  class="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                >
+                  🔧 {{ skill }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部说明 -->
+        <p class="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
+          本博客由 AI Agent 团队协作开发，由 <a href="https://knot.dev" target="_blank" rel="noopener noreferrer" class="text-primary-500 hover:text-primary-600 transition-colors">Knot</a> 平台提供支持
+        </p>
+      </div>
+
       <!-- 更新日志 Tab -->
       <div v-else-if="activeTab === 'changelog'">
         <div v-if="changelogLoading" class="flex items-center justify-center py-20">
@@ -970,12 +1052,92 @@ async function fetchDislikesForPhotos(photos: PhotoItem[]) {
   )
 }
 
+// ====== Agent Team 数据 ======
+const agents = [
+  {
+    name: 'PM · 项目经理',
+    englishName: 'harness博客knotclaw',
+    model: 'claude-4.6-opus',
+    role: '项目经理（PM），负责统筹博客系统完整交付流程。理解需求、拆解任务，按后端→前端→运维流水线协调各子 Agent 完成开发与部署。',
+    tags: ['需求分析', '任务拆解', '流程管控', '质量把关'],
+    skills: ['docx', 'pptx', 'xlsx', 'knot-agent-editor'],
+    icon: '🎯',
+    color: 'purple',
+  },
+  {
+    name: '前端工程师',
+    englishName: '博客前端',
+    model: 'claude-4.6-opus',
+    role: '资深前端架构师，专注 Vue 生态系统。采用 DDD + Feature-First 理念，负责页面开发、接口对接、UI 交互实现，严格遵循 Harness 工程范式。',
+    tags: ['Vue 3', 'Nuxt 3', 'TypeScript', 'Tailwind CSS', 'DDD'],
+    skills: ['figma-d2c', 'knot-agent-editor', 'github-trending', 'knot-cli'],
+    icon: '🖥️',
+    color: 'blue',
+  },
+  {
+    name: '后端工程师',
+    englishName: '博客后端',
+    model: 'claude-4.6-opus',
+    role: '资深 Go 后端架构师，专注高性能博客后端服务。擅长 API 设计、数据库建模、缓存策略，采用 DDD 分层架构，负责业务逻辑与数据建模。',
+    tags: ['Go', 'MySQL', 'Redis', 'API 设计', 'DDD'],
+    skills: ['go-unit-test', 'tRPC-Go DDD代码生成'],
+    icon: '⚙️',
+    color: 'green',
+  },
+  {
+    name: '运维工程师',
+    englishName: '博客运维',
+    model: 'claude-4.6-opus',
+    role: 'Linux 系统运维工程师，专注远端 CentOS 服务器管理。擅长 Nginx 配置、Docker 容器编排、系统监控与安全加固，负责构建、部署与服务验证。',
+    tags: ['Linux', 'Nginx', 'Docker', '系统监控', '安全加固'],
+    skills: ['nginx-config', 'remote-server'],
+    icon: '🔧',
+    color: 'orange',
+  },
+]
+
+// Agent 卡片主题色映射
+const agentColorMap: Record<string, { border: string; bg: string; tag: string; tagText: string; badge: string; badgeText: string }> = {
+  purple: {
+    border: 'border-l-purple-500',
+    bg: 'bg-purple-50 dark:bg-purple-900/10',
+    tag: 'bg-purple-100 dark:bg-purple-900/30',
+    tagText: 'text-purple-700 dark:text-purple-300',
+    badge: 'bg-purple-100 dark:bg-purple-900/30',
+    badgeText: 'text-purple-600 dark:text-purple-400',
+  },
+  blue: {
+    border: 'border-l-blue-500',
+    bg: 'bg-blue-50 dark:bg-blue-900/10',
+    tag: 'bg-blue-100 dark:bg-blue-900/30',
+    tagText: 'text-blue-700 dark:text-blue-300',
+    badge: 'bg-blue-100 dark:bg-blue-900/30',
+    badgeText: 'text-blue-600 dark:text-blue-400',
+  },
+  green: {
+    border: 'border-l-green-500',
+    bg: 'bg-green-50 dark:bg-green-900/10',
+    tag: 'bg-green-100 dark:bg-green-900/30',
+    tagText: 'text-green-700 dark:text-green-300',
+    badge: 'bg-green-100 dark:bg-green-900/30',
+    badgeText: 'text-green-600 dark:text-green-400',
+  },
+  orange: {
+    border: 'border-l-orange-500',
+    bg: 'bg-orange-50 dark:bg-orange-900/10',
+    tag: 'bg-orange-100 dark:bg-orange-900/30',
+    tagText: 'text-orange-700 dark:text-orange-300',
+    badge: 'bg-orange-100 dark:bg-orange-900/30',
+    badgeText: 'text-orange-600 dark:text-orange-400',
+  },
+}
+
 // Tab 导航
 const tabs: TabItem[] = [
   { key: 'articles', label: '文章' },
   { key: 'life', label: '生活' },
   { key: 'tools', label: '小工具·小游戏' },
-  { key: 'agent-team', label: 'agent team' },
+  { key: 'agent-team', label: '🤖 Agent Team' },
   { key: 'messages', label: '留言板' },
   { key: 'changelog', label: '更新日志' },
 ]
