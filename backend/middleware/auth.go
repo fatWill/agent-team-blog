@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	// TokenTTL Token 有效期 72 小时
-	TokenTTL = 72 * time.Hour
+	// TokenTTL Token 有效期 30 天
+	TokenTTL = 30 * 24 * time.Hour
 	// TokenKeyPrefix Redis Key 前缀
 	TokenKeyPrefix = "auth_token:"
 	// CookieName cookie 名称
