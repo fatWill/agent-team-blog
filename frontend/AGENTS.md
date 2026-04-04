@@ -140,6 +140,7 @@ fatwillzeng 个人博客，基于 Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS 构
 - `DB_NAME` — 数据库名（blog）
 
 ## 变更日志
+- 2026-04-04: 修复移动端Canvas代码行重叠(响应式字号11-12px+行间距42px，桌面端13-16px+36px；resize时完全重建行数据)
 - 2026-04-04: 修复首页拖拽延迟(移除setTimeout改为移动距离阈值8px)+行间距重叠(动态行数+MIN_LINE_GAP=34px)
 - 2026-04-04: 恢复横排滚动+pretext动态宽度绕排：18行代码文字各自水平滚动（速度/方向不同），与按钮重叠行用layoutNextLine动态宽度截断+右侧续排
 - 2026-04-04: 首页用 pretext layoutNextLine 动态宽度参数实现真正绕排：按钮重叠行传入受限 width 重新排版，文字从 layout 源头绕开按钮（非 clip 裁切）；按钮右侧也有文字；拖拽按钮实时重新绕排
