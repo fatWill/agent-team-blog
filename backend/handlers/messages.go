@@ -262,3 +262,24 @@ func UpdateMessage(c *gin.Context) {
 		"updatedAt": msg.UpdatedAt.Format(time.RFC3339),
 	})
 }
+
+// DeleteMessage DELETE /api/messages/:id（需鉴权）
+func DeleteMessage(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || id == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的留言 ID"})
+		return
+	}
+
+	result := utils.DB.Where("id = ?", id).Delete(&models.Message{})
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除留言失败"})
+		return
+	}
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "留言不存在"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}

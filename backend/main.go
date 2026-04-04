@@ -132,6 +132,7 @@ func registerRoutes(api *gin.RouterGroup) {
 	api.GET("/messages", handlers.GetMessages)
 	api.POST("/messages", middleware.RateLimit(3), handlers.CreateMessage)
 	api.PUT("/messages/:id", handlers.UpdateMessage)
+	api.DELETE("/messages/:id", auth, handlers.DeleteMessage)
 
 	// ========== 主题 ==========
 	api.GET("/theme", handlers.GetTheme)
