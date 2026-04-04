@@ -117,11 +117,11 @@ function isMobile(): boolean {
   return canvasW < 768
 }
 function getMinLineGap(): number {
-  return isMobile() ? 42 : 36
+  return isMobile() ? 56 : 38
 }
 function getFontSize(index: number): number {
-  // 移动端字号 11-12px，桌面端 13-16px
-  return isMobile() ? 11 + (index % 2) : 13 + (index % 4)
+  // 移动端字号 10-11px，桌面端 13-16px
+  return isMobile() ? 10 + (index % 2) : 13 + (index % 4)
 }
 
 // ====== 构建每行文字（随机 2-3 个片段拼接，重复多次）======
