@@ -1,136 +1,52 @@
-/** 导航项 */
-export interface NavItem {
-  label: string
-  to: string
-}
+/**
+ * 全局类型 re-export（向后兼容层）
+ *
+ * 实际类型定义已按领域拆分到各 feature 模块中：
+ * - features/article/types.ts  — 文章相关类型
+ * - features/album/types.ts    — 相册/照片相关类型
+ * - features/auth/types.ts     — 鉴权相关类型
+ * - features/guestbook/types.ts — 留言板相关类型
+ * - features/changelog/types.ts — 更新日志相关类型
+ * - shared/types.ts            — 通用类型（NavItem、TabItem、Profile）
+ *
+ * 新代码请直接从对应 feature 模块导入，例如：
+ *   import type { ArticleDetail } from '~/features/article'
+ */
 
-/** 文章列表项（不含 content） */
-export interface ArticleListItem {
-  id: string
-  title: string
-  summary: string
-  coverImage: string
-  likeCount: number
-  createdAt: string
-  updatedAt: string
-}
+// === 通用类型 ===
+export type { NavItem, TabItem, Profile } from '~/shared/types'
 
-/** 文章详情（含 Tiptap content） */
-export interface ArticleDetail extends ArticleListItem {
-  content: Record<string, unknown>
-}
+// === 文章领域 ===
+export type {
+  ArticleListItem,
+  ArticleDetail,
+  ArticleListResponse,
+  CreateArticleRequest,
+  UpdateArticleRequest,
+} from '~/features/article'
 
-/** 文章列表接口响应 */
-export interface ArticleListResponse {
-  list: ArticleListItem[]
-}
+// === 相册领域 ===
+export type {
+  AlbumItem,
+  AlbumListResponse,
+  PhotoItem,
+  PhotoListResponse,
+} from '~/features/album'
 
-/** 创建文章请求体 */
-export interface CreateArticleRequest {
-  title: string
-  summary?: string
-  coverImage?: string
-  content: Record<string, unknown>
-}
+// === 鉴权领域 ===
+export type {
+  LoginRequest,
+  LoginResponse,
+} from '~/features/auth'
 
-/** 更新文章请求体（所有字段可选） */
-export interface UpdateArticleRequest {
-  title?: string
-  summary?: string
-  coverImage?: string
-  content?: Record<string, unknown>
-}
+// === 留言板领域 ===
+export type {
+  MessageItem,
+  MessageListResponse,
+} from '~/features/guestbook'
 
-/** 登录请求体 */
-export interface LoginRequest {
-  username: string
-  password: string
-}
-
-/** 登录响应 */
-export interface LoginResponse {
-  token: string
-}
-
-/** Tab 项 */
-export interface TabItem {
-  key: string
-  label: string
-}
-
-/** 单个版本更新日志 */
-export interface ChangelogItem {
-  version: string
-  date: string
-  logs: string[]
-  createdAt: string
-  updatedAt: string
-}
-
-/** 更新日志接口响应 */
-export interface ChangelogResponse {
-  changelog: ChangelogItem[]
-}
-
-/** 博主个人资料 */
-export interface Profile {
-  avatar: string
-  bio: string
-}
-
-/** 相册集列表项 */
-export interface AlbumItem {
-  id: number
-  name: string
-  description: string | null
-  coverUrl: string | null
-  photoCount: number
-  hasPassword: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-/** 相册集列表响应 */
-export interface AlbumListResponse {
-  list: AlbumItem[]
-}
-
-/** 照片列表项 */
-export interface PhotoItem {
-  id: number
-  albumId: number
-  url: string
-  caption: string | null
-  hasPassword: boolean
-  createdAt: string
-  updatedAt: string
-  /** 点赞数（前端运行时附加，非数据库字段） */
-  likes?: number
-  /** 当前设备是否已点赞（前端运行时附加） */
-  liked?: boolean
-  /** 踩数（前端运行时附加，非数据库字段） */
-  dislikes?: number
-  /** 当前设备是否已踩（前端运行时附加） */
-  disliked?: boolean
-}
-
-/** 照片列表响应 */
-export interface PhotoListResponse {
-  list: PhotoItem[]
-}
-
-/** 留言板留言项 */
-export interface MessageItem {
-  id: number
-  nickname: string
-  content: string
-  isOwn: boolean
-  canEdit: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-/** 留言板列表响应 */
-export interface MessageListResponse {
-  list: MessageItem[]
-}
+// === 更新日志领域 ===
+export type {
+  ChangelogItem,
+  ChangelogResponse,
+} from '~/features/changelog'

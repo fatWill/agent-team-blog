@@ -29,9 +29,11 @@ fatwill 个人博客，基于 Nuxt 3 全栈架构（前端 SSR + 后端 Nitro Se
 1. `docs/eslint-rules.md` — 代码规范与命名约定（最高优先级）
 2. `docs/architecture.md` — 整体架构概览与目录结构说明
 
-## 当前目录结构（实际现状）
+## 目录结构（Feature-First + Nuxt 约定混合架构）
 
-> ⚠️ **注意**：当前项目**未采用 Feature-First 结构**，所有页面逻辑内聚在各 `.vue` 单文件组件中（尤其是 `home.vue` 和 `admin.vue` 体量较大），待后续重构为 Feature-First 模块化结构。
+> 已完成 Feature-First 重构。类型定义和 API 服务层已按领域拆分到 `features/` 目录，通用工具和 composables 已移至 `shared/` 目录。
+> Nuxt 约定目录（`components/`、`composables/`、`utils/`）保留为**向后兼容 re-export 层**，确保 Nuxt 自动导入机制正常工作。
+> 页面级 `.vue` 文件（`home.vue` 82KB、`admin.vue` 57KB）的组件拆分为后续优化方向。
 
 ```
 frontend/
@@ -53,6 +55,43 @@ frontend/
 │       ├── components.md
 │       ├── composables.md
 │       └── utils.md
+│
+├── features/                          # 🏗️ Feature-First 领域模块
+│   ├── article/                       # 文章领域
+│   │   ├── types.ts                   #   类型定义（ArticleListItem、ArticleDetail 等）
+│   │   ├── api.ts                     #   API 服务层（CRUD + 点赞）
+│   │   └── index.ts                   #   模块公共导出入口
+│   ├── album/                         # 相册领域
+│   │   ├── types.ts                   #   类型定义（AlbumItem、PhotoItem 等）
+│   │   ├── api.ts                     #   API 服务层（相册/照片 CRUD + 密码验证）
+│   │   └── index.ts                   #   模块公共导出入口
+│   ├── auth/                          # 鉴权领域
+│   │   ├── types.ts                   #   类型定义（LoginRequest、LoginResponse）
+│   │   ├── api.ts                     #   API 服务层（login）
+│   │   └── index.ts                   #   模块公共导出入口
+│   ├── guestbook/                     # 留言板领域
+│   │   ├── types.ts                   #   类型定义（MessageItem、MessageListResponse）
+│   │   ├── api.ts                     #   API 服务层（留言 CRUD）
+│   │   └── index.ts                   #   模块公共导出入口
+│   ├── changelog/                     # 更新日志领域
+│   │   ├── types.ts                   #   类型定义（ChangelogItem、ChangelogResponse）
+│   │   └── index.ts                   #   模块公共导出入口
+│   └── admin/                         # 管理后台领域（预留）
+│
+├── shared/                            # 🔗 跨领域共享层
+│   ├── types.ts                       # 通用类型（NavItem、TabItem、Profile）
+│   ├── components/
+│   │   └── AppLoading.vue             # 跨端 Loading 组件（实际实现）
+│   ├── composables/
+│   │   ├── useTheme.ts                # 主题切换（实际实现）
+│   │   └── useDevice.ts               # 设备检测（实际实现）
+│   └── utils/
+│       ├── api.ts                     # 通用 API（profile、upload）
+│       ├── ui.ts                      # 统一 UI 工具（实际实现）
+│       ├── mobileUI.ts                # 移动端 Toast/Dialog（实际实现）
+│       ├── imageUrl.ts                # CDN URL 转换（实际实现）
+│       └── chunkedUpload.ts           # 分片上传（实际实现）
+│
 ├── app.vue                            # 应用入口（主题 class 注入）
 ├── nuxt.config.ts                     # Nuxt 配置
 ├── tailwind.config.ts                 # Tailwind 配置（dark mode: class）
@@ -61,11 +100,19 @@ frontend/
 ├── assets/
 │   └── styles/
 │       └── tailwind.css               # Tailwind 入口样式
-├── components/
-│   └── AppLoading.vue                 # 跨端 Loading 组件
-├── composables/
-│   ├── useTheme.ts                    # 主题切换（cookie + Redis 持久化）
-│   └── useDevice.ts                   # 设备检测（移动端/PC端）
+├── components/                        # Nuxt 约定（re-export → shared/components/）
+│   └── AppLoading.vue                 #   → shared/components/AppLoading.vue
+├── composables/                       # Nuxt 约定（re-export → shared/composables/）
+│   ├── useTheme.ts                    #   → shared/composables/useTheme.ts
+│   └── useDevice.ts                   #   → shared/composables/useDevice.ts
+├── utils/                             # Nuxt 约定（re-export → features/*/api.ts + shared/utils/）
+│   ├── api.ts                         #   → features/*/api.ts + shared/utils/api.ts
+│   ├── ui.ts                          #   → shared/utils/ui.ts
+│   ├── mobileUI.ts                    #   → shared/utils/mobileUI.ts
+│   ├── imageUrl.ts                    #   → shared/utils/imageUrl.ts
+│   └── chunkedUpload.ts              #   → shared/utils/chunkedUpload.ts
+├── types/                             # Nuxt 约定（re-export → features/*/types.ts + shared/types.ts）
+│   └── index.ts                       #   → 各 feature 类型聚合导出
 ├── layouts/
 │   └── default.vue                    # 默认布局（主题初始化）
 ├── middleware/
@@ -86,14 +133,6 @@ frontend/
 │   └── avatar.png                     # 博主头像
 ├── stores/
 │   └── auth.ts                        # 认证状态管理（Pinia）
-├── types/
-│   └── index.ts                       # 全局 TypeScript 类型定义
-├── utils/
-│   ├── api.ts                         # API 请求封装（所有前端接口调用）
-│   ├── chunkedUpload.ts               # 分片上传工具
-│   ├── imageUrl.ts                    # CDN URL 转换工具（toCdnUrl）
-│   ├── ui.ts                          # 统一 UI 工具（跨端 Toast/Dialog）
-│   └── mobileUI.ts                    # 移动端 Toast/Dialog 命令式组件
 └── server/                            # Nuxt Server（Nitro）
     ├── api/                           # API 路由
     │   ├── auth/                      # 鉴权（login/check/logout）
@@ -124,27 +163,27 @@ frontend/
 
 ## 领域模块注册表
 
-> 当前项目所有业务逻辑内聚在页面级 `.vue` 文件中，尚未拆分为 Feature-First 模块。下表按业务领域归类记录现状。
+> 类型定义和 API 服务层已按领域拆分到 `features/` 目录。页面级 UI 组件仍内聚在 `pages/*.vue` 中，后续可进一步拆分。
 
-| 领域 | 主要代码位置 | 状态 | 说明 | 待重构 |
-|------|-------------|------|------|--------|
-| 酷炫首页 | `pages/index.vue` | ✅ 已实现 | Canvas + @chenglou/pretext 代码滚动背景、拖拽按钮 | 可提取为 `features/landing/` |
-| 文章 | `pages/home.vue`（文章 Tab）、`pages/articles/[id].vue` | ✅ 已实现 | 文章列表、详情（Tiptap 渲染）、点赞、虚拟滚动 | 可提取为 `features/article/` |
-| 相册 | `pages/home.vue`（生活 Tab） | ✅ 已实现 | 相册集、照片管理、灯箱预览、密码保护、点赞/踩 | 可提取为 `features/album/` |
-| 留言板 | `pages/home.vue`（留言板 Tab） | ✅ 已实现 | 留言 CRUD、编辑限制、相对时间 | 可提取为 `features/guestbook/` |
-| 更新日志 | `pages/home.vue`（更新日志 Tab） | ✅ 已实现 | Git-log 风格时间轴 | 可提取为 `features/changelog/` |
-| Agent Team | `pages/home.vue`（Agent Team Tab） | ✅ 已实现 | 4 个 AI Agent 卡片展示 | 可提取为 `features/agent-team/` |
-| 鉴权 | `stores/auth.ts`、`middleware/auth.ts`、`server/api/auth/` | ✅ 已实现 | Cookie Token 72h 滚动续期、SSR Cookie 转发 | 可提取为 `features/auth/` |
-| 管理后台 | `pages/admin.vue` | ✅ 已实现 | 文章管理、相册管理、个人资料、留言管理 | 可提取为 `features/admin/` |
+| 领域 | Feature 路径 | 包含内容 | 状态 | 页面级 UI |
+|------|-------------|---------|------|----------|
+| 文章 | `features/article/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（文章 Tab）、`pages/articles/[id].vue` |
+| 相册 | `features/album/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（生活 Tab） |
+| 鉴权 | `features/auth/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/login.vue`、`stores/auth.ts`、`middleware/auth.ts` |
+| 留言板 | `features/guestbook/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（留言板 Tab） |
+| 更新日志 | `features/changelog/` | types.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（更新日志 Tab） |
+| 管理后台 | `features/admin/` | （预留） | 🚧 待拆分 | `pages/admin.vue`（57KB，后续拆分组件） |
+| 酷炫首页 | — | — | ⏸️ 不拆分 | `pages/index.vue`（独立页面，无需 feature 模块） |
+| Agent Team | — | — | ⏸️ 不拆分 | `pages/home.vue`（Agent Team Tab，数据写死在前端） |
 
 ## 共享层注册表
 
-### Composables（`composables/`）
+### Composables（`shared/composables/` → `composables/` re-export）
 
-| 模块 | 文件 | 说明 |
-|------|------|------|
-| 主题切换 | `composables/useTheme.ts` | Dark/Light 切换，Cookie + Redis 持久化，SSR 零闪烁 |
-| 设备检测 | `composables/useDevice.ts` | 响应式 `isMobile` ref + 命令式 `isMobileDevice()` 函数 |
+| 模块 | 实际路径 | Nuxt 自动导入路径 | 说明 |
+|------|---------|------------------|------|
+| 主题切换 | `shared/composables/useTheme.ts` | `composables/useTheme.ts` | Dark/Light 切换，Cookie + Redis 持久化，SSR 零闪烁 |
+| 设备检测 | `shared/composables/useDevice.ts` | `composables/useDevice.ts` | 响应式 `isMobile` ref + 命令式 `isMobileDevice()` 函数 |
 
 ### Stores（`stores/`）
 
@@ -152,21 +191,28 @@ frontend/
 |------|------|------|
 | 认证状态 | `stores/auth.ts` | `isLoggedIn`、`username`、`checkAuth()`（SSR Cookie 转发）、`logout()` |
 
-### Utils（`utils/`）
+### Utils（`shared/utils/` → `utils/` re-export）
 
-| 模块 | 文件 | 说明 |
-|------|------|------|
-| API 封装 | `utils/api.ts` | 所有前端 API 调用函数（文章/相册/照片/留言/认证/资料等） |
-| 分片上传 | `utils/chunkedUpload.ts` | ≤1.5MB 直传，>1.5MB 分片上传（进度回调、失败自动清理） |
-| CDN URL | `utils/imageUrl.ts` | `toCdnUrl()` — 将 `/uploads/xxx` 转为 `https://cdn.fatwill.cloud/uploads/xxx` |
-| 统一 UI | `utils/ui.ts` | `showSuccess()`、`showError()`、`showInfo()`、`showConfirm()` — PC 用 antd，移动端用自定义组件 |
-| 移动端 UI | `utils/mobileUI.ts` | `MobileToast`（success/error/show）、`MobileDialog`（confirm）— 仿 antd-mobile 风格 |
+| 模块 | 实际路径 | Nuxt 自动导入路径 | 说明 |
+|------|---------|------------------|------|
+| 通用 API | `shared/utils/api.ts` | `utils/api.ts` | profile、upload 等跨领域 API |
+| 分片上传 | `shared/utils/chunkedUpload.ts` | `utils/chunkedUpload.ts` | ≤1.5MB 直传，>1.5MB 分片上传 |
+| CDN URL | `shared/utils/imageUrl.ts` | `utils/imageUrl.ts` | `toCdnUrl()` |
+| 统一 UI | `shared/utils/ui.ts` | `utils/ui.ts` | `showSuccess/Error/Info/Confirm` |
+| 移动端 UI | `shared/utils/mobileUI.ts` | `utils/mobileUI.ts` | `MobileToast/MobileDialog` |
 
-### Components（`components/`）
+### Components（`shared/components/` → `components/` re-export）
 
-| 组件 | 文件 | 说明 |
-|------|------|------|
-| AppLoading | `components/AppLoading.vue` | 跨端 Loading 组件，PC 用 ASpin，移动端用自定义 spinner |
+| 组件 | 实际路径 | Nuxt 自动导入路径 | 说明 |
+|------|---------|------------------|------|
+| AppLoading | `shared/components/AppLoading.vue` | `components/AppLoading.vue` | 跨端 Loading 组件 |
+
+### Types（`shared/types.ts` → `types/index.ts` re-export）
+
+| 文件 | 说明 |
+|------|------|
+| `shared/types.ts` | 通用类型：NavItem、TabItem、Profile |
+| `types/index.ts` | 向后兼容聚合导出（re-export 所有 feature 类型 + shared 类型） |
 
 ### Plugins（`plugins/`）
 
@@ -176,12 +222,6 @@ frontend/
 | NProgress | `plugins/nprogress.client.ts` | 仅客户端 | 路由导航进度条（beforeEach/afterEach/onError） |
 | Pinia Hydration Fix | `plugins/pinia-hydration-fix.ts` | 仅服务端 | JSON 往返清洗 payload，修复 mysql2 RowDataPacket 无原型链问题 |
 | Virtual Scroller | `plugins/vue-virtual-scroller.client.ts` | 仅客户端 | 注册 vue-virtual-scroller 全局组件 |
-
-### Types（`types/`）
-
-| 文件 | 说明 |
-|------|------|
-| `types/index.ts` | 全局类型定义：ArticleListItem、ArticleDetail、AlbumItem、PhotoItem、MessageItem、Profile、ChangelogItem、LoginRequest/Response、TabItem 等 |
 
 ## 页面路由映射
 
@@ -323,6 +363,7 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-04: Feature-First 目录结构重构（types/api 按领域拆分到 features/，通用层移至 shared/）
 - 2026-04-04: 默认 Dark 模式 + 修正 GitHub 链接（fatwillzeng → fatwill）
 - 2026-04-04: SSR 阶段 Cookie 转发修复重启后需重新登录
 - 2026-04-04: 新增「Agent Team」Tab，展示 4 个 AI Agent 卡片
