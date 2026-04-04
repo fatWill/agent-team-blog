@@ -82,8 +82,8 @@ interface TextLine {
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const btnRef = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
-const btnLeft = ref(0)
-const btnTop = ref(0)
+const btnLeft = ref(-9999)
+const btnTop = ref(-9999)
 const btnVisible = ref(false)
 
 // ====== 动画数据 ======
