@@ -158,7 +158,7 @@
     </section>
 
     <!-- 内容区域 -->
-    <main class="mx-auto max-w-3xl px-4 py-8">
+    <main class="mx-auto max-w-3xl px-4 pt-3 pb-8">
       <!-- 文章 Tab -->
       <div v-if="activeTab === 'articles'">
         <div class="mb-6">
