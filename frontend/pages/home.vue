@@ -157,36 +157,14 @@
       </div>
     </section>
 
-    <!-- PC端 Tab 导航（仅 >= md 显示） -->
-    <nav class="sticky top-0 z-40 hidden border-b border-gray-200/60 bg-white/80 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80 md:block">
-      <div class="mx-auto flex max-w-3xl gap-1 px-4">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          class="relative rounded-lg px-3.5 py-2.5 text-[13px] transition-all duration-200"
-          :class="activeTab === tab.key
-            ? 'font-semibold text-primary-600 dark:text-primary-400'
-            : 'font-medium text-gray-500 hover:bg-gray-100/70 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-300'"
-          @click="activeTab = tab.key"
-        >
-          {{ tab.label }}
-          <span
-            v-if="activeTab === tab.key"
-            class="absolute bottom-0 left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-primary-500 transition-all duration-300"
-          />
-        </button>
-      </div>
-    </nav>
-
-    <!-- 移动端当前 Tab 指示（仅 < md 显示） -->
-    <div class="border-b border-gray-200/60 px-4 py-2 dark:border-gray-700/60 md:hidden">
-      <span class="text-xs font-medium text-primary-500">{{ currentTabLabel }}</span>
-    </div>
-
     <!-- 内容区域 -->
     <main class="mx-auto max-w-3xl px-4 py-8">
       <!-- 文章 Tab -->
       <div v-if="activeTab === 'articles'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📝 文章</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">记录技术探索与思考的点滴</p>
+        </div>
         <div v-if="loading" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
         </div>
@@ -278,6 +256,10 @@
       <div v-else-if="activeTab === 'life'">
         <!-- 相册集列表（默认视图） -->
         <div v-if="!selectedAlbum">
+          <div class="mb-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📷 生活</h2>
+            <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">用镜头定格美好的瞬间</p>
+          </div>
           <!-- 加载中 -->
           <div v-if="albumsLoading" class="flex items-center justify-center py-20">
             <AppLoading tip="加载中..." />
@@ -452,6 +434,10 @@
 
       <!-- ========== 留言板 Tab ========== -->
       <div v-else-if="activeTab === 'messages'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">💬 留言板</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">欢迎留下你的足迹与想法</p>
+        </div>
         <div v-if="messagesLoading && !messagesLoaded" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
         </div>
@@ -545,6 +531,10 @@
 
       <!-- ========== Agent Team Tab ========== -->
       <div v-else-if="activeTab === 'agent-team'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">🤖 Agent Team</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">构建这个博客的 AI Agent 团队</p>
+        </div>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div
             v-for="agent in agents"
@@ -611,6 +601,10 @@
 
       <!-- 更新日志 Tab -->
       <div v-else-if="activeTab === 'changelog'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📋 更新日志</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">记录每一次迭代与成长</p>
+        </div>
         <div v-if="changelogLoading" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
         </div>
@@ -1116,10 +1110,6 @@ const tabs: TabItem[] = [
   { key: 'changelog', label: '📋 更新日志' },
 ]
 const activeTab = ref('articles')
-
-const currentTabLabel = computed(() => {
-  return tabs.find(t => t.key === activeTab.value)?.label ?? ''
-})
 
 function selectTab(key: string) {
   activeTab.value = key
