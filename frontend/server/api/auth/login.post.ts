@@ -1,9 +1,9 @@
 import { readBody, setCookie } from 'h3'
 import { generateToken, saveToken } from '~/server/utils/auth'
 
-/** 硬编码的账号信息 */
-const VALID_USERNAME = 'fafa'
-const VALID_PASSWORD = '***REDACTED_ADMIN_PWD***'
+/** 从环境变量读取管理员账号信息 */
+const VALID_USERNAME = process.env.ADMIN_USERNAME || ''
+const VALID_PASSWORD = process.env.ADMIN_PASSWORD || ''
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ username?: string; password?: string }>(event)
