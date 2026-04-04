@@ -236,3 +236,11 @@ export async function apiUpdateMessage(id: number, data: { deviceId: string; nic
   })
   return res
 }
+
+/** 删除留言（管理员） */
+export async function apiDeleteMessage(id: number): Promise<{ success: boolean }> {
+  const res = await $fetch<{ success: boolean }>(`/api/messages/${id}`, {
+    method: 'DELETE',
+  })
+  return res
+}

@@ -399,6 +399,49 @@
           </div>
         </div>
       </div>
+
+      <!-- ========== Tab 5: 留言管理 ========== -->
+      <div v-if="activeTab === 'messages'">
+        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">留言管理</h2>
+
+        <!-- 加载中 -->
+        <div v-if="adminMsgLoading" class="flex items-center justify-center py-20">
+          <AppLoading tip="加载中..." />
+        </div>
+
+        <!-- 留言列表 -->
+        <div v-else-if="adminMessages.length > 0" class="space-y-4">
+          <div
+            v-for="msg in adminMessages"
+            :key="msg.id"
+            class="rounded-xl border border-gray-100 bg-white p-5 transition-colors dark:border-gray-700 dark:bg-gray-800"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <div class="mb-2 flex items-center gap-2">
+                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ msg.nickname }}</span>
+                  <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatTime(msg.createdAt) }}</time>
+                </div>
+                <p class="whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-400">{{ msg.content }}</p>
+              </div>
+              <button
+                class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
+                @click="handleDeleteMessage(msg)"
+              >
+                删除
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-else class="py-20 text-center">
+          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+            <span class="text-2xl">💬</span>
+          </div>
+          <p class="text-lg font-medium text-gray-600 dark:text-gray-400">暂无留言</p>
+        </div>
+      </div>
     </main>
 
     <!-- ========== 新建/编辑相册 Modal ========== -->
@@ -525,7 +568,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import { showSuccess, showError, showConfirm } from '~/utils/ui'
-import type { ArticleListItem, AlbumItem, PhotoItem } from '~/types'
+import type { ArticleListItem, AlbumItem, PhotoItem, MessageItem } from '~/types'
 import { useAuthStore } from '~/stores/auth'
 import { chunkedUpload } from '~/utils/chunkedUpload'
 import {
@@ -545,6 +588,8 @@ import {
   apiAddPhoto,
   apiDeletePhoto,
   apiUpdatePhoto,
+  apiGetMessages,
+  apiDeleteMessage,
 } from '~/utils/api'
 import { toCdnUrl } from '~/utils/imageUrl'
 interface AdminPhotoItem {
@@ -570,6 +615,7 @@ const adminTabs = [
   { key: 'manage', label: '文章管理' },
   { key: 'profile', label: '个人资料' },
   { key: 'albums', label: '相册管理' },
+  { key: 'messages', label: '留言管理' },
 ]
 const activeTab = ref('write')
 
@@ -714,6 +760,7 @@ watch(activeTab, (val) => {
   if (val === 'manage') fetchManageArticles()
   if (val === 'profile') fetchProfile()
   if (val === 'albums') fetchAdminAlbums()
+  if (val === 'messages') fetchAdminMessages()
 })
 
 async function startEdit(article: ArticleListItem) {
@@ -1065,6 +1112,57 @@ async function handleDeletePhoto(photo: AdminPhotoItem) {
         } else { showError('删除失败，请重试') }
       } finally { adminDeletingPhotoId.value = null }
     },
+  })
+}
+
+// ====== 留言管理 ======
+const adminMessages = ref<MessageItem[]>([])
+const adminMsgLoading = ref(false)
+
+async function fetchAdminMessages() {
+  adminMsgLoading.value = true
+  try {
+    const res = await apiGetMessages()
+    adminMessages.value = res.list
+  } catch {
+    showError('获取留言列表失败')
+  } finally {
+    adminMsgLoading.value = false
+  }
+}
+
+function handleDeleteMessage(msg: MessageItem) {
+  showConfirm({
+    title: '删除留言',
+    content: `确定要删除「${msg.nickname}」的这条留言吗？`,
+    danger: true,
+    okText: '删除',
+    async onOk() {
+      try {
+        await apiDeleteMessage(msg.id)
+        adminMessages.value = adminMessages.value.filter(m => m.id !== msg.id)
+        showSuccess('删除成功')
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
+          showError('登录已过期，请重新登录')
+          authStore.setLoggedIn(false)
+          router.push('/login')
+        } else if (err?.response?.status === 404) {
+          showError('留言不存在')
+          adminMessages.value = adminMessages.value.filter(m => m.id !== msg.id)
+        } else {
+          showError('删除失败，请重试')
+        }
+      }
+    },
+  })
+}
+
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
   })
 }
 
