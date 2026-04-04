@@ -5,7 +5,7 @@
  * - 移动端：自定义轻量级 MobileToast / MobileDialog
  */
 import { message, Modal } from 'ant-design-vue'
-import { isMobileDevice } from '~/shared/composables/useDevice'
+import { isMobileDevice } from '~/composables/useDevice'
 import { MobileToast, MobileDialog } from '~/shared/utils/mobileUI'
 
 /** 成功提示 */
