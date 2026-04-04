@@ -117,7 +117,7 @@ function isMobile(): boolean {
   return canvasW < 768
 }
 function getMinLineGap(): number {
-  return isMobile() ? 56 : 38
+  return isMobile() ? 36 : 26
 }
 function getFontSize(index: number): number {
   // 移动端字号 10-11px，桌面端 13-16px
