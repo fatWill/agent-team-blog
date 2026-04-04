@@ -1,7 +1,7 @@
 import { readMultipartFormData } from 'h3'
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
-import { join, extname } from 'node:path'
+import { extname } from 'node:path'
 import { requireAuth } from '~/server/utils/auth'
+import { generateCOSKey, uploadToCOS } from '~/server/utils/cos'
 
 /** 允许的图片格式 */
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp'])
@@ -15,20 +15,8 @@ const ALLOWED_MIMES = new Set([
 ])
 
 /**
- * 生成随机字符串
- */
-function randomString(len: number): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-  let result = ''
-  for (let i = 0; i < len; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return result
-}
-
-/**
  * POST /api/upload
- * 上传图片，保存到 public/uploads/ 目录
+ * 上传图片到腾讯云 COS
  * 需要鉴权
  */
 export default defineEventHandler(async (event) => {
@@ -72,28 +60,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 生成唯一文件名，保留原始扩展名
-  const filename = `${Date.now()}-${randomString(8)}${ext}`
+  // 生成 COS 存储路径并上传
+  const key = generateCOSKey(ext)
+  const url = await uploadToCOS(key, fileField.data, fileField.type)
 
-  // 确定存储目录
-  // 生产环境：存储到独立目录 /root/blog-uploads/，与部署目录分离，避免 rsync 部署时被清除
-  // 开发环境：存储到项目根目录下 public/uploads/
-  const isProduction = process.env.NODE_ENV === 'production'
-  const uploadDir = isProduction
-    ? '/root/blog-uploads'
-    : join(process.cwd(), 'public', 'uploads')
-
-  // 确保目录存在（mode 0o755 确保 Nginx 可访问）
-  if (!existsSync(uploadDir)) {
-    mkdirSync(uploadDir, { recursive: true, mode: 0o755 })
-  }
-
-  // 直接写入原图（mode 0o644 确保 Nginx worker 有读权限）
-  const filePath = join(uploadDir, filename)
-  writeFileSync(filePath, fileField.data, { mode: 0o644 })
-
-  // 返回可访问的 URL
-  return {
-    url: `/uploads/${filename}`,
-  }
+  return { url }
 })

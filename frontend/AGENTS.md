@@ -316,6 +316,7 @@ frontend/
 | `changelog.ts` | 更新日志 DAO（查询 changelogs 表） |
 | `profile.ts` | 个人资料 DAO（读写 profile 表） |
 | `rateLimit.ts` | IP 限频工具（内存 Map 实现） |
+| `cos.ts` | 腾讯云 COS 上传工具（generateCOSKey + uploadToCOS） |
 
 ## 数据库表注册表
 
@@ -344,6 +345,13 @@ frontend/
 | `REDIS_HOST` | Redis 主机地址 | `127.0.0.1` |
 | `REDIS_PORT` | Redis 端口 | `6379` |
 | `REDIS_PASSWORD` | Redis 密码 | — |
+| `ADMIN_USERNAME` | 管理后台用户名 | — |
+| `ADMIN_PASSWORD` | 管理后台密码 | — |
+| `COS_ID` | 腾讯云 COS SecretId | — |
+| `COS_KEY` | 腾讯云 COS SecretKey | — |
+| `COS_BUCKET` | COS 存储桶名称 | `fatwill-cloud-1253664788` |
+| `COS_REGION` | COS 地域 | `ap-guangzhou` |
+| `COS_BASE_URL` | COS 访问域名 | `https://assets.fatwill.cloud` |
 
 ## 版本号规范
 
@@ -363,6 +371,7 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-05: 上传接口迁移至腾讯云 COS，toCdnUrl 适配新 URL 格式，新增数据库 URL 迁移脚本
 - 2026-04-04: Feature-First 目录结构重构（types/api 按领域拆分到 features/，通用层移至 shared/）
 - 2026-04-04: 默认 Dark 模式 + 修正 GitHub 链接（fatwillzeng → fatwill）
 - 2026-04-04: SSR 阶段 Cookie 转发修复重启后需重新登录

@@ -1,26 +1,24 @@
 import { readBody } from 'h3'
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs'
+import { readFileSync, existsSync, rmSync } from 'node:fs'
 import { join, extname } from 'node:path'
 import { requireAuth } from '~/server/utils/auth'
+import { generateCOSKey, uploadToCOS } from '~/server/utils/cos'
 
 /** 允许的文件扩展名 */
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp'])
 
-/**
- * 生成随机字符串
- */
-function randomString(len: number): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-  let result = ''
-  for (let i = 0; i < len; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return result
+/** MIME 类型映射 */
+const MIME_MAP: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
 }
 
 /**
  * POST /api/upload/merge
- * 合并分片为最终文件，清理临时目录
+ * 合并分片并上传到腾讯云 COS，清理临时目录
  * 需要鉴权
  */
 export default defineEventHandler(async (event) => {
@@ -86,26 +84,13 @@ export default defineEventHandler(async (event) => {
 
   const mergedBuffer = Buffer.concat(chunks)
 
-  // 生成最终文件名，保留原始扩展名
-  const finalFilename = `${Date.now()}-${randomString(8)}${ext}`
-
-  // 确定上传目录（生产环境存到独立目录，避免被 rsync 清除）
-  const uploadDir = isProduction
-    ? '/root/blog-uploads'
-    : join(process.cwd(), 'public', 'uploads')
-
-  if (!existsSync(uploadDir)) {
-    mkdirSync(uploadDir, { recursive: true, mode: 0o755 })
-  }
-
-  // 直接写入合并后的原始文件
-  const filePath = join(uploadDir, finalFilename)
-  writeFileSync(filePath, mergedBuffer, { mode: 0o644 })
+  // 生成 COS 存储路径并上传
+  const key = generateCOSKey(ext)
+  const contentType = MIME_MAP[ext] || 'application/octet-stream'
+  const url = await uploadToCOS(key, mergedBuffer, contentType)
 
   // 清理临时目录
   rmSync(tmpDir, { recursive: true, force: true })
 
-  return {
-    url: `/uploads/${finalFilename}`,
-  }
+  return { url }
 })
