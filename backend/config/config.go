@@ -49,13 +49,13 @@ func Load() *Config {
 			Host:     getEnv("DB_HOST", "127.0.0.1"),
 			Port:     getEnv("DB_PORT", "3306"),
 			User:     getEnv("DB_USER", "root"),
-			Password: getEnv("DB_PASSWORD", "***REDACTED_MYSQL_PWD***"),
+			Password: getEnv("DB_PASSWORD", ""),
 			DBName:   getEnv("DB_NAME", "blog"),
 		},
 		Redis: RedisConfig{
 			Host:     getEnv("REDIS_HOST", "127.0.0.1"),
 			Port:     getEnv("REDIS_PORT", "6379"),
-			Password: getEnv("REDIS_PASSWORD", "***REDACTED_REDIS_PWD***"),
+			Password: getEnv("REDIS_PASSWORD", ""),
 		},
 		Upload: UploadConfig{
 			Dir:    getEnv("UPLOAD_DIR", "/root/blog-uploads"),

@@ -2,16 +2,25 @@ package auth
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/fatWill/agent-team-blog/backend/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-// 硬编码的账号信息
-const (
-	validUsername = "fafa"
-	validPassword = "***REDACTED_ADMIN_PWD***"
+// 管理后台账号信息，从环境变量读取
+var (
+	validUsername = getEnvDefault("ADMIN_USERNAME", "admin")
+	validPassword = os.Getenv("ADMIN_PASSWORD")
 )
+
+// getEnvDefault 读取环境变量，未设置时返回默认值
+func getEnvDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 // Login POST /api/auth/login
 func Login(c *gin.Context) {

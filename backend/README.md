@@ -26,18 +26,27 @@
 | `DB_HOST` | `127.0.0.1` | MySQL 地址 |
 | `DB_PORT` | `3306` | MySQL 端口 |
 | `DB_USER` | `root` | MySQL 用户名 |
-| `DB_PASSWORD` | `***REDACTED_MYSQL_PWD***` | MySQL 密码 |
+| `DB_PASSWORD` | *(必填)* | MySQL 密码 |
 | `DB_NAME` | `blog` | MySQL 数据库名 |
 | `REDIS_HOST` | `127.0.0.1` | Redis 地址 |
 | `REDIS_PORT` | `6379` | Redis 端口 |
-| `REDIS_PASSWORD` | `***REDACTED_REDIS_PWD***` | Redis 密码 |
+| `REDIS_PASSWORD` | *(必填)* | Redis 密码 |
 | `UPLOAD_DIR` | `/root/blog-uploads` | 图片上传目录 |
 | `UPLOAD_TMP_DIR` | `/root/blog-uploads/tmp` | 分片上传临时目录 |
+| `ADMIN_USERNAME` | `admin` | 管理后台用户名 |
+| `ADMIN_PASSWORD` | *(必填)* | 管理后台密码 |
 
 ### 启动
 
 ```bash
 cd backend
+
+# 设置必要的环境变量
+export DB_PASSWORD="<your-db-password>"
+export REDIS_PASSWORD="<your-redis-password>"
+export ADMIN_USERNAME="<your-admin-username>"
+export ADMIN_PASSWORD="<your-admin-password>"
+
 go run main.go
 ```
 
@@ -97,6 +106,7 @@ go build -o blog-backend main.go
 - `GET /api/messages` — 留言列表
 - `POST /api/messages` — 发布留言（IP 限频）
 - `PUT /api/messages/:id` — 修改留言
+- `DELETE /api/messages/:id` — 删除留言（需鉴权）
 - `GET /api/theme` — 获取主题
 - `POST /api/theme` — 保存主题
 - `GET /api/changelog` — 更新日志
@@ -105,29 +115,27 @@ go build -o blog-backend main.go
 
 ```
 backend/
-├── main.go              # 入口，路由注册
+├── main.go                # 入口，路由注册
 ├── config/
-│   └── config.go        # 配置加载
-├── handlers/            # HTTP 处理器
-│   ├── auth.go
-│   ├── articles.go
-│   ├── albums.go
-│   ├── photos.go
-│   ├── upload.go
-│   ├── profile.go
-│   ├── messages.go
-│   ├── theme.go
-│   └── changelog.go
-├── middleware/
-│   ├── auth.go          # Token 鉴权
-│   └── ratelimit.go     # IP 限流
-├── models/              # 数据模型
+│   └── config.go          # 配置加载（环境变量）
+├── internal/              # 业务核心（按领域分组）
+│   ├── article/handler.go
+│   ├── album/handler.go
+│   ├── photo/handler.go
+│   ├── auth/handler.go
+│   ├── upload/handler.go
+│   ├── guestbook/handler.go
+│   ├── profile/handler.go
+│   ├── changelog/handler.go
+│   └── theme/handler.go
+├── pkg/                   # 基础设施
+│   ├── db/db.go           # MySQL 连接
+│   ├── rds/rds.go         # Redis 连接
+│   └── middleware/middleware.go  # 鉴权 + 限频
+├── models/                # 数据模型
 │   ├── article.go
 │   ├── album.go
-│   ├── json.go          # MySQL JSON 字段类型
-│   └── misc.go          # Profile, Message, Changelog
-├── utils/
-│   ├── db.go            # MySQL 连接
-│   └── redis.go         # Redis 连接
+│   ├── json.go
+│   └── misc.go
 └── README.md
 ```
