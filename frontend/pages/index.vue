@@ -92,11 +92,22 @@ let animId = 0
 let ctx: CanvasRenderingContext2D | null = null
 let canvasW = 0
 let canvasH = 0
-const MIN_LINE_GAP = 34 // 行间最小间距（px），确保不重叠
 const BTN_GAP = 16 // 按钮与文字之间的间距
 const LINE_START: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
 const DRAG_THRESHOLD = 8 // 拖拽触发阈值（px）
 let lineCount = 18 // 动态计算的行数
+
+// 根据屏幕宽度判断是否为移动端，动态调整参数
+function isMobile(): boolean {
+  return canvasW < 768
+}
+function getMinLineGap(): number {
+  return isMobile() ? 42 : 36
+}
+function getFontSize(index: number): number {
+  // 移动端字号 11-12px，桌面端 13-16px
+  return isMobile() ? 11 + (index % 2) : 13 + (index % 4)
+}
 
 // ====== 构建每行文字（随机 2-3 个片段拼接，重复多次）======
 function buildLineText(index: number): string {
@@ -112,12 +123,13 @@ function buildLineText(index: number): string {
 // ====== 初始化行数据 ======
 function initLines() {
   lines = []
-  // 动态计算行数：确保行间距 >= MIN_LINE_GAP
-  lineCount = Math.max(6, Math.floor(canvasH / MIN_LINE_GAP))
+  const minGap = getMinLineGap()
+  // 动态计算行数：确保行间距 >= minGap
+  lineCount = Math.max(6, Math.floor(canvasH / minGap))
   const lineHeight = canvasH / lineCount
 
   for (let i = 0; i < lineCount; i++) {
-    const fontSize = 13 + (i % 4) // 13-16px
+    const fontSize = getFontSize(i)
     // 速度 0.4~1.2，奇偶行方向相反
     const speed = (0.4 + ((i * 37) % 100) / 100 * 0.8) * (i % 2 === 0 ? 1 : -1)
     const text = buildLineText(i)
@@ -375,12 +387,9 @@ function handleResize() {
   ctx = canvas.getContext('2d')
   if (ctx) ctx.scale(dpr, dpr)
 
-  // 重新计算行 Y 坐标
-  lineCount = Math.max(6, Math.floor(canvasH / MIN_LINE_GAP))
-  const lineHeight = canvasH / lineCount
-  for (let i = 0; i < lines.length; i++) {
-    lines[i]!.y = lineHeight * (i + 0.5)
-  }
+  // 完全重建行数据（行数/字号可能因屏幕尺寸变化而不同）
+  initLines()
+  measureLines()
 
   // 重新居中按钮
   if (btnRef.value) {
