@@ -494,7 +494,7 @@
             </span>
           </div>
           <!-- SVG 图表 -->
-          <div ref="chartContainerRef" class="relative h-[240px] w-full md:h-[300px]">
+          <div ref="chartContainerRef" class="relative w-full" style="height: 280px">
             <svg v-if="trendData.length > 0" :width="chartWidth" :height="chartHeight" class="overflow-visible">
               <!-- 纵轴网格线 + 标签 -->
               <template v-for="(val, i) in yAxisTicks" :key="'y' + i">
@@ -1516,8 +1516,8 @@ const logsData = reactive({
 // 折线图相关
 const chartContainerRef = ref<HTMLElement | null>(null)
 const chartWidth = ref(600)
-const chartHeight = computed(() => chartWidth.value < 500 ? 240 : 300)
-const chartPadding = { top: 20, right: 20, bottom: 36, left: 46 }
+const chartHeight = 280
+const chartPadding = { top: 20, right: 20, bottom: 50, left: 50 }
 
 const tooltip = reactive({ visible: false, x: 0, y: 0, date: '', pv: 0, uv: 0 })
 
@@ -1537,9 +1537,9 @@ onMounted(() => {
 
 // 纵轴刻度
 const yMax = computed(() => {
-  if (trendData.value.length === 0) return 100
+  if (trendData.value.length === 0) return 5
   const max = Math.max(...trendData.value.map(d => Math.max(d.pv, d.uv)))
-  return max === 0 ? 100 : Math.ceil(max * 1.2)
+  return max < 5 ? 5 : Math.ceil(max * 1.2)
 })
 const yAxisTicks = computed(() => {
   const ticks: number[] = []
@@ -1556,7 +1556,7 @@ function xScale(i: number): number {
   return chartPadding.left + (i / (total - 1)) * drawW
 }
 function yScale(val: number): number {
-  const drawH = chartHeight.value - chartPadding.top - chartPadding.bottom
+  const drawH = chartHeight - chartPadding.top - chartPadding.bottom
   return chartPadding.top + drawH - (val / yMax.value) * drawH
 }
 
