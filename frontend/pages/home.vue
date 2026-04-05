@@ -24,7 +24,7 @@
           </svg>
         </NuxtLink>
         <a
-          href="https://github.com/fatwill"
+          href="https://github.com/fatWill/agent-team-blog"
           target="_blank"
           rel="noopener noreferrer"
           class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
@@ -104,7 +104,7 @@
         </svg>
       </NuxtLink>
       <a
-        href="https://github.com/fatwill"
+        href="https://github.com/fatWill/agent-team-blog"
         target="_blank"
         rel="noopener noreferrer"
         class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
