@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-fatwill 个人博客，基于 Nuxt 3 全栈架构（前端 SSR + 后端 Nitro Server API），支持 Dark/Light 主题切换、文章管理、相册管理、留言板等功能。
+fatwill 个人博客，基于 Nuxt 3 前端 SSR + Go 后端 API 架构。前端 Nitro Server 层为纯透传代理，所有业务逻辑和数据存储由 Go 后端（`http://127.0.0.1:8080`）处理。支持 Dark/Light 主题切换、文章管理、相册管理、留言板等功能。
 
 ## 技术栈速览
 
@@ -17,11 +17,8 @@ fatwill 个人博客，基于 Nuxt 3 全栈架构（前端 SSR + 后端 Nitro Se
 | UI 组件库 | Ant Design Vue（PC 端） | ^4.2.6 |
 | 虚拟滚动 | vue-virtual-scroller | ^2.0.0-beta.8 |
 | Canvas 文字排版 | @chenglou/pretext | ^0.0.4 |
-| 数据库 | MySQL 8.0（mysql2 驱动） | ^3.20.0 |
-| 缓存 | Redis（ioredis） | ^5.10.1 |
-| 图片处理 | sharp | ^0.34.5 |
-| 加密 | bcryptjs | ^3.0.3 |
 | 进度条 | nprogress | ^0.2.0 |
+| 后端 API | Go 后端（透传代理） | http://127.0.0.1:8080 |
 | 包管理 | npm | — |
 
 ## 最高优先级读取
@@ -147,18 +144,8 @@ frontend/
     │   ├── theme.get.ts               # 获取主题偏好
     │   └── theme.post.ts              # 保存主题偏好
     ├── utils/                         # 服务端工具层
-    │   ├── db.ts                      # MySQL 连接池（进程级单例）
-    │   ├── redis.ts                   # Redis 连接
-    │   ├── auth.ts                    # Token 鉴权工具
-    │   ├── articles.ts                # 文章 DAO
-    │   ├── albums.ts                  # 相册 DAO
-    │   ├── messages.ts                # 留言 DAO
-    │   ├── changelog.ts               # 更新日志 DAO
-    │   ├── profile.ts                 # 个人资料 DAO
-    │   └── rateLimit.ts               # IP 限频工具
-    └── data/
-        ├── articles.json              # 旧数据文件（已废弃，数据在 MySQL）
-        └── changelog.json             # 旧数据文件（已废弃，数据在 MySQL）
+    │   └── proxy.ts                   # 通用代理工具（proxyToBackend + proxyRawToBackend）
+    └── .env                           # 环境变量（BACKEND_URL）
 ```
 
 ## 领域模块注册表
@@ -182,7 +169,7 @@ frontend/
 
 | 模块 | 实际路径 | Nuxt 自动导入路径 | 说明 |
 |------|---------|------------------|------|
-| 主题切换 | `shared/composables/useTheme.ts` | `composables/useTheme.ts` | Dark/Light 切换，Cookie + Redis 持久化，SSR 零闪烁 |
+| 主题切换 | `shared/composables/useTheme.ts` | `composables/useTheme.ts` | Dark/Light 切换，Cookie 持久化，SSR 零闪烁 |
 | 设备检测 | `shared/composables/useDevice.ts` | `composables/useDevice.ts` | 响应式 `isMobile` ref + 命令式 `isMobileDevice()` 函数 |
 
 ### Stores（`stores/`）
@@ -220,7 +207,7 @@ frontend/
 |------|------|---------|------|
 | Ant Design Vue | `plugins/antd.client.ts` | 仅客户端 | 注册 message/modal/spin 样式，配置 message 全局参数 |
 | NProgress | `plugins/nprogress.client.ts` | 仅客户端 | 路由导航进度条（beforeEach/afterEach/onError） |
-| Pinia Hydration Fix | `plugins/pinia-hydration-fix.ts` | 仅服务端 | JSON 往返清洗 payload，修复 mysql2 RowDataPacket 无原型链问题 |
+| Pinia Hydration Fix | `plugins/pinia-hydration-fix.ts` | 仅服务端 | JSON 往返清洗 payload，修复 SSR hydration 原型链问题 |
 | Virtual Scroller | `plugins/vue-virtual-scroller.client.ts` | 仅客户端 | 注册 vue-virtual-scroller 全局组件 |
 
 ## 页面路由映射
@@ -233,7 +220,9 @@ frontend/
 | 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /home |
 | 管理后台 | `/admin` | `pages/admin.vue`（57KB） | auth store, api, Tiptap, antd, chunkedUpload | 4 个管理 Tab：文章/相册/个人资料/留言管理 |
 
-## 后端 API（Nuxt Server / Nitro）
+## 后端 API（透传代理 → Go 后端 `http://127.0.0.1:8080`）
+
+> 所有 `/api/*` 路由均为 Nitro 薄代理层，通过 `proxyToBackend()` / `proxyRawToBackend()` 转发到 Go 后端，自动透传 Cookie 和客户端 IP。
 
 ### 鉴权
 
@@ -300,58 +289,24 @@ frontend/
 | POST | `/api/upload/chunk` | ✅ | 上传单个分片 |
 | POST | `/api/upload/merge` | ✅ | 合并所有分片 |
 | DELETE | `/api/upload/chunk` | ✅ | 清理临时分片文件 |
-| GET | `/api/theme` | ❌ | 从 Redis 获取主题偏好 |
-| POST | `/api/theme` | ❌ | 保存主题偏好到 Redis |
+| GET | `/api/theme` | ❌ | 获取主题偏好 |
+| POST | `/api/theme` | ❌ | 保存主题偏好 |
 
-## 服务端工具层（`server/utils/`）
+## 服务端代理层（`server/utils/`）
+
+> 前端 Nitro Server 层为**纯透传代理**，不直连任何数据库或缓存，所有请求转发到 Go 后端 `http://127.0.0.1:8080`。
 
 | 文件 | 说明 |
 |------|------|
-| `db.ts` | MySQL 连接池（mysql2，进程级单例，从 runtimeConfig 读取配置） |
-| `redis.ts` | Redis 连接（ioredis，从 runtimeConfig 读取配置） |
-| `auth.ts` | Token 鉴权工具（生成/验证/续期，httpOnly cookie，72h TTL） |
-| `articles.ts` | 文章 DAO（CRUD + 点赞计数） |
-| `albums.ts` | 相册 DAO（相册集 CRUD + 照片 CRUD + 封面自动更新 + 密码保护） |
-| `messages.ts` | 留言 DAO（CRUD + deviceId 关联） |
-| `changelog.ts` | 更新日志 DAO（查询 changelogs 表） |
-| `profile.ts` | 个人资料 DAO（读写 profile 表） |
-| `rateLimit.ts` | IP 限频工具（内存 Map 实现） |
-| `cos.ts` | 腾讯云 COS 上传工具（generateCOSKey + uploadToCOS） |
-
-## 数据库表注册表
-
-| 表名 | 说明 | 主键 | 索引 |
-|------|------|------|------|
-| `articles` | 文章表 | `id` (varchar(36) UUID) | `idx_created_at` |
-| `changelogs` | 更新日志表 | `id` (bigint auto_increment) | `uk_version`, `idx_date` |
-| `auth_tokens` | 登录 Token 表 | `token` (varchar(64)) | `idx_username` |
-| `profile` | 博主个人资料表 | `id` (int, 固定为 1) | — |
-| `albums` | 相册集表 | `id` (int auto_increment) | — |
-| `photos` | 照片表 | `id` (int auto_increment) | `idx_album_id` |
-| `article_likes` | 文章点赞表 | `id` (int auto_increment) | `uq_article_device`, `idx_article_id` |
-| `messages` | 留言板表 | `id` (int auto_increment) | `uq_device_id` |
+| `proxy.ts` | 通用代理工具：`proxyToBackend()`（JSON 请求透传）+ `proxyRawToBackend()`（multipart 原始透传，用于文件上传）。自动透传 Cookie / Set-Cookie / X-Forwarded-For 等 header |
 
 ## 环境配置
 
-数据库连接通过 `.env` 文件注入（Nuxt runtimeConfig 读取）：
+前端通过 `.env` 文件注入环境变量（Nuxt runtimeConfig 读取）：
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `DB_HOST` | MySQL 主机地址 | `localhost` |
-| `DB_PORT` | MySQL 端口 | `3306` |
-| `DB_USER` | 数据库用户名 | `root` |
-| `DB_PASSWORD` | 数据库密码 | — |
-| `DB_NAME` | 数据库名 | `blog` |
-| `REDIS_HOST` | Redis 主机地址 | `127.0.0.1` |
-| `REDIS_PORT` | Redis 端口 | `6379` |
-| `REDIS_PASSWORD` | Redis 密码 | — |
-| `ADMIN_USERNAME` | 管理后台用户名 | — |
-| `ADMIN_PASSWORD` | 管理后台密码 | — |
-| `COS_ID` | 腾讯云 COS SecretId | — |
-| `COS_KEY` | 腾讯云 COS SecretKey | — |
-| `COS_BUCKET` | COS 存储桶名称 | `fatwill-cloud-1253664788` |
-| `COS_REGION` | COS 地域 | `ap-guangzhou` |
-| `COS_BASE_URL` | COS 访问域名 | `https://assets.fatwill.cloud` |
+| `BACKEND_URL` | Go 后端 API 地址 | `http://127.0.0.1:8080` |
 
 ## 版本号规范
 
@@ -365,13 +320,14 @@ frontend/
 
 ## 更新日志规范
 
-- 存储在 MySQL `changelogs` 表中
+- 通过 Go 后端 API 管理
 - 每条最多 **20 字**，最多 **5 条**
 - 内容风格：Emoji 前缀 + 简短描述，如 `"🎉 个人博客正式上线"`
 
 ## 变更日志（最近重要变更）
 
-- 2026-04-05: 上传接口迁移至腾讯云 COS，toCdnUrl 适配新 URL 格式，新增数据库 URL 迁移脚本
+- 2026-04-05: 前端 Server Routes 全部改为透传代理，调用 Go 后端 API，移除 better-sqlite3/ioredis/cos-nodejs-sdk/bcryptjs/sharp/uuid 依赖
+- 2026-04-05: 上传接口迁移至腾讯云 COS，toCdnUrl 适配新 URL 格式
 - 2026-04-04: Feature-First 目录结构重构（types/api 按领域拆分到 features/，通用层移至 shared/）
 - 2026-04-04: 默认 Dark 模式 + 修正 GitHub 链接（fatwillzeng → fatwill）
 - 2026-04-04: SSR 阶段 Cookie 转发修复重启后需重新登录
@@ -382,5 +338,5 @@ frontend/
 - 2026-04-02: 相册/照片密码保护功能（v1.8.0）
 - 2026-04-01: CDN 图片 URL 转换、ant-design-vue 集成、虚拟滚动优化
 - 2026-04-01: 首屏 CSR→SSR 改造（useAsyncData 预取 + Pinia hydration 修复）
-- 2026-03-31: 数据从 JSON 文件迁移到 MySQL 8.0、相册功能、分片上传、Token 持久化
+- 2026-03-31: 相册功能、分片上传、Token 持久化
 - 2026-03-30: 全面重写博客前端（Dark/Light 主题、Tab 导航、Tiptap 编辑器）
