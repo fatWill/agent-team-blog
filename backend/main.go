@@ -12,6 +12,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/guestbook"
 	"github.com/fatWill/agent-team-blog/backend/internal/photo"
 	"github.com/fatWill/agent-team-blog/backend/internal/profile"
+	"github.com/fatWill/agent-team-blog/backend/internal/pv"
 	"github.com/fatWill/agent-team-blog/backend/internal/theme"
 	"github.com/fatWill/agent-team-blog/backend/internal/upload"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
@@ -146,6 +147,16 @@ func registerRoutes(api *gin.RouterGroup) {
 	// ========== 主题 ==========
 	api.GET("/theme", theme.GetTheme)
 	api.POST("/theme", theme.SaveTheme)
+
+	// ========== PV/UV 统计 ==========
+	pvGroup := api.Group("/pv")
+	{
+		pvGroup.POST("/record", pv.RecordPV)
+		pvGroup.GET("/trend", authMW, pv.GetTrend)
+		pvGroup.GET("/top-pages", authMW, pv.GetTopPages)
+		pvGroup.GET("/logs", authMW, pv.GetLogs)
+		pvGroup.GET("/overview", authMW, pv.GetOverview)
+	}
 
 	// ========== 更新日志 ==========
 	api.GET("/changelog", changelog.GetChangelog)

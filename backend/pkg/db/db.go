@@ -151,6 +151,23 @@ func autoMigrate() error {
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS uk_changelogs_version ON changelogs (version)`,
+
+		// 页面访问记录表
+		`CREATE TABLE IF NOT EXISTS page_views (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			path TEXT NOT NULL DEFAULT '',
+			device_id TEXT NOT NULL DEFAULT '',
+			ip TEXT NOT NULL DEFAULT '',
+			user_agent TEXT,
+			device_type TEXT,
+			browser TEXT,
+			os TEXT,
+			referer TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_pv_created_at ON page_views (created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_pv_path ON page_views (path)`,
+		`CREATE INDEX IF NOT EXISTS idx_pv_device_id ON page_views (device_id)`,
 	}
 
 	for _, sql := range ddl {

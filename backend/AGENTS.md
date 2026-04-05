@@ -42,6 +42,7 @@ backend/
 │   ├── article.go         # Article / ArticleListItem / ArticleLike
 │   ├── album.go           # Album / Photo / PhotoLike / PhotoDislike + ListItem
 │   ├── misc.go            # Profile / Message / Changelog + ListItem
+│   ├── pv.go              # PageView / PVTrendItem / TopPageItem / PVOverview
 │   └── json.go            # 自定义 JSON 类型（MySQL JSON 字段）
 ├── internal/              # 🏗️ 业务核心（按领域分组）
 │   ├── article/
@@ -56,6 +57,8 @@ backend/
 │   │   └── handler.go     # 图片上传（直传 + 分片）+ RandomString
 │   ├── guestbook/
 │   │   └── handler.go     # 留言板 CRUD
+│   ├── pv/
+│   │   └── handler.go     # PV/UV 统计、访问日志
 │   ├── profile/
 │   │   └── handler.go     # 博主个人资料
 │   ├── changelog/
@@ -80,7 +83,8 @@ backend/
         ├── album.md       # 相册 + 照片接口
         ├── guestbook.md   # 留言板接口
         ├── profile.md     # 个人资料接口
-        └── changelog.md   # 更新日志接口
+        ├── changelog.md   # 更新日志接口
+        └── pv.md          # PV/UV 统计接口
 ```
 
 ## 领域模块注册表
@@ -96,6 +100,7 @@ backend/
 | profile | `internal/profile/` | 博主个人资料 | — |
 | changelog | `internal/changelog/` | 更新日志查询 | — |
 | theme | `internal/theme/` | 主题偏好 | → `upload.RandomString` |
+| pv | `internal/pv/` | PV/UV 统计、访问日志 | → `pkg/middleware.GetClientIP`、`pkg/rds` |
 
 ## 路由注册表（完整 API 清单）
 
@@ -181,6 +186,16 @@ backend/
 |------|------|------|---------|------|
 | GET | `/api/changelog` | ❌ | `changelog.GetChangelog` | 更新日志列表（按 id DESC） |
 
+### PV/UV 统计 (`/api/pv`)
+
+| 方法 | 路径 | 鉴权 | Handler | 说明 |
+|------|------|------|---------|------|
+| POST | `/api/pv/record` | ❌ | `pv.RecordPV` | 上报访问记录（60s 防刷） |
+| GET | `/api/pv/trend` | ✅ | `pv.GetTrend` | PV/UV 趋势（?days=7/30） |
+| GET | `/api/pv/top-pages` | ✅ | `pv.GetTopPages` | Top5 页面 |
+| GET | `/api/pv/logs` | ✅ | `pv.GetLogs` | 访问日志列表（分页+筛选） |
+| GET | `/api/pv/overview` | ✅ | `pv.GetOverview` | 今日/总计 PV/UV 概览 |
+
 ## 数据库表注册表
 
 | 表名 | Model 路径 | 主键 | 说明 |
@@ -194,6 +209,7 @@ backend/
 | `profile` | `models/misc.go → Profile` | `id` uint64（固定=1） | 博主资料（单行） |
 | `messages` | `models/misc.go → Message` | `id` uint64 自增 | 留言板 |
 | `changelogs` | `models/misc.go → Changelog` | `id` uint64 自增 | 更新日志 |
+| `page_views` | `models/pv.go → PageView` | `id` uint64 自增 | 页面访问记录（PV/UV） |
 
 ## 鉴权机制
 
@@ -209,6 +225,7 @@ backend/
 |----------|-----|----------|------|
 | `auth_token:{token}` | 30 天（滚动续期） | Redis | 用户登录态 |
 | `theme:{uid}` | 30 天 | Redis | 用户主题偏好（light/dark） |
+| `pv:{device_id}:{path}` | 60 秒 | Redis | PV 上报防刷（同设备+同路径 60s 去重） |
 
 > IP 限频使用**内存 Map**（`pkg/middleware/middleware.go`），非 Redis。每 5 分钟清理过期条目。
 
@@ -272,6 +289,7 @@ refactor(backend agent): 简要描述
 
 ## 变更日志
 
+- 2026-04-06: **新增 PV/UV 统计功能** — 上报访问记录、趋势查询、Top5 页面、访问日志列表、统计概览；Redis 60s 防刷；UA 解析设备/浏览器/OS
 - 2026-04-05: **图片 URL 切换为自定义域名** — 新增 `COS_CUSTOM_DOMAIN` 环境变量，上传返回 URL 使用 `assets.fatwill.cloud`；`DeleteFromCOS` 兼容两种域名
 - 2026-04-05: **数据库从 MySQL 迁移至 SQLite** — 使用 modernc.org/sqlite 纯 Go 驱动，无 CGO 依赖；自动建表；WAL 模式优化性能
 - 2026-04-05: **图片存储迁移至腾讯云 COS** — 上传直接写入 COS，删除照片/相册时异步清理 COS 对象；新增 `docs/api/upload.md` 接口文档
