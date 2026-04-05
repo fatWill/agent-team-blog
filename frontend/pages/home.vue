@@ -213,6 +213,11 @@
                   class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
                 >
                   <img v-if="article.coverImage" :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-40 w-full object-cover" />
+                  <div v-else class="flex h-40 w-full items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+                    <svg class="h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21zm16.5-13.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                    </svg>
+                  </div>
                   <div class="p-5">
                     <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
                     <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
@@ -251,6 +256,11 @@
                 class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
               >
                 <img v-if="article.coverImage" :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-40 w-full object-cover" />
+                <div v-else class="flex h-40 w-full items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+                  <svg class="h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21zm16.5-13.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                  </svg>
+                </div>
                 <div class="p-5">
                   <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
                   <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
