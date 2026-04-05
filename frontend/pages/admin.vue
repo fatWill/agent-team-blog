@@ -442,6 +442,295 @@
           <p class="text-lg font-medium text-gray-600 dark:text-gray-400">暂无留言</p>
         </div>
       </div>
+
+      <!-- ========== Tab 6: 数据统计 ========== -->
+      <div v-if="activeTab === 'analytics'">
+        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">数据统计</h2>
+
+        <!-- 概览卡片 -->
+        <div class="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">今日 PV</p>
+            <p class="mt-1 text-2xl font-bold text-blue-500">{{ analyticsOverview ? analyticsOverview.today_pv : '--' }}</p>
+          </div>
+          <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">今日 UV</p>
+            <p class="mt-1 text-2xl font-bold text-emerald-500">{{ analyticsOverview ? analyticsOverview.today_uv : '--' }}</p>
+          </div>
+          <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">总 PV</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{{ analyticsOverview ? analyticsOverview.total_pv.toLocaleString() : '--' }}</p>
+          </div>
+          <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">总 UV</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{{ analyticsOverview ? analyticsOverview.total_uv.toLocaleString() : '--' }}</p>
+          </div>
+        </div>
+
+        <!-- PV/UV 趋势折线图 -->
+        <div class="mb-8 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">PV/UV 趋势</h3>
+            <div class="flex gap-1">
+              <button
+                class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
+                :class="trendDays === 7 ? 'bg-primary-500 text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'"
+                @click="trendDays = 7"
+              >7 天</button>
+              <button
+                class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
+                :class="trendDays === 30 ? 'bg-primary-500 text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'"
+                @click="trendDays = 30"
+              >30 天</button>
+            </div>
+          </div>
+          <!-- 图例 -->
+          <div class="mb-3 flex items-center gap-4">
+            <span class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+              <span class="inline-block h-2 w-4 rounded-sm bg-[#3b82f6]" /> PV
+            </span>
+            <span class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+              <span class="inline-block h-2 w-4 rounded-sm bg-[#10b981]" /> UV
+            </span>
+          </div>
+          <!-- SVG 图表 -->
+          <div ref="chartContainerRef" class="relative h-[240px] w-full md:h-[300px]">
+            <svg v-if="trendData.length > 0" :width="chartWidth" :height="chartHeight" class="overflow-visible">
+              <!-- 纵轴网格线 + 标签 -->
+              <template v-for="(val, i) in yAxisTicks" :key="'y' + i">
+                <line
+                  :x1="chartPadding.left" :y1="yScale(val)"
+                  :x2="chartWidth - chartPadding.right" :y2="yScale(val)"
+                  stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"
+                />
+                <text
+                  :x="chartPadding.left - 8" :y="yScale(val) + 4"
+                  text-anchor="end" class="fill-gray-400 text-[10px] dark:fill-gray-500"
+                >{{ val }}</text>
+              </template>
+              <!-- PV 折线 -->
+              <polyline
+                :points="pvPoints"
+                fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+              />
+              <!-- UV 折线 -->
+              <polyline
+                :points="uvPoints"
+                fill="none" stroke="#10b981" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+              />
+              <!-- PV 数据点 -->
+              <circle
+                v-for="(pt, i) in pvCircles" :key="'pvc' + i"
+                :cx="pt.x" :cy="pt.y" r="3.5"
+                fill="#3b82f6" stroke="white" stroke-width="1.5"
+                class="cursor-pointer dark:stroke-gray-800"
+                @mouseenter="showTooltip($event, i)"
+                @mouseleave="hideTooltip"
+              />
+              <!-- UV 数据点 -->
+              <circle
+                v-for="(pt, i) in uvCircles" :key="'uvc' + i"
+                :cx="pt.x" :cy="pt.y" r="3.5"
+                fill="#10b981" stroke="white" stroke-width="1.5"
+                class="cursor-pointer dark:stroke-gray-800"
+                @mouseenter="showTooltip($event, i)"
+                @mouseleave="hideTooltip"
+              />
+              <!-- 横轴标签 -->
+              <text
+                v-for="(label, i) in xLabels" :key="'xl' + i"
+                :x="xScale(i)"
+                :y="chartHeight - 4"
+                text-anchor="middle"
+                class="fill-gray-400 text-[10px] dark:fill-gray-500"
+                :transform="chartWidth < 500 ? `rotate(-45, ${xScale(i)}, ${chartHeight - 4})` : ''"
+              >{{ label }}</text>
+            </svg>
+            <div v-else class="flex h-full items-center justify-center">
+              <p class="text-sm text-gray-400 dark:text-gray-500">暂无数据</p>
+            </div>
+            <!-- Tooltip -->
+            <div
+              v-if="tooltip.visible"
+              class="pointer-events-none absolute z-10 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs shadow-lg dark:border-gray-600 dark:bg-gray-700"
+              :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
+            >
+              <p class="font-medium text-gray-700 dark:text-gray-200">{{ tooltip.date }}</p>
+              <p class="text-blue-500">PV: {{ tooltip.pv }}</p>
+              <p class="text-emerald-500">UV: {{ tooltip.uv }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top5 页面报表 -->
+        <div class="mb-8 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Top5 页面</h3>
+            <div class="flex gap-1">
+              <button
+                class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
+                :class="topPagesDays === 7 ? 'bg-primary-500 text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'"
+                @click="topPagesDays = 7"
+              >7 天</button>
+              <button
+                class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
+                :class="topPagesDays === 30 ? 'bg-primary-500 text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'"
+                @click="topPagesDays = 30"
+              >30 天</button>
+            </div>
+          </div>
+          <!-- PC 端表格 -->
+          <div class="hidden md:block">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                  <th class="pb-2 font-medium text-gray-500 dark:text-gray-400">排名</th>
+                  <th class="pb-2 font-medium text-gray-500 dark:text-gray-400">页面路径</th>
+                  <th class="pb-2 text-right font-medium text-gray-500 dark:text-gray-400">PV</th>
+                  <th class="pb-2 text-right font-medium text-gray-500 dark:text-gray-400">UV</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(page, i) in topPagesData" :key="page.path" class="border-b border-gray-50 dark:border-gray-700/50">
+                  <td class="py-2.5 text-gray-900 dark:text-gray-100">
+                    <span
+                      class="inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold"
+                      :class="i < 3 ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'"
+                    >{{ i + 1 }}</span>
+                  </td>
+                  <td class="py-2.5 font-mono text-xs text-gray-700 dark:text-gray-300">{{ page.path }}</td>
+                  <td class="py-2.5 text-right font-medium text-gray-900 dark:text-gray-100">{{ page.pv }}</td>
+                  <td class="py-2.5 text-right font-medium text-gray-900 dark:text-gray-100">{{ page.uv }}</td>
+                </tr>
+                <tr v-if="topPagesData.length === 0">
+                  <td colspan="4" class="py-8 text-center text-gray-400 dark:text-gray-500">暂无数据</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- 移动端卡片 -->
+          <div class="space-y-2 md:hidden">
+            <div
+              v-for="(page, i) in topPagesData" :key="page.path"
+              class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50"
+            >
+              <span
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                :class="i < 3 ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-600 dark:text-gray-500'"
+              >{{ i + 1 }}</span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-mono text-xs text-gray-700 dark:text-gray-300">{{ page.path }}</p>
+                <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">PV {{ page.pv }} · UV {{ page.uv }}</p>
+              </div>
+            </div>
+            <div v-if="topPagesData.length === 0" class="py-8 text-center text-sm text-gray-400 dark:text-gray-500">暂无数据</div>
+          </div>
+        </div>
+
+        <!-- 访问日志 -->
+        <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">访问日志</h3>
+          <!-- 筛选条件 -->
+          <div class="mb-4 flex flex-wrap items-end gap-3">
+            <div class="min-w-0 flex-1">
+              <label class="mb-1 block text-xs text-gray-500 dark:text-gray-400">页面路径</label>
+              <input
+                v-model="logFilter.path"
+                type="text"
+                placeholder="/home"
+                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              />
+            </div>
+            <div class="w-36">
+              <label class="mb-1 block text-xs text-gray-500 dark:text-gray-400">日期</label>
+              <input
+                v-model="logFilter.date"
+                type="date"
+                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              />
+            </div>
+            <div class="flex gap-2">
+              <button
+                class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
+                @click="fetchLogs(1)"
+              >查询</button>
+              <button
+                class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                @click="resetLogFilter"
+              >重置</button>
+            </div>
+          </div>
+          <!-- PC 端表格 -->
+          <div class="hidden md:block">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <th class="whitespace-nowrap pb-2 pr-4 font-medium text-gray-500 dark:text-gray-400">时间</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 font-medium text-gray-500 dark:text-gray-400">路径</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 font-medium text-gray-500 dark:text-gray-400">设备</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 font-medium text-gray-500 dark:text-gray-400">浏览器</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 font-medium text-gray-500 dark:text-gray-400">系统</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 font-medium text-gray-500 dark:text-gray-400">IP</th>
+                    <th class="whitespace-nowrap pb-2 font-medium text-gray-500 dark:text-gray-400">来源</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="log in logsData.list" :key="log.id" class="border-b border-gray-50 dark:border-gray-700/50">
+                    <td class="whitespace-nowrap py-2 pr-4 text-xs text-gray-500 dark:text-gray-400">{{ formatTime(log.created_at) }}</td>
+                    <td class="max-w-[160px] truncate py-2 pr-4 font-mono text-xs text-gray-700 dark:text-gray-300">{{ log.path }}</td>
+                    <td class="whitespace-nowrap py-2 pr-4 text-xs text-gray-500 dark:text-gray-400">{{ log.device_type || '-' }}</td>
+                    <td class="whitespace-nowrap py-2 pr-4 text-xs text-gray-500 dark:text-gray-400">{{ log.browser || '-' }}</td>
+                    <td class="whitespace-nowrap py-2 pr-4 text-xs text-gray-500 dark:text-gray-400">{{ log.os || '-' }}</td>
+                    <td class="whitespace-nowrap py-2 pr-4 font-mono text-xs text-gray-500 dark:text-gray-400">{{ log.ip || '-' }}</td>
+                    <td class="max-w-[120px] truncate py-2 text-xs text-gray-400 dark:text-gray-500">{{ log.referer || '-' }}</td>
+                  </tr>
+                  <tr v-if="logsData.list.length === 0">
+                    <td colspan="7" class="py-8 text-center text-gray-400 dark:text-gray-500">暂无日志</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 移动端卡片列表 -->
+          <div class="space-y-2 md:hidden">
+            <div
+              v-for="log in logsData.list" :key="log.id"
+              class="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50"
+            >
+              <div class="mb-1.5 flex items-center justify-between">
+                <span class="font-mono text-xs font-medium text-gray-700 dark:text-gray-300">{{ log.path }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ formatTime(log.created_at) }}</span>
+              </div>
+              <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                <span v-if="log.device_type">{{ log.device_type }}</span>
+                <span v-if="log.browser">{{ log.browser }}</span>
+                <span v-if="log.os">{{ log.os }}</span>
+                <span v-if="log.ip" class="font-mono">{{ log.ip }}</span>
+              </div>
+            </div>
+            <div v-if="logsData.list.length === 0" class="py-8 text-center text-sm text-gray-400 dark:text-gray-500">暂无日志</div>
+          </div>
+          <!-- 分页 -->
+          <div v-if="logsData.total > 0" class="mt-4 flex items-center justify-between">
+            <span class="text-xs text-gray-400 dark:text-gray-500">
+              第 {{ logsData.page }} / {{ Math.ceil(logsData.total / logsData.page_size) }} 页，共 {{ logsData.total }} 条
+            </span>
+            <div class="flex gap-2">
+              <button
+                :disabled="logsData.page <= 1"
+                class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                @click="fetchLogs(logsData.page - 1)"
+              >上一页</button>
+              <button
+                :disabled="logsData.page >= Math.ceil(logsData.total / logsData.page_size)"
+                class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                @click="fetchLogs(logsData.page + 1)"
+              >下一页</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <!-- ========== 新建/编辑相册 Modal ========== -->
@@ -616,6 +905,7 @@ const adminTabs = [
   { key: 'profile', label: '个人资料' },
   { key: 'albums', label: '相册管理' },
   { key: 'messages', label: '留言管理' },
+  { key: 'analytics', label: '数据统计' },
 ]
 const activeTab = ref('write')
 
@@ -761,6 +1051,7 @@ watch(activeTab, (val) => {
   if (val === 'profile') fetchProfile()
   if (val === 'albums') fetchAdminAlbums()
   if (val === 'messages') fetchAdminMessages()
+  if (val === 'analytics') fetchAnalyticsData()
 })
 
 async function startEdit(article: ArticleListItem) {
@@ -1179,9 +1470,187 @@ async function handleLogout() {
   router.push('/home')
 }
 
+// ====== 数据统计 ======
+interface AnalyticsOverview {
+  today_pv: number
+  today_uv: number
+  total_pv: number
+  total_uv: number
+}
+interface TrendItem {
+  date: string
+  pv: number
+  uv: number
+}
+interface TopPageItem {
+  path: string
+  pv: number
+  uv: number
+}
+interface LogItem {
+  id: number
+  path: string
+  device_id: string
+  ip: string
+  device_type: string
+  browser: string
+  os: string
+  referer: string
+  created_at: string
+}
+
+const analyticsOverview = ref<AnalyticsOverview | null>(null)
+const trendData = ref<TrendItem[]>([])
+const trendDays = ref(7)
+const topPagesData = ref<TopPageItem[]>([])
+const topPagesDays = ref(7)
+
+const logFilter = reactive({ path: '', date: '' })
+const logsData = reactive({
+  list: [] as LogItem[],
+  total: 0,
+  page: 1,
+  page_size: 20,
+})
+
+// 折线图相关
+const chartContainerRef = ref<HTMLElement | null>(null)
+const chartWidth = ref(600)
+const chartHeight = computed(() => chartWidth.value < 500 ? 240 : 300)
+const chartPadding = { top: 20, right: 20, bottom: 36, left: 46 }
+
+const tooltip = reactive({ visible: false, x: 0, y: 0, date: '', pv: 0, uv: 0 })
+
+let chartResizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  if (chartContainerRef.value) {
+    chartWidth.value = chartContainerRef.value.clientWidth
+    chartResizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        chartWidth.value = entry.contentRect.width
+      }
+    })
+    chartResizeObserver.observe(chartContainerRef.value)
+  }
+})
+
+// 纵轴刻度
+const yMax = computed(() => {
+  if (trendData.value.length === 0) return 100
+  const max = Math.max(...trendData.value.map(d => Math.max(d.pv, d.uv)))
+  return max === 0 ? 100 : Math.ceil(max * 1.2)
+})
+const yAxisTicks = computed(() => {
+  const ticks: number[] = []
+  const step = Math.ceil(yMax.value / 5)
+  for (let i = 0; i <= 5; i++) ticks.push(step * i)
+  return ticks
+})
+
+// 坐标映射
+function xScale(i: number): number {
+  const total = trendData.value.length
+  if (total <= 1) return chartPadding.left + (chartWidth.value - chartPadding.left - chartPadding.right) / 2
+  const drawW = chartWidth.value - chartPadding.left - chartPadding.right
+  return chartPadding.left + (i / (total - 1)) * drawW
+}
+function yScale(val: number): number {
+  const drawH = chartHeight.value - chartPadding.top - chartPadding.bottom
+  return chartPadding.top + drawH - (val / yMax.value) * drawH
+}
+
+const pvCircles = computed(() => trendData.value.map((d, i) => ({ x: xScale(i), y: yScale(d.pv) })))
+const uvCircles = computed(() => trendData.value.map((d, i) => ({ x: xScale(i), y: yScale(d.uv) })))
+const pvPoints = computed(() => pvCircles.value.map(p => `${p.x},${p.y}`).join(' '))
+const uvPoints = computed(() => uvCircles.value.map(p => `${p.x},${p.y}`).join(' '))
+
+const xLabels = computed(() => {
+  return trendData.value.map((d, i) => {
+    const short = d.date.slice(5) // "04-01"
+    if (trendDays.value <= 7) return short
+    return i % 5 === 0 || i === trendData.value.length - 1 ? short : ''
+  })
+})
+
+function showTooltip(e: MouseEvent, idx: number) {
+  const d = trendData.value[idx]
+  if (!d || !chartContainerRef.value) return
+  const rect = chartContainerRef.value.getBoundingClientRect()
+  tooltip.x = e.clientX - rect.left + 12
+  tooltip.y = e.clientY - rect.top - 60
+  tooltip.date = d.date
+  tooltip.pv = d.pv
+  tooltip.uv = d.uv
+  tooltip.visible = true
+}
+function hideTooltip() {
+  tooltip.visible = false
+}
+
+// 数据请求
+async function fetchOverview() {
+  try {
+    const res = await $fetch<{ ok: boolean; data: AnalyticsOverview }>('/api/pv/overview')
+    analyticsOverview.value = res.data
+  } catch { /* 静默 */ }
+}
+
+async function fetchTrend() {
+  try {
+    const res = await $fetch<{ ok: boolean; data: TrendItem[] }>('/api/pv/trend', {
+      params: { days: trendDays.value },
+    })
+    trendData.value = res.data || []
+  } catch { trendData.value = [] }
+}
+
+async function fetchTopPages() {
+  try {
+    const res = await $fetch<{ ok: boolean; data: TopPageItem[] }>('/api/pv/top-pages', {
+      params: { days: topPagesDays.value },
+    })
+    topPagesData.value = res.data || []
+  } catch { topPagesData.value = [] }
+}
+
+async function fetchLogs(page: number = 1) {
+  try {
+    const res = await $fetch<{ ok: boolean; data: { list: LogItem[]; total: number; page: number; page_size: number } }>('/api/pv/logs', {
+      params: {
+        page,
+        page_size: 20,
+        path: logFilter.path || undefined,
+        date: logFilter.date || undefined,
+      },
+    })
+    logsData.list = res.data.list || []
+    logsData.total = res.data.total
+    logsData.page = res.data.page
+    logsData.page_size = res.data.page_size
+  } catch {
+    logsData.list = []
+    logsData.total = 0
+  }
+}
+
+function resetLogFilter() {
+  logFilter.path = ''
+  logFilter.date = ''
+  fetchLogs(1)
+}
+
+async function fetchAnalyticsData() {
+  await Promise.all([fetchOverview(), fetchTrend(), fetchTopPages(), fetchLogs(1)])
+}
+
+watch(trendDays, () => fetchTrend())
+watch(topPagesDays, () => fetchTopPages())
+
 onUnmounted(() => {
   editor.value?.destroy()
   if (searchTimer) clearTimeout(searchTimer)
+  chartResizeObserver?.disconnect()
 })
 
 useHead({ title: '管理后台 - fatwill' })
