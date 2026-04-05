@@ -1157,35 +1157,30 @@ function selectTab(key: string) {
   drawerOpen.value = false
 }
 
-// ====== 文章数据（SSR 预取） ======
+// ====== SSR 并行预取：文章 + 更新日志 + 个人资料 ======
 const loading = ref(false)
 const error = ref(false)
-
-// 不使用 await，让 3 个 useAsyncData 并行发起请求
-// 避免串行阻塞导致白屏
-const { data: articlesData, refresh: refreshArticles, status: articlesStatus } = useAsyncData(
-  'articles',
-  () => apiFetchArticles(),
-  { default: () => ({ list: [] as ArticleListItem[] }) }
-)
-const articles = computed(() => articlesData.value?.list ?? [])
-
-// ====== 更新日志数据（SSR 预取） ======
 const changelogLoading = ref(false)
 
-const { data: changelogData } = useAsyncData(
-  'changelog',
-  () => $fetch<ChangelogResponse>('/api/changelog'),
-  { default: () => ({ changelog: [] as ChangelogItem[] }) }
-)
-const changelog = computed(() => changelogData.value?.changelog ?? [])
+// 使用 Promise.all 并行 await，既保证 SSR 预取，又不串行阻塞
+const [
+  { data: articlesData, refresh: refreshArticles, status: articlesStatus },
+  { data: changelogData },
+  { data: profileData },
+] = await Promise.all([
+  useAsyncData('articles', () => apiFetchArticles(), {
+    default: () => ({ list: [] as ArticleListItem[] }),
+  }),
+  useAsyncData('changelog', () => $fetch<ChangelogResponse>('/api/changelog'), {
+    default: () => ({ changelog: [] as ChangelogItem[] }),
+  }),
+  useAsyncData('profile', () => apiGetProfile(), {
+    default: () => ({ avatar: '', bio: '' }),
+  }),
+])
 
-// ====== 博主个人资料（SSR 预取） ======
-const { data: profileData } = useAsyncData(
-  'profile',
-  () => apiGetProfile(),
-  { default: () => ({ avatar: '', bio: '' }) }
-)
+const articles = computed(() => articlesData.value?.list ?? [])
+const changelog = computed(() => changelogData.value?.changelog ?? [])
 const profile = computed<Profile>(() => ({
   avatar: profileData.value?.avatar || '',
   bio: profileData.value?.bio || '',
