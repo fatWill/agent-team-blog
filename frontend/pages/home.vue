@@ -671,16 +671,17 @@
     </main>
 
     <!-- 底部备案信息 -->
-    <footer class="py-4 text-xs text-gray-400 dark:text-gray-500">
-      <div class="mx-auto flex max-w-4xl items-center justify-between px-4">
+    <footer class="py-4 text-center text-xs text-gray-400 dark:text-gray-500">
+      <p>
         <a
           href="https://beian.miit.gov.cn/"
           target="_blank"
           rel="noopener noreferrer"
           class="transition-colors duration-200 hover:text-gray-600 dark:hover:text-gray-400"
         >粤ICP备2025475180号</a>
+        <span class="mx-2">·</span>
         <span>© 2025 fatwill. All rights reserved.</span>
-      </div>
+      </p>
     </footer>
 
     <!-- ========== 灯箱预览 ========== -->
