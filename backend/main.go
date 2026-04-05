@@ -141,7 +141,6 @@ func registerRoutes(api *gin.RouterGroup) {
 	// ========== 留言板 ==========
 	api.GET("/messages", guestbook.GetMessages)
 	api.POST("/messages", middleware.RateLimit(3), guestbook.CreateMessage)
-	api.PUT("/messages/:id", guestbook.UpdateMessage)
 	api.DELETE("/messages/:id", authMW, guestbook.DeleteMessage)
 
 	// ========== 主题 ==========

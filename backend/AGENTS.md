@@ -164,9 +164,8 @@ backend/
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
 |------|------|------|---------|------|
-| GET | `/api/messages` | ❌ | `guestbook.GetMessages` | 留言列表（含 isOwn、canEdit） |
-| POST | `/api/messages` | ❌（IP 限频 3/min） | `guestbook.CreateMessage` | 新增/修改留言（每设备一条） |
-| PUT | `/api/messages/:id` | ❌ | `guestbook.UpdateMessage` | 修改留言（每日一次，UTC+8） |
+| GET | `/api/messages` | ❌ | `guestbook.GetMessages` | 留言列表（含 isOwn） |
+| POST | `/api/messages` | ❌（IP 限频 3/min） | `guestbook.CreateMessage` | 新增留言（每设备一条，昵称自动生成） |
 | DELETE | `/api/messages/:id` | ✅ | `guestbook.DeleteMessage` | 删除留言（管理员） |
 
 ### 主题

@@ -31,7 +31,6 @@ type MessageListItem struct {
 	Nickname  string `json:"nickname"`
 	Content   string `json:"content"`
 	IsOwn     bool   `json:"isOwn"`
-	CanEdit   bool   `json:"canEdit"`
 	CreatedAt string `json:"createdAt"`
 	UpdatedAt string `json:"updatedAt"`
 }
