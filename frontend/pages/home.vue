@@ -248,7 +248,7 @@
           </DynamicScroller>
           <!-- SSR fallback：静态文章列表，保证首屏 HTML 包含内容 -->
           <template #fallback>
-            <div class="space-y-4">
+            <div class="space-y-4" style="min-height: calc(100vh - 220px)">
               <NuxtLink
                 v-for="article in articles"
                 :key="article.id"
@@ -450,7 +450,7 @@
             </DynamicScroller>
             <!-- SSR fallback：静态照片列表 -->
             <template #fallback>
-              <div class="flex items-center justify-center py-20">
+              <div class="flex items-center justify-center py-20" style="min-height: calc(100vh - 220px)">
                 <AppLoading tip="加载中..." />
               </div>
             </template>
