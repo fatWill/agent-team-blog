@@ -137,6 +137,7 @@ frontend/
     │   ├── albums/                    # 相册集 CRUD + 照片 + 密码验证
     │   ├── photos/                    # 照片管理 + 点赞/踩 + 密码验证
     │   ├── messages/                  # 留言板 CRUD
+    │   ├── pv/                        # PV/UV 数据统计（record/overview/trend/top-pages/logs）
     │   ├── profile/                   # 个人资料
     │   ├── upload/                    # 分片上传（chunk/merge/delete）
     │   ├── upload.post.ts             # 小文件直传
@@ -209,6 +210,7 @@ frontend/
 | NProgress | `plugins/nprogress.client.ts` | 仅客户端 | 路由导航进度条（beforeEach/afterEach/onError） |
 | Pinia Hydration Fix | `plugins/pinia-hydration-fix.ts` | 仅服务端 | JSON 往返清洗 payload，修复 SSR hydration 原型链问题 |
 | Virtual Scroller | `plugins/vue-virtual-scroller.client.ts` | 仅客户端 | 注册 vue-virtual-scroller 全局组件 |
+| PV Tracker | `plugins/pv-tracker.client.ts` | 仅客户端 | 路由变化时自动上报 PV/UV（fire and forget） |
 
 ## 页面路由映射
 
@@ -218,7 +220,7 @@ frontend/
 | 博客主页 | `/home` | `pages/home.vue`（82KB） | useTheme, useDevice, api, types, vue-virtual-scroller, antd | 6 个 Tab：文章/生活/小工具·小游戏/Agent Team/更新日志/留言板 |
 | 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（8KB） | useTheme, api, Tiptap | Tiptap 只读渲染 + 点赞 |
 | 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /home |
-| 管理后台 | `/admin` | `pages/admin.vue`（57KB） | auth store, api, Tiptap, antd, chunkedUpload | 4 个管理 Tab：文章/相册/个人资料/留言管理 |
+| 管理后台 | `/admin` | `pages/admin.vue`（57KB） | auth store, api, Tiptap, antd, chunkedUpload | 6 个管理 Tab：文章/相册/个人资料/留言管理/数据统计 |
 
 ## 后端 API（透传代理 → Go 后端 `http://127.0.0.1:8080`）
 
@@ -292,6 +294,16 @@ frontend/
 | GET | `/api/theme` | ❌ | 获取主题偏好 |
 | POST | `/api/theme` | ❌ | 保存主题偏好 |
 
+### PV/UV 数据统计
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| POST | `/api/pv/record` | ❌ | 上报访问记录（path/device_id/referer） |
+| GET | `/api/pv/overview` | ✅ | 今日/总 PV/UV 概览数据 |
+| GET | `/api/pv/trend` | ✅ | PV/UV 趋势数据（`?days=7\|30`） |
+| GET | `/api/pv/top-pages` | ✅ | Top5 页面报表（`?days=7\|30`） |
+| GET | `/api/pv/logs` | ✅ | 访问日志分页查询（`?page=&page_size=&path=&date=`） |
+
 ## 服务端代理层（`server/utils/`）
 
 > 前端 Nitro Server 层为**纯透传代理**，不直连任何数据库或缓存，所有请求转发到 Go 后端 `http://127.0.0.1:8080`。
@@ -326,6 +338,7 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-06: 新增数据统计功能（PV/UV 折线图、Top5 页面报表、访问日志查询）+ 前台 PV 自动埋点插件
 - 2026-04-05: 前端 Server Routes 全部改为透传代理，调用 Go 后端 API，移除 better-sqlite3/ioredis/cos-nodejs-sdk/bcryptjs/sharp/uuid 依赖
 - 2026-04-05: 上传接口迁移至腾讯云 COS，toCdnUrl 适配新 URL 格式
 - 2026-04-04: Feature-First 目录结构重构（types/api 按领域拆分到 features/，通用层移至 shared/）
