@@ -67,24 +67,91 @@ func RandomString(n int) string {
 	return hex.EncodeToString(b)[:n]
 }
 
-// cosKey 生成 COS 存储路径：upload/YYYYMMDD/时间戳-随机串.ext
+// cosKey 生成 COS 存储路径：upload/时间戳-随机串.ext
 func cosKey(ext string) string {
 	now := time.Now()
-	dateDir := now.Format("20060102")
 	filename := fmt.Sprintf("%d-%s%s", now.UnixMilli(), RandomString(8), ext)
-	return fmt.Sprintf("upload/%s/%s", dateDir, filename)
+	return fmt.Sprintf("upload/%s", filename)
 }
 
-// uploadToCOS 将数据上传到 COS，返回公开访问 URL
+// uploadToCOS 将数据通过 PutObject 上传到 COS，返回公开访问 URL（适用于 ≤2MB 小文件）
 func uploadToCOS(data []byte, key string) (string, error) {
 	if cosClient == nil {
-		return "", fmt.Errorf("COS 客户端未初始化，请检查 COS_ID 和 COS_KEY 环境变量")
+		return "", fmt.Errorf("COS 客户端未初始化，请检查 COS_SECRET_ID 和 COS_SECRET_KEY 环境变量")
 	}
 	_, err := cosClient.Object.Put(context.Background(), key, bytes.NewReader(data), nil)
 	if err != nil {
 		return "", fmt.Errorf("上传 COS 失败: %w", err)
 	}
 	return fmt.Sprintf("%s/%s", strings.TrimRight(cosCfg.BaseURL, "/"), key), nil
+}
+
+// cosMultipartChunkSize COS 分片上传每片大小（1MB）
+const cosMultipartChunkSize = 1 * 1024 * 1024
+
+// multipartUploadToCOS 使用 COS 原生分片上传（适用于 >2MB 大文件）
+// 流程：InitiateMultipartUpload → UploadPart → CompleteMultipartUpload
+func multipartUploadToCOS(data []byte, key string) (string, error) {
+	if cosClient == nil {
+		return "", fmt.Errorf("COS 客户端未初始化，请检查 COS_SECRET_ID 和 COS_SECRET_KEY 环境变量")
+	}
+	ctx := context.Background()
+
+	// 1. 初始化分片上传
+	initResult, _, err := cosClient.Object.InitiateMultipartUpload(ctx, key, nil)
+	if err != nil {
+		return "", fmt.Errorf("COS 初始化分片上传失败: %w", err)
+	}
+	uploadID := initResult.UploadID
+
+	// 2. 逐片上传
+	totalSize := len(data)
+	var parts []cos.Object
+	partNumber := 1
+	for offset := 0; offset < totalSize; offset += cosMultipartChunkSize {
+		end := offset + cosMultipartChunkSize
+		if end > totalSize {
+			end = totalSize
+		}
+		chunk := data[offset:end]
+
+		resp, err := cosClient.Object.UploadPart(ctx, key, uploadID, partNumber, bytes.NewReader(chunk), nil)
+		if err != nil {
+			// 上传失败，尝试中止分片上传
+			cosClient.Object.AbortMultipartUpload(ctx, key, uploadID)
+			return "", fmt.Errorf("COS 上传分片 %d 失败: %w", partNumber, err)
+		}
+		etag := resp.Header.Get("ETag")
+		parts = append(parts, cos.Object{
+			PartNumber: partNumber,
+			ETag:       etag,
+		})
+		partNumber++
+	}
+
+	// 3. 完成分片上传
+	completeOpt := &cos.CompleteMultipartUploadOptions{
+		Parts: parts,
+	}
+	_, _, err = cosClient.Object.CompleteMultipartUpload(ctx, key, uploadID, completeOpt)
+	if err != nil {
+		return "", fmt.Errorf("COS 合并分片失败: %w", err)
+	}
+
+	return fmt.Sprintf("%s/%s", strings.TrimRight(cosCfg.BaseURL, "/"), key), nil
+}
+
+// smartUploadSize 小文件/大文件分界线（2MB）
+const smartUploadSize = 2 * 1024 * 1024
+
+// smartUploadToCOS 根据文件大小智能选择上传方式
+// ≤2MB: PutObject 直传
+// >2MB: COS 原生分片上传
+func smartUploadToCOS(data []byte, key string) (string, error) {
+	if len(data) <= smartUploadSize {
+		return uploadToCOS(data, key)
+	}
+	return multipartUploadToCOS(data, key)
 }
 
 // DeleteFromCOS 根据完整 URL 删除 COS 对象（导出供其他模块调用）
@@ -153,7 +220,7 @@ func Upload(c *gin.Context) {
 	}
 
 	key := cosKey(ext)
-	fileURL, err := uploadToCOS(data, key)
+	fileURL, err := smartUploadToCOS(data, key)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": err.Error()})
 		return
@@ -258,9 +325,9 @@ func MergeChunks(c *gin.Context) {
 		merged = append(merged, data...)
 	}
 
-	// 上传到 COS
+	// 上传到 COS（根据大小智能选择直传或分片上传）
 	key := cosKey(ext)
-	fileURL, err := uploadToCOS(merged, key)
+	fileURL, err := smartUploadToCOS(merged, key)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": err.Error()})
 		return

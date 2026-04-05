@@ -20,7 +20,7 @@
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "title": "文章标题",
       "summary": "文章摘要",
-      "coverImage": "https://assets.fatwill.cloud/upload/20260101/cover.jpg",
+      "coverImage": "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/cover.jpg",
       "likeCount": 5,
       "createdAt": "2026-01-01T12:00:00+08:00",
       "updatedAt": "2026-01-01T12:00:00+08:00"
@@ -49,7 +49,7 @@
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "title": "文章标题",
   "summary": "文章摘要",
-  "coverImage": "https://assets.fatwill.cloud/upload/20260101/cover.jpg",
+  "coverImage": "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/cover.jpg",
   "content": { "type": "doc", "content": [...] },
   "likeCount": 5,
   "createdAt": "2026-01-01T12:00:00+08:00",
@@ -89,7 +89,7 @@ Cookie `auth_token`（httpOnly）
 {
   "title": "Go 并发编程指南",
   "summary": "一篇关于 Go 并发编程的实践指南",
-  "coverImage": "https://assets.fatwill.cloud/upload/20260101/cover.jpg",
+  "coverImage": "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/cover.jpg",
   "content": { "type": "doc", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "正文内容" }] }] }
 }
 ```
@@ -101,7 +101,7 @@ Cookie `auth_token`（httpOnly）
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "title": "Go 并发编程指南",
   "summary": "一篇关于 Go 并发编程的实践指南",
-  "coverImage": "https://assets.fatwill.cloud/upload/20260101/cover.jpg",
+  "coverImage": "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/cover.jpg",
   "content": { ... },
   "likeCount": 0,
   "createdAt": "2026-01-01T12:00:00+08:00",

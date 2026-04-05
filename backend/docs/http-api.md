@@ -162,8 +162,9 @@ cors.Config{
 - 字段名: `file`
 - 支持格式: jpg, jpeg, png, gif, webp
 - 双重校验: MIME 类型 + 文件扩展名
-- 返回: `{"url": "https://assets.fatwill.cloud/upload/20260405/xxx.jpg"}`
+- 返回: `{"url": "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/xxx.jpg"}`
 - 存储后端: 腾讯云 COS 对象存储
+- 上传策略: ≤2MB PutObject 直传，>2MB COS 原生分片上传
 
 ### 分片上传
 

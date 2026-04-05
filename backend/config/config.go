@@ -72,11 +72,11 @@ func Load() *Config {
 			TmpDir: getEnv("UPLOAD_TMP_DIR", "/root/blog-uploads/tmp"),
 		},
 		COS: COSConfig{
-			SecretID:  getEnv("COS_ID", ""),
-			SecretKey: getEnv("COS_KEY", ""),
+			SecretID:  getEnv("COS_SECRET_ID", ""),
+			SecretKey: getEnv("COS_SECRET_KEY", ""),
 			Bucket:    getEnv("COS_BUCKET", "fatwill-cloud-1253664788"),
 			Region:    getEnv("COS_REGION", "ap-guangzhou"),
-			BaseURL:   getEnv("COS_BASE_URL", "https://assets.fatwill.cloud"),
+			BaseURL:   getEnv("COS_BASE_URL", "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
 		},
 	}
 }

@@ -231,11 +231,11 @@ backend/
 | `REDIS_PASSWORD` | *(见配置)* | Redis 密码 |
 | `UPLOAD_DIR` | `/root/blog-uploads` | 分片临时文件存储目录 |
 | `UPLOAD_TMP_DIR` | `/root/blog-uploads/tmp` | 分片临时目录 |
-| `COS_ID` | *(必填)* | 腾讯云 COS SecretID |
-| `COS_KEY` | *(必填)* | 腾讯云 COS SecretKey |
+| `COS_SECRET_ID` | *(必填)* | 腾讯云 COS SecretID |
+| `COS_SECRET_KEY` | *(必填)* | 腾讯云 COS SecretKey |
 | `COS_BUCKET` | `fatwill-cloud-1253664788` | COS Bucket 名称 |
 | `COS_REGION` | `ap-guangzhou` | COS 地域 |
-| `COS_BASE_URL` | `https://assets.fatwill.cloud` | COS CDN 访问域名 |
+| `COS_BASE_URL` | `https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | COS 访问域名（后续切换自定义域名只需改此项） |
 
 ## 部署信息
 

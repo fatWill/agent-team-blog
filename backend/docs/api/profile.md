@@ -9,7 +9,7 @@
 
 ```json
 {
-  "avatar": "https://assets.fatwill.cloud/upload/20260101/avatar.jpg",
+  "avatar": "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/avatar.jpg",
   "bio": "一个热爱编程的开发者"
 }
 ```
@@ -39,7 +39,7 @@ Cookie `auth_token`（httpOnly）
 
 ```json
 {
-  "avatar": "https://assets.fatwill.cloud/upload/20260101/new-avatar.jpg",
+  "avatar": "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/new-avatar.jpg",
   "bio": "更新后的个人简介"
 }
 ```
@@ -48,7 +48,7 @@ Cookie `auth_token`（httpOnly）
 
 ```json
 {
-  "avatar": "https://assets.fatwill.cloud/upload/20260101/new-avatar.jpg",
+  "avatar": "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/new-avatar.jpg",
   "bio": "更新后的个人简介"
 }
 ```
