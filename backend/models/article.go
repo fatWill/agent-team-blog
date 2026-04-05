@@ -7,7 +7,7 @@ type Article struct {
 	ID        string    `json:"id" gorm:"column:id;primaryKey;type:varchar(36)"`
 	Title     string    `json:"title" gorm:"column:title;type:varchar(255)"`
 	Summary   string    `json:"summary" gorm:"column:summary;type:varchar(500)"`
-	Content   JSON      `json:"content" gorm:"column:content;type:json"`
+	Content   JSON      `json:"content" gorm:"column:content;type:text"`
 	CoverImage string   `json:"coverImage" gorm:"column:cover_image;type:varchar(500)"`
 	LikeCount  int      `json:"likeCount" gorm:"column:like_count;type:int;default:0"`
 	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at"`

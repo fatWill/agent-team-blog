@@ -2,9 +2,11 @@ package db
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/fatWill/agent-team-blog/backend/config"
-	"gorm.io/driver/mysql"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -12,18 +14,20 @@ import (
 // DB 全局数据库实例
 var DB *gorm.DB
 
-// Init 初始化 MySQL 连接
+// Init 初始化 SQLite 连接
 func Init(cfg *config.DBConfig) error {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName,
-	)
+	// 确保数据库文件所在目录存在
+	dir := filepath.Dir(cfg.Path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("创建数据库目录失败: %w", err)
+	}
 
 	var err error
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+	DB, err = gorm.Open(sqlite.Open(cfg.Path), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
-		return fmt.Errorf("连接 MySQL 失败: %w", err)
+		return fmt.Errorf("连接 SQLite 失败: %w", err)
 	}
 
 	sqlDB, err := DB.DB()
@@ -31,9 +35,129 @@ func Init(cfg *config.DBConfig) error {
 		return fmt.Errorf("获取底层 sql.DB 失败: %w", err)
 	}
 
-	// 2核2G 服务器，连接数保守设置
-	sqlDB.SetMaxOpenConns(10)
-	sqlDB.SetMaxIdleConns(5)
+	// SQLite 连接池设置（单文件数据库，并发写入受限）
+	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(1)
+
+	// SQLite 性能优化 PRAGMA
+	DB.Exec("PRAGMA journal_mode=WAL")
+	DB.Exec("PRAGMA synchronous=NORMAL")
+	DB.Exec("PRAGMA cache_size=-8000")
+	DB.Exec("PRAGMA busy_timeout=5000")
+	DB.Exec("PRAGMA foreign_keys=ON")
+
+	// 自动建表（首次初始化空库时）
+	if err := autoMigrate(); err != nil {
+		return fmt.Errorf("自动建表失败: %w", err)
+	}
+
+	return nil
+}
+
+// autoMigrate 创建所有表（如果不存在）
+func autoMigrate() error {
+	ddl := []string{
+		// 文章表
+		`CREATE TABLE IF NOT EXISTS articles (
+			id TEXT NOT NULL PRIMARY KEY,
+			title TEXT NOT NULL DEFAULT '',
+			summary TEXT NOT NULL DEFAULT '',
+			content TEXT,
+			cover_image TEXT NOT NULL DEFAULT '',
+			like_count INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// 文章点赞记录
+		`CREATE TABLE IF NOT EXISTS article_likes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			article_id TEXT NOT NULL DEFAULT '',
+			device_id TEXT NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_article_device ON article_likes (article_id, device_id)`,
+
+		// 相册表
+		`CREATE TABLE IF NOT EXISTS albums (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL DEFAULT '',
+			description TEXT,
+			cover_url TEXT,
+			password_hash TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		// 照片表
+		`CREATE TABLE IF NOT EXISTS photos (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			album_id INTEGER NOT NULL DEFAULT 0,
+			url TEXT NOT NULL DEFAULT '',
+			caption TEXT,
+			password_hash TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_photos_album_id ON photos (album_id)`,
+
+		// 照片点赞记录
+		`CREATE TABLE IF NOT EXISTS photo_likes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			photo_id INTEGER NOT NULL DEFAULT 0,
+			device_id TEXT NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_photo_likes_device ON photo_likes (photo_id, device_id)`,
+
+		// 照片踩记录
+		`CREATE TABLE IF NOT EXISTS photo_dislikes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			photo_id INTEGER NOT NULL DEFAULT 0,
+			device_id TEXT NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_photo_dislikes_device ON photo_dislikes (photo_id, device_id)`,
+
+		// 个人资料表（单行）
+		`CREATE TABLE IF NOT EXISTS profile (
+			id INTEGER PRIMARY KEY,
+			avatar TEXT NOT NULL DEFAULT '',
+			bio TEXT NOT NULL DEFAULT ''
+		)`,
+		// 确保有一行默认数据
+		`INSERT OR IGNORE INTO profile (id, avatar, bio) VALUES (1, '', '')`,
+
+		// 留言表
+		`CREATE TABLE IF NOT EXISTS messages (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			device_id TEXT NOT NULL DEFAULT '',
+			nickname TEXT,
+			content TEXT NOT NULL DEFAULT '',
+			last_modified_date TEXT,
+			ip TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_messages_device_id ON messages (device_id)`,
+
+		// 更新日志表
+		`CREATE TABLE IF NOT EXISTS changelogs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			version TEXT NOT NULL DEFAULT '',
+			date TEXT NOT NULL DEFAULT '',
+			logs TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_changelogs_version ON changelogs (version)`,
+	}
+
+	for _, sql := range ddl {
+		if err := DB.Exec(sql).Error; err != nil {
+			return fmt.Errorf("执行 DDL 失败 [%s]: %w", sql[:60], err)
+		}
+	}
 
 	return nil
 }

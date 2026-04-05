@@ -41,7 +41,7 @@ type Changelog struct {
 	ID        uint64    `json:"-" gorm:"primaryKey;autoIncrement"`
 	Version   string    `json:"version" gorm:"column:version;type:varchar(20);uniqueIndex"`
 	Date      string    `json:"date" gorm:"column:date;type:varchar(20)"`
-	Logs      JSON      `json:"logs" gorm:"column:logs;type:json"`
+	Logs      JSON      `json:"logs" gorm:"column:logs;type:text"`
 	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at"`
 	UpdatedAt time.Time `json:"updatedAt" gorm:"column:updated_at"`
 }

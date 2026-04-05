@@ -6,7 +6,7 @@ import (
 	"errors"
 )
 
-// JSON 自定义类型，用于 MySQL JSON 字段的序列化/反序列化
+// JSON 自定义类型，用于 SQLite TEXT 字段的 JSON 序列化/反序列化
 type JSON json.RawMessage
 
 // Value 实现 driver.Valuer 接口

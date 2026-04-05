@@ -159,7 +159,7 @@ func PostPhotoLike(c *gin.Context) {
 		return
 	}
 
-	db.DB.Exec("INSERT IGNORE INTO photo_likes (photo_id, device_id) VALUES (?, ?)", photoID, deviceID)
+	db.DB.Exec("INSERT OR IGNORE INTO photo_likes (photo_id, device_id) VALUES (?, ?)", photoID, deviceID)
 
 	var count int64
 	db.DB.Model(&models.PhotoLike{}).Where("photo_id = ?", photoID).Count(&count)
@@ -219,7 +219,7 @@ func PostPhotoDislike(c *gin.Context) {
 	}
 
 	if action == "dislike" {
-		db.DB.Exec("INSERT IGNORE INTO photo_dislikes (photo_id, device_id) VALUES (?, ?)", photoID, deviceID)
+		db.DB.Exec("INSERT OR IGNORE INTO photo_dislikes (photo_id, device_id) VALUES (?, ?)", photoID, deviceID)
 	} else {
 		db.DB.Where("photo_id = ? AND device_id = ?", photoID, deviceID).Delete(&models.PhotoDislike{})
 	}

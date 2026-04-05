@@ -17,13 +17,9 @@ type ServerConfig struct {
 	CORSOrigin string
 }
 
-// DBConfig MySQL 配置
+// DBConfig SQLite 配置
 type DBConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	DBName   string
+	Path string // SQLite 数据库文件路径
 }
 
 // RedisConfig Redis 配置
@@ -56,11 +52,7 @@ func Load() *Config {
 			CORSOrigin: getEnv("CORS_ORIGIN", "https://fatwill.cloud"),
 		},
 		DB: DBConfig{
-			Host:     getEnv("DB_HOST", "127.0.0.1"),
-			Port:     getEnv("DB_PORT", "3306"),
-			User:     getEnv("DB_USER", "root"),
-			Password: getEnv("DB_PASSWORD", ""),
-			DBName:   getEnv("DB_NAME", "blog"),
+			Path: getEnv("DB_PATH", "/root/blog-data/blog.db"),
 		},
 		Redis: RedisConfig{
 			Host:     getEnv("REDIS_HOST", "127.0.0.1"),

@@ -25,11 +25,11 @@ func main() {
 	// 加载配置
 	cfg := config.Load()
 
-	// 初始化 MySQL
+	// 初始化 SQLite
 	if err := db.Init(&cfg.DB); err != nil {
-		log.Fatalf("初始化 MySQL 失败: %v", err)
+		log.Fatalf("初始化 SQLite 失败: %v", err)
 	}
-	log.Println("✅ MySQL 连接成功")
+	log.Printf("✅ SQLite 连接成功 (%s)", cfg.DB.Path)
 
 	// 初始化 Redis
 	if err := rds.Init(&cfg.Redis); err != nil {

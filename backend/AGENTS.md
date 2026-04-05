@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-fatwill 个人博客后端服务，基于 Go + Gin + GORM + Redis 构建的 RESTful API，提供文章管理、相册管理、留言板、鉴权、文件上传等核心能力。服务部署在 2 核 2G 云服务器上，需注重性能优化。
+fatwill 个人博客后端服务，基于 Go + Gin + GORM + SQLite + Redis 构建的 RESTful API，提供文章管理、相册管理、留言板、鉴权、文件上传等核心能力。服务部署在 2 核 2G 云服务器上，需注重性能优化。
 
 ## 技术栈速览
 
@@ -10,8 +10,8 @@ fatwill 个人博客后端服务，基于 Go + Gin + GORM + Redis 构建的 REST
 |------|------|------|
 | 语言 | Go | 1.26.1 |
 | Web 框架 | Gin | v1.12.0 |
-| ORM | GORM | v1.31.1 |
-| 数据库 | MySQL | 8.0+ |
+| ORM | GORM + glebarez/sqlite | v1.31.1 + v1.11.0 |
+| 数据库 | SQLite (modernc.org/sqlite) | 纯 Go 实现 |
 | 缓存 | Redis (go-redis) | v9.18.0 |
 | 跨域 | gin-contrib/cors | v1.7.7 |
 | 密码哈希 | golang.org/x/crypto/bcrypt | v0.49.0 |
@@ -24,7 +24,7 @@ Agent 收到任务后，**必须按以下优先级依次读取**：
 
 1. **本文件** `AGENTS.md` — 项目全貌、模块注册、路由总表
 2. `docs/coding-conventions.md` — Go 编码规范（最高优先级）
-3. `docs/mysql.md` — MySQL 使用规范 + 全量表结构
+3. `docs/sqlite.md` — SQLite 使用规范 + 全量表结构
 4. `docs/http-api.md` — HTTP API 设计规范 + 错误码体系
 5. `docs/architecture.md` — 整体架构概览
 
@@ -64,7 +64,7 @@ backend/
 │       └── handler.go     # 主题偏好（Redis 存储）
 ├── pkg/                   # 🔗 基础设施层（可跨领域引用）
 │   ├── db/
-│   │   └── db.go          # MySQL 连接池初始化（MaxOpen=10, MaxIdle=5）
+│   │   └── db.go          # SQLite 连接初始化 + 自动建表（MaxOpen=1, WAL 模式）
 │   ├── rds/
 │   │   └── rds.go         # Redis 客户端初始化
 │   └── middleware/
@@ -72,7 +72,7 @@ backend/
 └── docs/                  # 📚 工程文档体系
     ├── architecture.md    # 整体架构概览
     ├── coding-conventions.md  # Go 编码规范
-    ├── mysql.md           # MySQL 使用规范 + 表结构
+    ├── sqlite.md          # SQLite 使用规范 + 表结构
     ├── http-api.md        # HTTP API 设计规范
     └── api/               # 按领域分组的接口文档
         ├── article.md     # 文章接口
@@ -221,11 +221,7 @@ backend/
 |--------|--------|------|
 | `SERVER_PORT` | `8080` | 服务监听端口 |
 | `CORS_ORIGIN` | `https://fatwill.cloud` | 允许跨域来源 |
-| `DB_HOST` | `127.0.0.1` | MySQL 主机 |
-| `DB_PORT` | `3306` | MySQL 端口 |
-| `DB_USER` | `root` | MySQL 用户名 |
-| `DB_PASSWORD` | *(见配置)* | MySQL 密码 |
-| `DB_NAME` | `blog` | 数据库名 |
+| `DB_PATH` | `/root/blog-data/blog.db` | SQLite 数据库文件路径 |
 | `REDIS_HOST` | `127.0.0.1` | Redis 主机 |
 | `REDIS_PORT` | `6379` | Redis 端口 |
 | `REDIS_PASSWORD` | *(见配置)* | Redis 密码 |
@@ -276,6 +272,7 @@ refactor(backend agent): 简要描述
 
 ## 变更日志
 
+- 2026-04-05: **数据库从 MySQL 迁移至 SQLite** — 使用 modernc.org/sqlite 纯 Go 驱动，无 CGO 依赖；自动建表；WAL 模式优化性能
 - 2026-04-05: **图片存储迁移至腾讯云 COS** — 上传直接写入 COS，删除照片/相册时异步清理 COS 对象；新增 `docs/api/upload.md` 接口文档
 - 2026-04-04: 创建 AGENTS.md，补全后端项目中枢索引文档
 - 2026-04-04: 登录态有效期从 72h 延长至 30 天，支持滚动续期

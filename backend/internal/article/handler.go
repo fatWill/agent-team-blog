@@ -255,7 +255,7 @@ func LikeArticle(c *gin.Context) {
 		// 已点赞 → 取消
 		db.DB.Where("article_id = ? AND device_id = ?", articleID, deviceID).Delete(&models.ArticleLike{})
 		db.DB.Model(&models.Article{}).Where("id = ?", articleID).
-			Update("like_count", gorm.Expr("GREATEST(like_count - 1, 0)"))
+			Update("like_count", gorm.Expr("MAX(like_count - 1, 0)"))
 		liked = false
 	} else {
 		// 未点赞 → 点赞
