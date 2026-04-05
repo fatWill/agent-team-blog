@@ -1,9 +1,7 @@
-import { getProfile } from '~/server/utils/profile'
-
 /**
  * GET /api/profile
- * 获取博主个人资料（公开接口，无需鉴权）
+ * 透传个人资料查询到 Go 后端
  */
-export default defineEventHandler(() => {
-  return getProfile()
+export default defineEventHandler(async (event) => {
+  return proxyToBackend(event, '/api/profile')
 })

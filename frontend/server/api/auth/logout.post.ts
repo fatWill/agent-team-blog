@@ -1,24 +1,9 @@
-import { getCookie, deleteCookie } from 'h3'
-import { deleteToken } from '~/server/utils/auth'
-
 /**
  * POST /api/auth/logout
- * 退出登录：删除 Redis token + 清除 cookie
+ * 透传登出请求到 Go 后端，透传 Set-Cookie（清除 auth_token）
  */
 export default defineEventHandler(async (event) => {
-  const token = getCookie(event, 'auth_token')
-
-  if (token) {
-    // 从 Redis 删除 token
-    await deleteToken(token)
-  }
-
-  // 清除客户端 cookie
-  deleteCookie(event, 'auth_token', {
-    httpOnly: true,
-    path: '/',
-    sameSite: 'lax',
+  return proxyToBackend(event, '/api/auth/logout', {
+    method: 'POST',
   })
-
-  return { ok: true }
 })

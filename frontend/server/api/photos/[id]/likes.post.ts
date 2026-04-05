@@ -1,34 +1,12 @@
-import { getDb } from '~/server/utils/db'
-
 /**
  * POST /api/photos/:id/likes
- * 给指定照片点赞，每个设备只能点赞一次（重复点赞直接返回当前状态，不报错）
+ * 透传照片点赞到 Go 后端
  */
 export default defineEventHandler(async (event) => {
-  const photoId = Number(event.context.params?.id)
-  if (!photoId || isNaN(photoId)) {
-    throw createError({ statusCode: 400, statusMessage: '无效的照片 ID' })
-  }
-
-  const body = await readBody<{ deviceId: string }>(event)
-  const deviceId = body?.deviceId?.trim()
-
-  if (!deviceId || deviceId.length < 8 || deviceId.length > 64) {
-    throw createError({ statusCode: 400, statusMessage: '无效的设备 ID' })
-  }
-
-  const db = getDb()
-
-  // INSERT OR IGNORE：重复点赞静默忽略（不报错）
-  db.prepare(
-    'INSERT OR IGNORE INTO photo_likes (photo_id, device_id) VALUES (?, ?)',
-  ).run(photoId, deviceId)
-
-  // 返回最新点赞数
-  const countRow = db.prepare(
-    'SELECT COUNT(*) AS cnt FROM photo_likes WHERE photo_id = ?',
-  ).get(photoId) as { cnt: number }
-  const count = Number(countRow?.cnt ?? 0)
-
-  return { count, liked: true }
+  const id = event.context.params?.id
+  const body = await readBody(event)
+  return proxyToBackend(event, `/api/photos/${id}/likes`, {
+    method: 'POST',
+    body,
+  })
 })

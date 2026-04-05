@@ -1,10 +1,7 @@
-import { getAlbumList } from '~/server/utils/albums'
-
 /**
  * GET /api/albums
- * 获取所有相册集列表（公开接口，无需鉴权）
+ * 透传相册列表查询到 Go 后端
  */
-export default defineEventHandler(() => {
-  const list = getAlbumList()
-  return { list }
+export default defineEventHandler(async (event) => {
+  return proxyToBackend(event, '/api/albums')
 })

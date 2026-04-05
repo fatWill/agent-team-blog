@@ -1,27 +1,8 @@
-import { getAlbumById, getPhotosByAlbumId } from '~/server/utils/albums'
-
 /**
  * GET /api/albums/:id/photos
- * 获取指定相册集的所有照片（公开接口，无需鉴权）
+ * 透传相册照片列表查询到 Go 后端
  */
-export default defineEventHandler((event) => {
-  const albumId = Number(event.context.params?.id)
-  if (!albumId || isNaN(albumId)) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: '无效的相册 ID',
-    })
-  }
-
-  // 检查相册是否存在
-  const album = getAlbumById(albumId)
-  if (!album) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: '相册不存在',
-    })
-  }
-
-  const list = getPhotosByAlbumId(albumId)
-  return { list }
+export default defineEventHandler(async (event) => {
+  const id = event.context.params?.id
+  return proxyToBackend(event, `/api/albums/${id}/photos`)
 })

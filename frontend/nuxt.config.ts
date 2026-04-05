@@ -3,20 +3,12 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-03-25',
 
   runtimeConfig: {
-    // SQLite 数据库路径（从 .env 自动读取）
-    dbPath: process.env.DB_PATH || '/root/blog-data/blog.db',
-    // Redis 配置
-    redisHost: process.env.REDIS_HOST || '127.0.0.1',
-    redisPort: process.env.REDIS_PORT || '6379',
-    redisPassword: process.env.REDIS_PASSWORD || '',
+    // Go 后端地址（同一台服务器内网直连）
+    backendUrl: process.env.BACKEND_URL || 'http://127.0.0.1:8080',
   },
 
   nitro: {
     maxRequestBodySize: 500 * 1024 * 1024, // 500MB
-    // better-sqlite3 是原生模块，不打包进 bundle，作为外部依赖在服务器上安装
-    externals: {
-      external: ['better-sqlite3'],
-    },
   },
 
   devtools: { enabled: false },

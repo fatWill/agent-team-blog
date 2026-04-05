@@ -1,27 +1,10 @@
-import { requireAuth } from '~/server/utils/auth'
-import { deleteArticle } from '~/server/utils/articles'
-
+/**
+ * DELETE /api/articles/:id
+ * 透传删除文章到 Go 后端（需鉴权）
+ */
 export default defineEventHandler(async (event) => {
-  // 鉴权校验
-  await requireAuth(event)
-
-  const id = getRouterParam(event, 'id')
-
-  if (!id) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: '缺少文章 ID',
-    })
-  }
-
-  const deleted = deleteArticle(id)
-
-  if (!deleted) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: '文章不存在',
-    })
-  }
-
-  return { ok: true }
+  const id = event.context.params?.id
+  return proxyToBackend(event, `/api/articles/${id}`, {
+    method: 'DELETE',
+  })
 })

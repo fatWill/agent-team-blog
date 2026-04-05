@@ -1,10 +1,7 @@
-import { requireAuth } from '~/server/utils/auth'
-
 /**
  * GET /api/auth/check
- * 检查当前 cookie token 是否有效，同时触发续期
+ * 透传鉴权检查到 Go 后端，透传 Set-Cookie（续期）
  */
 export default defineEventHandler(async (event) => {
-  const username = await requireAuth(event)
-  return { ok: true, username }
+  return proxyToBackend(event, '/api/auth/check')
 })
