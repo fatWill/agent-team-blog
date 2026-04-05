@@ -661,7 +661,7 @@
     </main>
 
     <!-- 底部备案信息 -->
-    <footer class="py-6 text-center text-xs text-gray-400 dark:text-gray-500">
+    <footer class="py-6 text-left text-xs text-gray-400 dark:text-gray-500">
       <p>
         © 2025 fatwill. All rights reserved. &nbsp;
         <a
