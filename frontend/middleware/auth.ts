@@ -23,7 +23,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   // 首次进入（SSR 或内存无状态但有 cookie）：请求服务端验证 cookie
-  const ok = await authStore.checkAuth()
+  // SSR 阶段在 middleware 上下文里读取 headers（这里有可靠的 Nuxt 请求上下文）
+  const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {}
+  const ok = await authStore.checkAuth(requestHeaders)
 
   if (!ok) {
     // 未登录，携带 redirect 参数跳转登录页

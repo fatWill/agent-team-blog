@@ -85,11 +85,11 @@ async function handleLogin() {
   errorMsg.value = ''
   submitting.value = true
   try {
-    await apiLogin({
+    const loginRes = await apiLogin({
       username: form.username,
       password: form.password,
     })
-    authStore.setLoggedIn(true)
+    authStore.setLoggedIn(true, loginRes.username || form.username)
     const redirectTo = (route.query.redirect as string) || '/home'
     router.replace(redirectTo)
   } catch (err: unknown) {
