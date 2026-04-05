@@ -463,103 +463,6 @@
         </div>
       </div>
 
-      <!-- ========== 留言板 Tab ========== -->
-      <div v-else-if="activeTab === 'messages'">
-        <div class="mb-6">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">💬 留言板</h2>
-          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">欢迎留下你的足迹与想法</p>
-        </div>
-        <div v-if="messagesLoading && !messagesLoaded" class="flex items-center justify-center py-20">
-          <AppLoading tip="加载中..." />
-        </div>
-        <div v-else>
-          <!-- 留言输入区 -->
-          <div class="mb-8 rounded-xl border border-gray-100 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-            <h3 class="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">
-              {{ msgForm.editingId ? '✏️ 修改留言' : '💬 写下你的留言' }}
-            </h3>
-            <div class="space-y-3">
-              <input
-                v-model="msgForm.nickname"
-                type="text"
-                maxlength="20"
-                placeholder="昵称（可选）"
-                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-              />
-              <textarea
-                id="msg-content-input"
-                v-model="msgForm.content"
-                maxlength="500"
-                rows="3"
-                placeholder="写下你想说的话...（最多500字）"
-                class="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-              />
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-400 dark:text-gray-500">{{ msgForm.content.length }}/500</span>
-                <div class="flex items-center gap-2">
-                  <button
-                    v-if="msgForm.editingId"
-                    class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                    @click="cancelEditMessage"
-                  >
-                    取消
-                  </button>
-                  <button
-                    :disabled="msgForm.submitting || !msgForm.content.trim()"
-                    class="rounded-lg bg-primary-500 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
-                    @click="handleSubmitMessage"
-                  >
-                    {{ msgForm.submitting ? '提交中...' : (msgForm.editingId ? '保存修改' : (myMessage ? '修改留言' : '发布留言')) }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 留言列表 -->
-          <div v-if="messages.length > 0" class="space-y-4">
-            <div
-              v-for="msg in messages"
-              :key="msg.id"
-              class="rounded-xl border border-gray-100 bg-white p-5 transition-colors dark:border-gray-700 dark:bg-gray-800"
-              :class="{ 'ring-1 ring-primary-200 dark:ring-primary-800': msg.isOwn }"
-            >
-              <div class="mb-2 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ msg.nickname }}</span>
-                  <span v-if="msg.isOwn" class="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">我</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <time class="text-xs text-gray-400 dark:text-gray-500">{{ relativeTime(msg.createdAt) }}</time>
-                  <!-- 编辑按钮（仅自己的留言） -->
-                  <button
-                    v-if="msg.isOwn"
-                    :disabled="!msg.canEdit"
-                    class="flex items-center gap-1 text-xs transition-colors"
-                    :class="msg.canEdit ? 'text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400 cursor-pointer' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'"
-                    :title="msg.canEdit ? '编辑留言' : '今天已修改过'"
-                    @click="msg.canEdit && startEditMessage(msg)"
-                  >
-                    <span>✏️</span>
-                    <span class="text-[10px]" :class="msg.canEdit ? 'text-gray-400 dark:text-gray-500' : 'text-gray-300 dark:text-gray-600'">每天可改一次</span>
-                  </button>
-                </div>
-              </div>
-              <p class="whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-400">{{ msg.content }}</p>
-            </div>
-          </div>
-
-          <!-- 空状态 -->
-          <div v-else class="py-20 text-center">
-            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-              <span class="text-2xl">💬</span>
-            </div>
-            <p class="text-lg font-medium text-gray-600 dark:text-gray-400">还没有留言</p>
-            <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">快来写下第一条留言吧！</p>
-          </div>
-        </div>
-      </div>
-
       <!-- ========== Agent Team Tab ========== -->
       <div v-else-if="activeTab === 'agent-team'">
         <div class="mb-6">
@@ -901,8 +804,8 @@
 </template>
 
 <script setup lang="ts">
-import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem, MessageItem, MessageListResponse } from '~/types'
-import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetMessages, apiCreateMessage, apiUpdateMessage } from '~/utils/api'
+import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
+import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch } from '~/utils/api'
 import { toCdnUrl } from '~/utils/imageUrl'
 
 const { isDark, toggleTheme } = useTheme()
@@ -1147,7 +1050,6 @@ const tabs: TabItem[] = [
   { key: 'life', label: '📷 生活' },
   { key: 'tools', label: '🛠️ 小工具·小游戏' },
   { key: 'agent-team', label: '🤖 Agent Team' },
-  { key: 'messages', label: '💬 留言板' },
   { key: 'changelog', label: '📋 更新日志' },
 ]
 const activeTab = ref('articles')
@@ -1812,114 +1714,10 @@ function onWheel(e: WheelEvent) {
   }
 }
 
-// ====== 留言板 ======
-const messages = ref<MessageItem[]>([])
-const messagesLoading = ref(false)
-const messagesLoaded = ref(false)
-
-// 留言输入表单
-const msgForm = reactive({
-  nickname: '',
-  content: '',
-  submitting: false,
-  editingId: null as number | null, // 正在编辑的留言 ID
-})
-
-/** 当前设备已发过的留言 */
-const myMessage = computed(() => messages.value.find(m => m.isOwn))
-
-/** 相对时间格式化 */
-function relativeTime(dateStr: string): string {
-  const now = Date.now()
-  const diff = now - new Date(dateStr).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return '刚刚'
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}分钟前`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}小时前`
-  const days = Math.floor(hours / 24)
-  return `${days}天前`
-}
-
-async function fetchMessages() {
-  messagesLoading.value = true
-  try {
-    const res = await apiGetMessages(deviceId.value || undefined)
-    messages.value = res.list
-    messagesLoaded.value = true
-  } catch {
-    messages.value = []
-  } finally {
-    messagesLoading.value = false
-  }
-}
-
-async function handleSubmitMessage() {
-  if (!msgForm.content.trim()) return
-  if (!deviceId.value) return
-  msgForm.submitting = true
-  try {
-    if (msgForm.editingId) {
-      // 修改留言
-      const updated = await apiUpdateMessage(msgForm.editingId, {
-        deviceId: deviceId.value,
-        nickname: msgForm.nickname.trim() || undefined,
-        content: msgForm.content.trim(),
-      })
-      // 更新列表中的该条留言
-      const idx = messages.value.findIndex(m => m.id === msgForm.editingId)
-      if (idx !== -1) messages.value[idx] = updated
-      msgForm.editingId = null
-      msgForm.nickname = ''
-      msgForm.content = ''
-    } else {
-      // 新增留言
-      const created = await apiCreateMessage({
-        deviceId: deviceId.value,
-        nickname: msgForm.nickname.trim() || undefined,
-        content: msgForm.content.trim(),
-      })
-      // 插到列表头部
-      messages.value.unshift(created)
-      msgForm.nickname = ''
-      msgForm.content = ''
-    }
-  } catch (err: unknown) {
-    const fetchErr = err as { statusCode?: number; statusMessage?: string; data?: { statusMessage?: string } }
-    const errMsg = fetchErr?.data?.statusMessage || fetchErr?.statusMessage || '操作失败'
-    // 用简单的 alert 提示（后续可优化为 toast）
-    if (import.meta.client) {
-      alert(errMsg)
-    }
-  } finally {
-    msgForm.submitting = false
-  }
-}
-
-function startEditMessage(msg: MessageItem) {
-  msgForm.editingId = msg.id
-  msgForm.nickname = msg.nickname === '匿名' ? '' : msg.nickname
-  msgForm.content = msg.content
-  // 滚动到输入区
-  nextTick(() => {
-    document.getElementById('msg-content-input')?.focus()
-  })
-}
-
-function cancelEditMessage() {
-  msgForm.editingId = null
-  msgForm.nickname = ''
-  msgForm.content = ''
-}
-
 // 生活 Tab 切换时加载相册
 watch(activeTab, (val) => {
   if (val === 'life' && !albumsLoaded.value) {
     fetchAlbums()
-  }
-  if (val === 'messages' && !messagesLoaded.value) {
-    fetchMessages()
   }
 })
 

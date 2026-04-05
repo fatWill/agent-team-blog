@@ -46,7 +46,6 @@ export {
 export {
   apiGetMessages,
   apiCreateMessage,
-  apiUpdateMessage,
   apiDeleteMessage,
 } from '~/features/guestbook'
 

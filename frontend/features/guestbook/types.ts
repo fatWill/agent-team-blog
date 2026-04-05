@@ -4,7 +4,6 @@ export interface MessageItem {
   nickname: string
   content: string
   isOwn: boolean
-  canEdit: boolean
   createdAt: string
   updatedAt: string
 }

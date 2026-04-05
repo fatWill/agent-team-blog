@@ -7,6 +7,5 @@ export type {
 export {
   apiGetMessages,
   apiCreateMessage,
-  apiUpdateMessage,
   apiDeleteMessage,
 } from './api'
