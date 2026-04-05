@@ -10,9 +10,6 @@
       @touchstart.prevent="onPointerDown"
     >
       <span class="enter-text">进入博客</span>
-      <svg class="enter-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-      </svg>
     </div>
   </div>
 </template>
@@ -115,13 +112,13 @@ function updateBtnCache() {
 // 估算按钮尺寸（避免依赖 getBoundingClientRect，初始居中用）
 function estimateBtnSize(): { w: number; h: number } {
   if (typeof window !== 'undefined' && window.innerWidth < 768) {
-    // 移动端: padding 14px 32px, font-size 15px, gap 10px, arrow 20px
-    // 宽度 ≈ 32 + text(~75px) + 10 + 20 + 32 ≈ 169, 高度 ≈ 14 + 15*1.2 + 14 ≈ 46
-    return { w: 169, h: 46 }
+    // 移动端: padding 14px 32px, font-size 15px
+    // 宽度 ≈ 32 + text(~75px) + 32 ≈ 139, 高度 ≈ 14 + 15*1.2 + 14 ≈ 46
+    return { w: 139, h: 46 }
   }
-  // 桌面端: padding 16px 44px, font-size 17px, gap 10px, arrow 20px
-  // 宽度 ≈ 44 + text(~85px) + 10 + 20 + 44 ≈ 203, 高度 ≈ 16 + 17*1.2 + 16 ≈ 52
-  return { w: 203, h: 52 }
+  // 桌面端: padding 16px 44px, font-size 17px
+  // 宽度 ≈ 44 + text(~85px) + 44 ≈ 173, 高度 ≈ 16 + 17*1.2 + 16 ≈ 52
+  return { w: 173, h: 52 }
 }
 
 // 根据屏幕宽度判断是否为移动端，动态调整参数
@@ -484,7 +481,6 @@ onUnmounted(() => {
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: 10px;
   padding: 16px 44px;
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(16px);
@@ -518,16 +514,6 @@ onUnmounted(() => {
 
 .enter-text {
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-}
-
-.enter-arrow {
-  width: 20px;
-  height: 20px;
-  transition: transform 0.3s ease;
-}
-
-.enter-btn:hover .enter-arrow {
-  transform: translateX(4px);
 }
 
 @keyframes btnEntrance {
