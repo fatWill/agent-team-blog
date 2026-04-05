@@ -186,10 +186,10 @@
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📝 文章</h2>
           <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">记录技术探索与思考的点滴</p>
         </div>
-        <div v-if="loading" class="flex items-center justify-center py-20">
+        <div v-if="articlesStatus === 'pending'" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
         </div>
-        <div v-else-if="error" class="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
+        <div v-else-if="articlesStatus === 'error'" class="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
           <p class="text-red-600 dark:text-red-400">加载文章失败，请稍后重试</p>
           <button class="mt-3 text-sm text-primary-500 hover:text-primary-600" @click="fetchArticles">重新加载</button>
         </div>
@@ -679,7 +679,7 @@
           rel="noopener noreferrer"
           class="transition-colors duration-200 hover:text-gray-600 dark:hover:text-gray-400"
         >粤ICP备2025475180号</a>
-        <span class="mx-2">·</span>
+        <span class="mx-2">|</span>
         <span>© 2025 fatwill. All rights reserved.</span>
       </p>
     </footer>
@@ -1161,7 +1161,9 @@ function selectTab(key: string) {
 const loading = ref(false)
 const error = ref(false)
 
-const { data: articlesData, refresh: refreshArticles } = await useAsyncData(
+// 不使用 await，让 3 个 useAsyncData 并行发起请求
+// 避免串行阻塞导致白屏
+const { data: articlesData, refresh: refreshArticles, status: articlesStatus } = useAsyncData(
   'articles',
   () => apiFetchArticles(),
   { default: () => ({ list: [] as ArticleListItem[] }) }
@@ -1171,7 +1173,7 @@ const articles = computed(() => articlesData.value?.list ?? [])
 // ====== 更新日志数据（SSR 预取） ======
 const changelogLoading = ref(false)
 
-const { data: changelogData } = await useAsyncData(
+const { data: changelogData } = useAsyncData(
   'changelog',
   () => $fetch<ChangelogResponse>('/api/changelog'),
   { default: () => ({ changelog: [] as ChangelogItem[] }) }
@@ -1179,7 +1181,7 @@ const { data: changelogData } = await useAsyncData(
 const changelog = computed(() => changelogData.value?.changelog ?? [])
 
 // ====== 博主个人资料（SSR 预取） ======
-const { data: profileData } = await useAsyncData(
+const { data: profileData } = useAsyncData(
   'profile',
   () => apiGetProfile(),
   { default: () => ({ avatar: '', bio: '' }) }
