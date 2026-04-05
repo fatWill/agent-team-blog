@@ -83,7 +83,7 @@ func uploadToCOS(data []byte, key string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("上传 COS 失败: %w", err)
 	}
-	return fmt.Sprintf("%s/%s", strings.TrimRight(cosCfg.BaseURL, "/"), key), nil
+	return fmt.Sprintf("%s/%s", strings.TrimRight(cosCfg.CustomDomain, "/"), key), nil
 }
 
 // cosMultipartChunkSize COS 分片上传每片大小（1MB）
@@ -138,7 +138,7 @@ func multipartUploadToCOS(data []byte, key string) (string, error) {
 		return "", fmt.Errorf("COS 合并分片失败: %w", err)
 	}
 
-	return fmt.Sprintf("%s/%s", strings.TrimRight(cosCfg.BaseURL, "/"), key), nil
+	return fmt.Sprintf("%s/%s", strings.TrimRight(cosCfg.CustomDomain, "/"), key), nil
 }
 
 // smartUploadSize 小文件/大文件分界线（2MB）
@@ -155,8 +155,9 @@ func smartUploadToCOS(data []byte, key string) (string, error) {
 }
 
 // DeleteFromCOS 根据完整 URL 删除 COS 对象（导出供其他模块调用）
-// url 格式：https://assets.fatwill.cloud/upload/20260405/xxx.jpg
-// 提取 key：upload/20260405/xxx.jpg
+// 支持两种 URL 格式：
+//   - 自定义域名：https://assets.fatwill.cloud/upload/xxx.jpg
+//   - COS 原始域名：https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/xxx.jpg
 func DeleteFromCOS(fileURL string) error {
 	if cosClient == nil {
 		return fmt.Errorf("COS 客户端未初始化")
@@ -164,13 +165,19 @@ func DeleteFromCOS(fileURL string) error {
 	if fileURL == "" {
 		return nil
 	}
-	// 从完整 URL 中提取 COS key
-	baseURL := strings.TrimRight(cosCfg.BaseURL, "/") + "/"
-	if !strings.HasPrefix(fileURL, baseURL) {
+	// 尝试从自定义域名或 COS 原始域名中提取 key
+	var key string
+	customBase := strings.TrimRight(cosCfg.CustomDomain, "/") + "/"
+	cosBase := strings.TrimRight(cosCfg.BaseURL, "/") + "/"
+	switch {
+	case strings.HasPrefix(fileURL, customBase):
+		key = strings.TrimPrefix(fileURL, customBase)
+	case strings.HasPrefix(fileURL, cosBase):
+		key = strings.TrimPrefix(fileURL, cosBase)
+	default:
 		// 非 COS 管理的 URL，跳过删除
 		return nil
 	}
-	key := strings.TrimPrefix(fileURL, baseURL)
 	if key == "" {
 		return nil
 	}

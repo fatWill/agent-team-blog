@@ -31,11 +31,12 @@ type RedisConfig struct {
 
 // COSConfig 腾讯云 COS 配置
 type COSConfig struct {
-	SecretID  string
-	SecretKey string
-	Bucket    string
-	Region    string
-	BaseURL   string // CDN 访问域名，如 https://assets.fatwill.cloud
+	SecretID     string
+	SecretKey    string
+	Bucket       string
+	Region       string
+	BaseURL      string // COS 原始域名（SDK 内部使用）
+	CustomDomain string // 自定义域名（返回给前端的图片 URL）
 }
 
 // UploadConfig 上传配置
@@ -64,11 +65,12 @@ func Load() *Config {
 			TmpDir: getEnv("UPLOAD_TMP_DIR", "/root/blog-uploads/tmp"),
 		},
 		COS: COSConfig{
-			SecretID:  getEnv("COS_SECRET_ID", ""),
-			SecretKey: getEnv("COS_SECRET_KEY", ""),
-			Bucket:    getEnv("COS_BUCKET", "fatwill-cloud-1253664788"),
-			Region:    getEnv("COS_REGION", "ap-guangzhou"),
-			BaseURL:   getEnv("COS_BASE_URL", "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
+			SecretID:     getEnv("COS_SECRET_ID", ""),
+			SecretKey:    getEnv("COS_SECRET_KEY", ""),
+			Bucket:       getEnv("COS_BUCKET", "fatwill-cloud-1253664788"),
+			Region:       getEnv("COS_REGION", "ap-guangzhou"),
+			BaseURL:      getEnv("COS_BASE_URL", "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
+			CustomDomain: getEnv("COS_CUSTOM_DOMAIN", "https://assets.fatwill.cloud"),
 		},
 	}
 }

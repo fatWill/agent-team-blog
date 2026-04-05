@@ -231,7 +231,8 @@ backend/
 | `COS_SECRET_KEY` | *(必填)* | 腾讯云 COS SecretKey |
 | `COS_BUCKET` | `fatwill-cloud-1253664788` | COS Bucket 名称 |
 | `COS_REGION` | `ap-guangzhou` | COS 地域 |
-| `COS_BASE_URL` | `https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | COS 访问域名（后续切换自定义域名只需改此项） |
+| `COS_BASE_URL` | `https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | COS 原始域名（SDK 内部使用） |
+| `COS_CUSTOM_DOMAIN` | `https://assets.fatwill.cloud` | 自定义域名（返回给前端的图片 URL） |
 
 ## 部署信息
 
@@ -272,6 +273,7 @@ refactor(backend agent): 简要描述
 
 ## 变更日志
 
+- 2026-04-05: **图片 URL 切换为自定义域名** — 新增 `COS_CUSTOM_DOMAIN` 环境变量，上传返回 URL 使用 `assets.fatwill.cloud`；`DeleteFromCOS` 兼容两种域名
 - 2026-04-05: **数据库从 MySQL 迁移至 SQLite** — 使用 modernc.org/sqlite 纯 Go 驱动，无 CGO 依赖；自动建表；WAL 模式优化性能
 - 2026-04-05: **图片存储迁移至腾讯云 COS** — 上传直接写入 COS，删除照片/相册时异步清理 COS 对象；新增 `docs/api/upload.md` 接口文档
 - 2026-04-04: 创建 AGENTS.md，补全后端项目中枢索引文档
