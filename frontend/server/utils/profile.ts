@@ -1,13 +1,7 @@
-import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise'
-import { getPool } from './db'
+import { getDb } from './db'
 
 /** Profile 数据结构 */
 export interface ProfileRow {
-  avatar: string
-  bio: string
-}
-
-interface ProfileDBRow extends RowDataPacket {
   avatar: string
   bio: string
 }
@@ -16,21 +10,18 @@ interface ProfileDBRow extends RowDataPacket {
  * 获取博主个人资料
  * profile 表只有一条记录（id=1）
  */
-export async function getProfile(): Promise<ProfileRow> {
-  const pool = getPool()
+export function getProfile(): ProfileRow {
+  const db = getDb()
 
-  const [rows] = await pool.query<ProfileDBRow[]>(
-    'SELECT avatar, bio FROM profile WHERE id = 1',
-  )
+  const row = db.prepare('SELECT avatar, bio FROM profile WHERE id = 1').get() as { avatar: string; bio: string } | undefined
 
-  if (rows.length === 0) {
-    // 理论上不会发生，因为初始化时已插入默认记录
+  if (!row) {
     return { avatar: '', bio: '' }
   }
 
   return {
-    avatar: rows[0].avatar,
-    bio: rows[0].bio,
+    avatar: row.avatar,
+    bio: row.bio,
   }
 }
 
@@ -38,12 +29,11 @@ export async function getProfile(): Promise<ProfileRow> {
  * 更新博主个人资料
  * 仅更新传入的字段
  */
-export async function updateProfile(data: Partial<ProfileRow>): Promise<ProfileRow> {
-  const pool = getPool()
+export function updateProfile(data: Partial<ProfileRow>): ProfileRow {
+  const db = getDb()
 
-  // 构建动态 SET 子句
   const setClauses: string[] = []
-  const values: (string)[] = []
+  const values: string[] = []
 
   if (data.avatar !== undefined) {
     setClauses.push('avatar = ?')
@@ -56,12 +46,8 @@ export async function updateProfile(data: Partial<ProfileRow>): Promise<ProfileR
   }
 
   if (setClauses.length > 0) {
-    await pool.query<ResultSetHeader>(
-      `UPDATE profile SET ${setClauses.join(', ')} WHERE id = 1`,
-      values,
-    )
+    db.prepare(`UPDATE profile SET ${setClauses.join(', ')} WHERE id = 1`).run(...values)
   }
 
-  // 返回更新后的完整数据
   return getProfile()
 }

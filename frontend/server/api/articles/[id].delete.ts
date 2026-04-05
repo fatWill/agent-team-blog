@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const deleted = await deleteArticle(id)
+  const deleted = deleteArticle(id)
 
   if (!deleted) {
     throw createError({

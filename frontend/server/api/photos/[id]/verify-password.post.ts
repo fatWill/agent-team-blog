@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const hash = await getPhotoPasswordHash(photoId)
+  const hash = getPhotoPasswordHash(photoId)
 
   // 照片不存在或未设置密码
   if (hash === null) {

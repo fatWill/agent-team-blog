@@ -34,5 +34,5 @@ export default defineEventHandler(async (event) => {
     updates.bio = typeof body.bio === 'string' ? body.bio.trim() : ''
   }
 
-  return await updateProfile(updates)
+  return updateProfile(updates)
 })

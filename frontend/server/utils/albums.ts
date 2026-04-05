@@ -1,5 +1,4 @@
-import { getPool } from './db'
-import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise'
+import { getDb } from './db'
 
 /** 相册集数据结构 */
 export interface AlbumItem {
@@ -25,26 +24,26 @@ export interface PhotoItem {
 }
 
 /** 数据库行映射 - 相册集 */
-interface AlbumRow extends RowDataPacket {
+interface AlbumRow {
   id: number
   name: string
   description: string | null
   cover_url: string | null
   password_hash: string | null
   photo_count: number
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 /** 数据库行映射 - 照片 */
-interface PhotoRow extends RowDataPacket {
+interface PhotoRow {
   id: number
   album_id: number
   url: string
   caption: string | null
   password_hash: string | null
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 /**
@@ -58,8 +57,8 @@ function rowToAlbum(row: AlbumRow): AlbumItem {
     coverUrl: row.cover_url ?? null,
     photoCount: Number(row.photo_count) || 0,
     hasPassword: !!row.password_hash,
-    createdAt: new Date(row.created_at).toISOString(),
-    updatedAt: new Date(row.updated_at).toISOString(),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -73,17 +72,16 @@ function rowToPhoto(row: PhotoRow): PhotoItem {
     url: row.url,
     caption: row.caption ?? null,
     hasPassword: !!row.password_hash,
-    createdAt: new Date(row.created_at).toISOString(),
-    updatedAt: new Date(row.updated_at).toISOString(),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
 /**
  * 获取所有相册集列表，每个相册附带 photo_count 和 cover_url
- * cover_url 取该相册最新一张照片的 url，无照片时为 null
  */
-export async function getAlbumList(): Promise<AlbumItem[]> {
-  const pool = getPool()
+export function getAlbumList(): AlbumItem[] {
+  const db = getDb()
 
   const sql = `
     SELECT
@@ -99,15 +97,15 @@ export async function getAlbumList(): Promise<AlbumItem[]> {
     ORDER BY a.created_at DESC
   `
 
-  const [rows] = await pool.query<AlbumRow[]>(sql)
+  const rows = db.prepare(sql).all() as AlbumRow[]
   return rows.map(rowToAlbum)
 }
 
 /**
  * 获取单个相册集详情（含照片数量）
  */
-export async function getAlbumById(id: number): Promise<AlbumItem | null> {
-  const pool = getPool()
+export function getAlbumById(id: number): AlbumItem | null {
+  const db = getDb()
 
   const sql = `
     SELECT
@@ -124,43 +122,42 @@ export async function getAlbumById(id: number): Promise<AlbumItem | null> {
     WHERE a.id = ?
   `
 
-  const [rows] = await pool.query<AlbumRow[]>(sql, [id, id])
-  if (rows.length === 0) return null
-  return rowToAlbum(rows[0])
+  const row = db.prepare(sql).get(id, id) as AlbumRow | undefined
+  if (!row) return null
+  return rowToAlbum(row)
 }
 
 /**
  * 获取相册下所有照片，按 created_at DESC 排序
  */
-export async function getPhotosByAlbumId(albumId: number): Promise<PhotoItem[]> {
-  const pool = getPool()
+export function getPhotosByAlbumId(albumId: number): PhotoItem[] {
+  const db = getDb()
 
-  const [rows] = await pool.query<PhotoRow[]>(
+  const rows = db.prepare(
     'SELECT id, album_id, url, caption, password_hash, created_at, updated_at FROM photos WHERE album_id = ? ORDER BY created_at DESC',
-    [albumId],
-  )
+  ).all(albumId) as PhotoRow[]
+
   return rows.map(rowToPhoto)
 }
 
 /**
  * 创建相册集
  */
-export async function createAlbum(name: string, description?: string, passwordHash?: string | null): Promise<AlbumItem> {
-  const pool = getPool()
+export function createAlbum(name: string, description?: string, passwordHash?: string | null): AlbumItem {
+  const db = getDb()
 
-  const [result] = await pool.query<ResultSetHeader>(
+  const result = db.prepare(
     'INSERT INTO albums (name, description, password_hash) VALUES (?, ?, ?)',
-    [name, description ?? null, passwordHash ?? null],
-  )
+  ).run(name, description ?? null, passwordHash ?? null)
 
-  return (await getAlbumById(result.insertId))!
+  return getAlbumById(Number(result.lastInsertRowid))!
 }
 
 /**
  * 更新相册集
  */
-export async function updateAlbum(id: number, data: { name?: string; description?: string; passwordHash?: string | null }): Promise<AlbumItem | null> {
-  const pool = getPool()
+export function updateAlbum(id: number, data: { name?: string; description?: string; passwordHash?: string | null }): AlbumItem | null {
+  const db = getDb()
 
   const setClauses: string[] = []
   const values: any[] = []
@@ -182,136 +179,110 @@ export async function updateAlbum(id: number, data: { name?: string; description
 
   values.push(id)
 
-  const [result] = await pool.query<ResultSetHeader>(
+  const result = db.prepare(
     `UPDATE albums SET ${setClauses.join(', ')} WHERE id = ?`,
-    values,
-  )
+  ).run(...values)
 
-  if (result.affectedRows === 0) return null
+  if (result.changes === 0) return null
   return getAlbumById(id)
 }
 
 /**
  * 删除相册集（级联删除该相册下所有照片）
  */
-export async function deleteAlbum(id: number): Promise<boolean> {
-  const pool = getPool()
+export function deleteAlbum(id: number): boolean {
+  const db = getDb()
 
   // 先删除关联照片
-  await pool.query<ResultSetHeader>(
-    'DELETE FROM photos WHERE album_id = ?',
-    [id],
-  )
+  db.prepare('DELETE FROM photos WHERE album_id = ?').run(id)
 
   // 再删除相册
-  const [result] = await pool.query<ResultSetHeader>(
-    'DELETE FROM albums WHERE id = ?',
-    [id],
-  )
+  const result = db.prepare('DELETE FROM albums WHERE id = ?').run(id)
 
-  return result.affectedRows > 0
+  return result.changes > 0
 }
 
 /**
  * 添加照片到相册
  */
-export async function addPhoto(albumId: number, url: string, caption?: string, passwordHash?: string | null): Promise<PhotoItem> {
-  const pool = getPool()
+export function addPhoto(albumId: number, url: string, caption?: string, passwordHash?: string | null): PhotoItem {
+  const db = getDb()
 
-  const [result] = await pool.query<ResultSetHeader>(
+  const result = db.prepare(
     'INSERT INTO photos (album_id, url, caption, password_hash) VALUES (?, ?, ?, ?)',
-    [albumId, url, caption ?? null, passwordHash ?? null],
-  )
+  ).run(albumId, url, caption ?? null, passwordHash ?? null)
 
-  const [rows] = await pool.query<PhotoRow[]>(
+  const row = db.prepare(
     'SELECT id, album_id, url, caption, password_hash, created_at, updated_at FROM photos WHERE id = ?',
-    [result.insertId],
-  )
+  ).get(Number(result.lastInsertRowid)) as PhotoRow
 
-  return rowToPhoto(rows[0])
+  return rowToPhoto(row)
 }
 
 /**
  * 删除单张照片，返回被删除照片的 album_id（用于后续更新封面）
  */
-export async function deletePhoto(id: number): Promise<{ deleted: boolean; albumId: number | null }> {
-  const pool = getPool()
+export function deletePhoto(id: number): { deleted: boolean; albumId: number | null } {
+  const db = getDb()
 
   // 先查询该照片的 album_id
-  const [photoRows] = await pool.query<PhotoRow[]>(
-    'SELECT album_id FROM photos WHERE id = ?',
-    [id],
-  )
+  const photoRow = db.prepare('SELECT album_id FROM photos WHERE id = ?').get(id) as { album_id: number } | undefined
 
-  if (photoRows.length === 0) {
+  if (!photoRow) {
     return { deleted: false, albumId: null }
   }
 
-  const albumId = photoRows[0].album_id
+  const albumId = photoRow.album_id
 
-  const [result] = await pool.query<ResultSetHeader>(
-    'DELETE FROM photos WHERE id = ?',
-    [id],
-  )
+  const result = db.prepare('DELETE FROM photos WHERE id = ?').run(id)
 
-  return { deleted: result.affectedRows > 0, albumId }
+  return { deleted: result.changes > 0, albumId }
 }
 
 /**
  * 更新相册封面（取该相册最新照片的 url，无照片则设为 null）
  */
-export async function updateAlbumCover(albumId: number): Promise<void> {
-  const pool = getPool()
+export function updateAlbumCover(albumId: number): void {
+  const db = getDb()
 
-  // 查询该相册最新一张照片
-  const [rows] = await pool.query<PhotoRow[]>(
+  const row = db.prepare(
     'SELECT url FROM photos WHERE album_id = ? ORDER BY created_at DESC LIMIT 1',
-    [albumId],
-  )
+  ).get(albumId) as { url: string } | undefined
 
-  const coverUrl = rows.length > 0 ? rows[0].url : null
+  const coverUrl = row ? row.url : null
 
-  await pool.query<ResultSetHeader>(
-    'UPDATE albums SET cover_url = ? WHERE id = ?',
-    [coverUrl, albumId],
-  )
+  db.prepare('UPDATE albums SET cover_url = ? WHERE id = ?').run(coverUrl, albumId)
 }
 
 /**
  * 获取相册的 password_hash（用于密码验证）
  */
-export async function getAlbumPasswordHash(id: number): Promise<string | null> {
-  const pool = getPool()
+export function getAlbumPasswordHash(id: number): string | null {
+  const db = getDb()
 
-  const [rows] = await pool.query<(RowDataPacket & { password_hash: string | null })[]>(
-    'SELECT password_hash FROM albums WHERE id = ? LIMIT 1',
-    [id],
-  )
+  const row = db.prepare('SELECT password_hash FROM albums WHERE id = ? LIMIT 1').get(id) as { password_hash: string | null } | undefined
 
-  if (rows.length === 0) return null
-  return rows[0].password_hash
+  if (!row) return null
+  return row.password_hash
 }
 
 /**
  * 获取照片的 password_hash（用于密码验证）
  */
-export async function getPhotoPasswordHash(id: number): Promise<string | null> {
-  const pool = getPool()
+export function getPhotoPasswordHash(id: number): string | null {
+  const db = getDb()
 
-  const [rows] = await pool.query<(RowDataPacket & { password_hash: string | null })[]>(
-    'SELECT password_hash FROM photos WHERE id = ? LIMIT 1',
-    [id],
-  )
+  const row = db.prepare('SELECT password_hash FROM photos WHERE id = ? LIMIT 1').get(id) as { password_hash: string | null } | undefined
 
-  if (rows.length === 0) return null
-  return rows[0].password_hash
+  if (!row) return null
+  return row.password_hash
 }
 
 /**
  * 更新单张照片信息
  */
-export async function updatePhoto(id: number, data: { caption?: string; passwordHash?: string | null }): Promise<PhotoItem | null> {
-  const pool = getPool()
+export function updatePhoto(id: number, data: { caption?: string; passwordHash?: string | null }): PhotoItem | null {
+  const db = getDb()
 
   const setClauses: string[] = []
   const values: any[] = []
@@ -329,18 +300,16 @@ export async function updatePhoto(id: number, data: { caption?: string; password
 
   values.push(id)
 
-  const [result] = await pool.query<ResultSetHeader>(
+  const result = db.prepare(
     `UPDATE photos SET ${setClauses.join(', ')} WHERE id = ?`,
-    values,
-  )
+  ).run(...values)
 
-  if (result.affectedRows === 0) return null
+  if (result.changes === 0) return null
 
-  const [rows] = await pool.query<PhotoRow[]>(
+  const row = db.prepare(
     'SELECT id, album_id, url, caption, password_hash, created_at, updated_at FROM photos WHERE id = ?',
-    [id],
-  )
+  ).get(id) as PhotoRow | undefined
 
-  if (rows.length === 0) return null
-  return rowToPhoto(rows[0])
+  if (!row) return null
+  return rowToPhoto(row)
 }

@@ -1,5 +1,4 @@
-import { getPool } from '~/server/utils/db'
-import type { RowDataPacket } from 'mysql2/promise'
+import { getDb } from '~/server/utils/db'
 
 /** 留言数据结构 */
 export interface MessageItem {
@@ -14,15 +13,15 @@ export interface MessageItem {
 }
 
 /** 数据库行映射 */
-interface MessageRow extends RowDataPacket {
+interface MessageRow {
   id: number
   device_id: string
   nickname: string | null
   content: string
   last_modified_date: string | null
   ip: string | null
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 /**
@@ -30,7 +29,6 @@ interface MessageRow extends RowDataPacket {
  */
 export function getTodayDateCST(): string {
   const now = new Date()
-  // UTC 时间 + 8 小时
   const cst = new Date(now.getTime() + 8 * 60 * 60 * 1000)
   return cst.toISOString().slice(0, 10)
 }
@@ -51,7 +49,6 @@ function maskDeviceId(deviceId: string): string {
 function rowToMessage(row: MessageRow, currentDeviceId?: string): MessageItem {
   const isOwn = !!currentDeviceId && row.device_id === currentDeviceId
   const today = getTodayDateCST()
-  // canEdit：是自己的留言 && 今天没有修改过（last_modified_date 为 null 或不等于今天）
   const canEdit = isOwn && (row.last_modified_date === null || row.last_modified_date !== today)
 
   return {
@@ -61,20 +58,20 @@ function rowToMessage(row: MessageRow, currentDeviceId?: string): MessageItem {
     content: row.content,
     isOwn,
     canEdit,
-    createdAt: new Date(row.created_at).toISOString(),
-    updatedAt: new Date(row.updated_at).toISOString(),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
 /**
  * 获取所有留言列表
  */
-export async function getMessageList(currentDeviceId?: string): Promise<MessageItem[]> {
-  const pool = getPool()
+export function getMessageList(currentDeviceId?: string): MessageItem[] {
+  const db = getDb()
 
-  const [rows] = await pool.query<MessageRow[]>(
+  const rows = db.prepare(
     'SELECT id, device_id, nickname, content, last_modified_date, ip, created_at, updated_at FROM messages ORDER BY created_at DESC',
-  )
+  ).all() as MessageRow[]
 
   return rows.map((row) => rowToMessage(row, currentDeviceId))
 }
@@ -82,67 +79,63 @@ export async function getMessageList(currentDeviceId?: string): Promise<MessageI
 /**
  * 根据 ID 获取留言
  */
-export async function getMessageById(id: number): Promise<MessageRow | null> {
-  const pool = getPool()
+export function getMessageById(id: number): MessageRow | null {
+  const db = getDb()
 
-  const [rows] = await pool.query<MessageRow[]>(
+  const row = db.prepare(
     'SELECT id, device_id, nickname, content, last_modified_date, ip, created_at, updated_at FROM messages WHERE id = ? LIMIT 1',
-    [id],
-  )
+  ).get(id) as MessageRow | undefined
 
-  return rows.length > 0 ? rows[0] : null
+  return row ?? null
 }
 
 /**
  * 根据 device_id 获取留言
  */
-export async function getMessageByDeviceId(deviceId: string): Promise<MessageRow | null> {
-  const pool = getPool()
+export function getMessageByDeviceId(deviceId: string): MessageRow | null {
+  const db = getDb()
 
-  const [rows] = await pool.query<MessageRow[]>(
+  const row = db.prepare(
     'SELECT id, device_id, nickname, content, last_modified_date, ip, created_at, updated_at FROM messages WHERE device_id = ? LIMIT 1',
-    [deviceId],
-  )
+  ).get(deviceId) as MessageRow | undefined
 
-  return rows.length > 0 ? rows[0] : null
+  return row ?? null
 }
 
 /**
  * 创建留言
  */
-export async function createMessage(data: {
+export function createMessage(data: {
   deviceId: string
   nickname?: string
   content: string
   ip?: string
-}): Promise<MessageItem> {
-  const pool = getPool()
+}): MessageItem {
+  const db = getDb()
 
-  const [result] = await pool.execute(
+  const result = db.prepare(
     'INSERT INTO messages (device_id, nickname, content, ip) VALUES (?, ?, ?, ?)',
-    [data.deviceId, data.nickname || null, data.content, data.ip || null],
-  ) as any
+  ).run(data.deviceId, data.nickname || null, data.content, data.ip || null)
 
-  const row = await getMessageById(result.insertId)
+  const row = getMessageById(Number(result.lastInsertRowid))
   return rowToMessage(row!, data.deviceId)
 }
 
 /**
  * 更新留言
  */
-export async function updateMessage(id: number, data: {
+export function updateMessage(id: number, data: {
   nickname?: string
   content: string
   deviceId: string
-}): Promise<MessageItem> {
-  const pool = getPool()
+}): MessageItem {
+  const db = getDb()
   const today = getTodayDateCST()
 
-  await pool.execute(
+  db.prepare(
     'UPDATE messages SET nickname = ?, content = ?, last_modified_date = ? WHERE id = ?',
-    [data.nickname || null, data.content, today, id],
-  )
+  ).run(data.nickname || null, data.content, today, id)
 
-  const row = await getMessageById(id)
+  const row = getMessageById(id)
   return rowToMessage(row!, data.deviceId)
 }

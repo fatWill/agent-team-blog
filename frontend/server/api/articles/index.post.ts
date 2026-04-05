@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const article = await createArticle({
+  const article = createArticle({
     id: uuidv4(),
     title: body.title.trim(),
     summary: body.summary?.trim() || '',

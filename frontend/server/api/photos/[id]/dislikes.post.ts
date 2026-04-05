@@ -1,4 +1,4 @@
-import { getPool } from '~/server/utils/db'
+import { getDb } from '~/server/utils/db'
 
 /**
  * POST /api/photos/:id/dislikes
@@ -19,35 +19,31 @@ export default defineEventHandler(async (event) => {
   }
 
   const action = body?.action ?? 'dislike'
-  const pool = getPool()
+  const db = getDb()
 
   if (action === 'dislike') {
-    // INSERT IGNORE：重复踩静默忽略
-    await pool.execute(
-      'INSERT IGNORE INTO photo_dislikes (photo_id, device_id) VALUES (?, ?)',
-      [photoId, deviceId]
-    )
+    // INSERT OR IGNORE：重复踩静默忽略
+    db.prepare(
+      'INSERT OR IGNORE INTO photo_dislikes (photo_id, device_id) VALUES (?, ?)',
+    ).run(photoId, deviceId)
   } else {
     // undislike：删除踩记录
-    await pool.execute(
+    db.prepare(
       'DELETE FROM photo_dislikes WHERE photo_id = ? AND device_id = ?',
-      [photoId, deviceId]
-    )
+    ).run(photoId, deviceId)
   }
 
   // 查当前踩数
-  const [countRows] = await pool.execute(
+  const countRow = db.prepare(
     'SELECT COUNT(*) AS cnt FROM photo_dislikes WHERE photo_id = ?',
-    [photoId]
-  ) as any[]
-  const count = Number(countRows[0]?.cnt ?? 0)
+  ).get(photoId) as { cnt: number }
+  const count = Number(countRow?.cnt ?? 0)
 
   // 查当前设备是否已踩
-  const [dislikedRows] = await pool.execute(
+  const dislikedRow = db.prepare(
     'SELECT 1 FROM photo_dislikes WHERE photo_id = ? AND device_id = ? LIMIT 1',
-    [photoId, deviceId]
-  ) as any[]
-  const disliked = (dislikedRows as any[]).length > 0
+  ).get(photoId, deviceId)
+  const disliked = !!dislikedRow
 
   return { count, disliked }
 })

@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const deleted = await deleteAlbum(id)
+  const deleted = deleteAlbum(id)
 
   if (!deleted) {
     throw createError({

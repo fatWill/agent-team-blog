@@ -1,12 +1,11 @@
-import { getPool } from '~/server/utils/db'
-import type { RowDataPacket } from 'mysql2/promise'
+import { getDb } from '~/server/utils/db'
 
 /**
  * GET /api/articles/like-status-batch
  * 批量查询当前设备对多篇文章的点赞状态
  * Query: ?deviceId=xxx&ids=1,2,3,4,5
  */
-export default defineEventHandler(async (event) => {
+export default defineEventHandler((event) => {
   const query = getQuery(event)
 
   const deviceId = typeof query.deviceId === 'string' ? query.deviceId.trim() : ''
@@ -30,18 +29,17 @@ export default defineEventHandler(async (event) => {
     return { likedIds: [] }
   }
 
-  const pool = getPool()
+  const db = getDb()
 
   // 构建 IN 查询的占位符
   const placeholders = ids.map(() => '?').join(',')
   const params = [...ids, deviceId]
 
-  const [rows] = await pool.execute(
+  const rows = db.prepare(
     `SELECT article_id FROM article_likes WHERE article_id IN (${placeholders}) AND device_id = ?`,
-    params,
-  ) as [RowDataPacket[], any]
+  ).all(...params) as { article_id: string }[]
 
-  const likedIds = rows.map((row: RowDataPacket) => row.article_id)
+  const likedIds = rows.map((row) => row.article_id)
 
   return { likedIds }
 })

@@ -1,6 +1,6 @@
 import { getArticleById } from '~/server/utils/articles'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler((event) => {
   const id = getRouterParam(event, 'id')
 
   if (!id) {
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const article = await getArticleById(id)
+  const article = getArticleById(id)
 
   if (!article) {
     throw createError({

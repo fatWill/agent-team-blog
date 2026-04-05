@@ -4,7 +4,7 @@ import { getAlbumById, getPhotosByAlbumId } from '~/server/utils/albums'
  * GET /api/albums/:id/photos
  * 获取指定相册集的所有照片（公开接口，无需鉴权）
  */
-export default defineEventHandler(async (event) => {
+export default defineEventHandler((event) => {
   const albumId = Number(event.context.params?.id)
   if (!albumId || isNaN(albumId)) {
     throw createError({
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // 检查相册是否存在
-  const album = await getAlbumById(albumId)
+  const album = getAlbumById(albumId)
   if (!album) {
     throw createError({
       statusCode: 404,
@@ -22,6 +22,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const list = await getPhotosByAlbumId(albumId)
+  const list = getPhotosByAlbumId(albumId)
   return { list }
 })

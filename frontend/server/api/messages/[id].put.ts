@@ -1,5 +1,4 @@
-import { getPool } from '~/server/utils/db'
-import type { RowDataPacket } from 'mysql2/promise'
+import { getDb } from '~/server/utils/db'
 
 /**
  * PUT /api/messages/:id
@@ -26,19 +25,16 @@ export default defineEventHandler(async (event) => {
 
   const nickname = body?.nickname?.trim() || null
 
-  const pool = getPool()
+  const db = getDb()
 
   // 查找留言
-  const [rows] = await pool.execute(
+  const existing = db.prepare(
     'SELECT id, device_id, last_modified_date FROM messages WHERE id = ? LIMIT 1',
-    [id],
-  ) as [RowDataPacket[], any]
+  ).get(id) as { id: number; device_id: string; last_modified_date: string | null } | undefined
 
-  if (rows.length === 0) {
+  if (!existing) {
     throw createError({ statusCode: 404, statusMessage: '留言不存在' })
   }
-
-  const existing = rows[0]
 
   // 验证设备归属
   if (existing.device_id !== deviceId) {
@@ -51,18 +47,7 @@ export default defineEventHandler(async (event) => {
   const todayStr = utc8.toISOString().slice(0, 10)
 
   // 检查今天是否已修改过
-  const rawDate = existing.last_modified_date
-  let lastModDate: string | null = null
-  if (rawDate instanceof Date) {
-    // MySQL DATE 类型返回的 Date 对象是本地时间，直接提取年月日（避免 toISOString 时区偏移）
-    const y = rawDate.getFullYear()
-    const m = String(rawDate.getMonth() + 1).padStart(2, '0')
-    const d = String(rawDate.getDate()).padStart(2, '0')
-    lastModDate = `${y}-${m}-${d}`
-  }
-  else if (rawDate) {
-    lastModDate = String(rawDate).slice(0, 10)
-  }
+  const lastModDate = existing.last_modified_date ? String(existing.last_modified_date).slice(0, 10) : null
   if (lastModDate === todayStr) {
     throw createError({
       statusCode: 403,
@@ -71,25 +56,22 @@ export default defineEventHandler(async (event) => {
   }
 
   // 更新留言并记录修改日期
-  await pool.execute(
+  db.prepare(
     'UPDATE messages SET nickname = ?, content = ?, last_modified_date = ? WHERE id = ?',
-    [nickname, content, todayStr, id],
-  )
+  ).run(nickname, content, todayStr, id)
 
   // 查询更新后的记录
-  const [updatedRows] = await pool.execute(
+  const row = db.prepare(
     'SELECT id, nickname, content, last_modified_date, created_at, updated_at FROM messages WHERE id = ?',
-    [id],
-  ) as [RowDataPacket[], any]
+  ).get(id) as any
 
-  const row = updatedRows[0]
   return {
     id: row.id,
     nickname: row.nickname || '匿名',
     content: row.content,
     isOwn: true,
-    canEdit: false, // 刚修改过，今天不能再改
-    createdAt: new Date(row.created_at).toISOString(),
-    updatedAt: new Date(row.updated_at).toISOString(),
+    canEdit: false,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 })

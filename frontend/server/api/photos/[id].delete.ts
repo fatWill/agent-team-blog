@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { deleted, albumId } = await deletePhoto(id)
+  const { deleted, albumId } = deletePhoto(id)
 
   if (!deleted) {
     throw createError({
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   // 更新所属相册封面
   if (albumId) {
-    await updateAlbumCover(albumId)
+    updateAlbumCover(albumId)
   }
 
   return { ok: true }

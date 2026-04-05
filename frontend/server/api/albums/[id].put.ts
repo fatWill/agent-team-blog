@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const album = await updateAlbum(id, updates)
+  const album = updateAlbum(id, updates)
 
   if (!album) {
     throw createError({

@@ -1,5 +1,4 @@
-import { getPool } from './db'
-import type { RowDataPacket } from 'mysql2/promise'
+import { getDb } from './db'
 
 /** 更新日志数据结构 */
 export interface ChangelogItem {
@@ -11,13 +10,13 @@ export interface ChangelogItem {
 }
 
 /** 数据库行映射接口 */
-interface ChangelogRow extends RowDataPacket {
+interface ChangelogRow {
   id: number
   version: string
   date: string
-  logs: string[] | string
-  created_at: Date
-  updated_at: Date
+  logs: string
+  created_at: string
+  updated_at: string
 }
 
 /**
@@ -29,18 +28,18 @@ function rowToChangelog(row: ChangelogRow): ChangelogItem {
     version: row.version,
     date: row.date,
     logs,
-    createdAt: new Date(row.created_at).toISOString(),
-    updatedAt: new Date(row.updated_at).toISOString(),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
 /**
  * 查询所有更新日志，按版本号倒序（id 倒序即为时间倒序）
  */
-export async function getChangelogList(): Promise<ChangelogItem[]> {
-  const pool = getPool()
-  const [rows] = await pool.query<ChangelogRow[]>(
+export function getChangelogList(): ChangelogItem[] {
+  const db = getDb()
+  const rows = db.prepare(
     'SELECT id, version, date, logs, created_at, updated_at FROM changelogs ORDER BY id DESC',
-  )
+  ).all() as ChangelogRow[]
   return rows.map(rowToChangelog)
 }

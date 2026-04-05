@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // 检查相册是否存在
-  const album = await getAlbumById(albumId)
+  const album = getAlbumById(albumId)
   if (!album) {
     throw createError({
       statusCode: 404,
@@ -43,10 +43,10 @@ export default defineEventHandler(async (event) => {
     passwordHash = await bcrypt.hash(body.password.trim(), 10)
   }
 
-  const photo = await addPhoto(albumId, body.url.trim(), body.caption?.trim(), passwordHash)
+  const photo = addPhoto(albumId, body.url.trim(), body.caption?.trim(), passwordHash)
 
   // 更新相册封面
-  await updateAlbumCover(albumId)
+  updateAlbumCover(albumId)
 
   return photo
 })

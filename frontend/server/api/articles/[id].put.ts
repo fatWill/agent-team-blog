@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
     updates.content = body.content
   }
 
-  const article = await updateArticle(id, updates)
+  const article = updateArticle(id, updates)
 
   if (!article) {
     throw createError({

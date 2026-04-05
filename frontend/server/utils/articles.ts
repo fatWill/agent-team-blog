@@ -1,5 +1,4 @@
-import { getPool } from './db'
-import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise'
+import { getDb } from './db'
 
 /** 文章数据结构 */
 export interface Article {
@@ -14,22 +13,21 @@ export interface Article {
 }
 
 /** 数据库行映射接口 */
-interface ArticleRow extends RowDataPacket {
+interface ArticleRow {
   id: string
   title: string
   summary: string
   cover_image: string
-  content: Record<string, any> | string
+  content: string
   like_count: number
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 /**
  * 将数据库行转换为 Article 对象
  */
 function rowToArticle(row: ArticleRow): Article {
-  // MySQL JSON 类型会被 mysql2 自动解析为对象，但 fallback 处理字符串情况
   const content = typeof row.content === 'string' ? JSON.parse(row.content) : row.content
   return {
     id: row.id,
@@ -38,8 +36,8 @@ function rowToArticle(row: ArticleRow): Article {
     coverImage: row.cover_image || '',
     content,
     likeCount: Number(row.like_count) || 0,
-    createdAt: new Date(row.created_at).toISOString(),
-    updatedAt: new Date(row.updated_at).toISOString(),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -47,8 +45,8 @@ function rowToArticle(row: ArticleRow): Article {
  * 查询文章列表（不含 content），按创建时间倒序
  * @param title 可选，按标题关键词模糊搜索
  */
-export async function getArticleList(title?: string): Promise<Omit<Article, 'content'>[]> {
-  const pool = getPool()
+export function getArticleList(title?: string): Omit<Article, 'content'>[] {
+  const db = getDb()
 
   let sql = 'SELECT id, title, summary, cover_image, like_count, created_at, updated_at FROM articles'
   const params: any[] = []
@@ -60,47 +58,47 @@ export async function getArticleList(title?: string): Promise<Omit<Article, 'con
 
   sql += ' ORDER BY created_at DESC'
 
-  const [rows] = await pool.query<ArticleRow[]>(sql, params)
+  const rows = db.prepare(sql).all(...params) as ArticleRow[]
   return rows.map((row) => ({
     id: row.id,
     title: row.title,
     summary: row.summary,
     coverImage: row.cover_image || '',
     likeCount: Number(row.like_count) || 0,
-    createdAt: new Date(row.created_at).toISOString(),
-    updatedAt: new Date(row.updated_at).toISOString(),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }))
 }
 
 /**
  * 根据 ID 查询文章详情
  */
-export async function getArticleById(id: string): Promise<Article | null> {
-  const pool = getPool()
-  const [rows] = await pool.query<ArticleRow[]>(
+export function getArticleById(id: string): Article | null {
+  const db = getDb()
+  const row = db.prepare(
     'SELECT id, title, summary, cover_image, content, like_count, created_at, updated_at FROM articles WHERE id = ?',
-    [id],
-  )
-  if (rows.length === 0) return null
-  return rowToArticle(rows[0])
+  ).get(id) as ArticleRow | undefined
+
+  if (!row) return null
+  return rowToArticle(row)
 }
 
 /**
  * 创建文章
  */
-export async function createArticle(article: {
+export function createArticle(article: {
   id: string
   title: string
   summary: string
   coverImage: string
   content: Record<string, any>
-}): Promise<Article> {
-  const pool = getPool()
-  const now = new Date()
-  await pool.query<ResultSetHeader>(
-    'INSERT INTO articles (id, title, summary, cover_image, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [article.id, article.title, article.summary, article.coverImage, JSON.stringify(article.content), now, now],
-  )
+}): Article {
+  const db = getDb()
+  const now = new Date().toISOString()
+  db.prepare(
+    'INSERT INTO articles (id, title, summary, cover_image, content, like_count, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
+  ).run(article.id, article.title, article.summary, article.coverImage, JSON.stringify(article.content), now, now)
+
   return {
     id: article.id,
     title: article.title,
@@ -108,21 +106,20 @@ export async function createArticle(article: {
     coverImage: article.coverImage,
     content: article.content,
     likeCount: 0,
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
+    createdAt: now,
+    updatedAt: now,
   }
 }
 
 /**
  * 更新文章（部分更新）
  */
-export async function updateArticle(
+export function updateArticle(
   id: string,
   updates: { title?: string; summary?: string; coverImage?: string; content?: Record<string, any> },
-): Promise<Article | null> {
-  const pool = getPool()
+): Article | null {
+  const db = getDb()
 
-  // 构建动态 SET 子句
   const setClauses: string[] = []
   const values: any[] = []
 
@@ -145,30 +142,24 @@ export async function updateArticle(
 
   if (setClauses.length === 0) return null
 
-  // 显式设置 updated_at 更可控
   setClauses.push('updated_at = ?')
-  values.push(new Date())
+  values.push(new Date().toISOString())
   values.push(id)
 
-  const [result] = await pool.query<ResultSetHeader>(
+  const result = db.prepare(
     `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ?`,
-    values,
-  )
+  ).run(...values)
 
-  if (result.affectedRows === 0) return null
+  if (result.changes === 0) return null
 
-  // 返回更新后的完整文章
   return getArticleById(id)
 }
 
 /**
  * 删除文章
  */
-export async function deleteArticle(id: string): Promise<boolean> {
-  const pool = getPool()
-  const [result] = await pool.query<ResultSetHeader>(
-    'DELETE FROM articles WHERE id = ?',
-    [id],
-  )
-  return result.affectedRows > 0
+export function deleteArticle(id: string): boolean {
+  const db = getDb()
+  const result = db.prepare('DELETE FROM articles WHERE id = ?').run(id)
+  return result.changes > 0
 }

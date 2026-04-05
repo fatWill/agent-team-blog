@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const photo = await updatePhoto(id, updates)
+  const photo = updatePhoto(id, updates)
 
   if (!photo) {
     throw createError({

@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const hash = await getAlbumPasswordHash(albumId)
+  const hash = getAlbumPasswordHash(albumId)
 
   // 相册不存在或未设置密码
   if (hash === null) {

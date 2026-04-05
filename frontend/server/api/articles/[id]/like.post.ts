@@ -1,5 +1,4 @@
-import { getPool } from '~/server/utils/db'
-import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise'
+import { getDb } from '~/server/utils/db'
 
 /**
  * POST /api/articles/:id/like
@@ -19,58 +18,43 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '无效的设备 ID' })
   }
 
-  const pool = getPool()
+  const db = getDb()
 
   // 检查文章是否存在
-  const [articleRows] = await pool.execute(
+  const articleRow = db.prepare(
     'SELECT id FROM articles WHERE id = ? LIMIT 1',
-    [articleId],
-  ) as [RowDataPacket[], any]
+  ).get(articleId)
 
-  if (articleRows.length === 0) {
+  if (!articleRow) {
     throw createError({ statusCode: 404, statusMessage: '文章不存在' })
   }
 
   // 检查是否已点赞
-  const [existRows] = await pool.execute(
+  const existRow = db.prepare(
     'SELECT id FROM article_likes WHERE article_id = ? AND device_id = ? LIMIT 1',
-    [articleId, deviceId],
-  ) as [RowDataPacket[], any]
+  ).get(articleId, deviceId)
 
   let liked: boolean
 
-  if (existRows.length > 0) {
+  if (existRow) {
     // 已点赞 → 取消点赞
-    await pool.execute(
-      'DELETE FROM article_likes WHERE article_id = ? AND device_id = ?',
-      [articleId, deviceId],
-    )
-    await pool.execute(
-      'UPDATE articles SET like_count = GREATEST(like_count - 1, 0) WHERE id = ?',
-      [articleId],
-    )
+    db.prepare('DELETE FROM article_likes WHERE article_id = ? AND device_id = ?').run(articleId, deviceId)
+    db.prepare('UPDATE articles SET like_count = MAX(like_count - 1, 0) WHERE id = ?').run(articleId)
     liked = false
   }
   else {
     // 未点赞 → 点赞
-    await pool.execute(
-      'INSERT INTO article_likes (article_id, device_id) VALUES (?, ?)',
-      [articleId, deviceId],
-    )
-    await pool.execute(
-      'UPDATE articles SET like_count = like_count + 1 WHERE id = ?',
-      [articleId],
-    )
+    db.prepare('INSERT INTO article_likes (article_id, device_id) VALUES (?, ?)').run(articleId, deviceId)
+    db.prepare('UPDATE articles SET like_count = like_count + 1 WHERE id = ?').run(articleId)
     liked = true
   }
 
   // 查询最新计数
-  const [countRows] = await pool.execute(
+  const countRow = db.prepare(
     'SELECT like_count FROM articles WHERE id = ?',
-    [articleId],
-  ) as [RowDataPacket[], any]
+  ).get(articleId) as { like_count: number }
 
-  const likeCount = Number(countRows[0]?.like_count ?? 0)
+  const likeCount = Number(countRow?.like_count ?? 0)
 
   return { liked, likeCount }
 })

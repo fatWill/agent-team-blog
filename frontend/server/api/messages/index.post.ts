@@ -1,5 +1,4 @@
-import { getPool } from '~/server/utils/db'
-import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise'
+import { getDb } from '~/server/utils/db'
 
 /**
  * IP 限频：同一 IP 每分钟最多 3 次请求
@@ -12,13 +11,12 @@ function checkIpLimit(ip: string): boolean {
   const record = ipLimitMap.get(ip)
 
   if (!record || now >= record.resetAt) {
-    // 无记录或已过期，重置
     ipLimitMap.set(ip, { count: 1, resetAt: now + 60 * 1000 })
     return true
   }
 
   if (record.count >= 3) {
-    return false // 超出限制
+    return false
   }
 
   record.count++
@@ -75,33 +73,21 @@ export default defineEventHandler(async (event) => {
 
   const nickname = body?.nickname?.trim() || null
 
-  const pool = getPool()
+  const db = getDb()
 
   // 检查该设备是否已有留言
-  const [existRows] = await pool.execute(
+  const existRow = db.prepare(
     'SELECT id, last_modified_date FROM messages WHERE device_id = ? LIMIT 1',
-    [deviceId],
-  ) as [RowDataPacket[], any]
+  ).get(deviceId) as { id: number; last_modified_date: string | null } | undefined
 
   // 计算今天的日期字符串（UTC+8）
   const now = new Date()
   const utc8 = new Date(now.getTime() + 8 * 60 * 60 * 1000)
   const todayStr = utc8.toISOString().slice(0, 10)
 
-  if (existRows.length > 0) {
+  if (existRow) {
     // 已有留言 → 视为修改
-    const existing = existRows[0]
-    const rawDate = existing.last_modified_date
-    let lastModDate: string | null = null
-    if (rawDate instanceof Date) {
-      const y = rawDate.getFullYear()
-      const m = String(rawDate.getMonth() + 1).padStart(2, '0')
-      const d = String(rawDate.getDate()).padStart(2, '0')
-      lastModDate = `${y}-${m}-${d}`
-    }
-    else if (rawDate) {
-      lastModDate = String(rawDate).slice(0, 10)
-    }
+    const lastModDate = existRow.last_modified_date ? String(existRow.last_modified_date).slice(0, 10) : null
 
     if (lastModDate === todayStr) {
       throw createError({
@@ -111,50 +97,44 @@ export default defineEventHandler(async (event) => {
     }
 
     // 更新留言
-    await pool.execute(
+    db.prepare(
       'UPDATE messages SET nickname = ?, content = ?, last_modified_date = ?, ip = ? WHERE id = ?',
-      [nickname, content, todayStr, clientIp, existing.id],
-    )
+    ).run(nickname, content, todayStr, clientIp, existRow.id)
 
     // 查询更新后的记录
-    const [updatedRows] = await pool.execute(
+    const row = db.prepare(
       'SELECT id, nickname, content, last_modified_date, created_at, updated_at FROM messages WHERE id = ?',
-      [existing.id],
-    ) as [RowDataPacket[], any]
+    ).get(existRow.id) as any
 
-    const row = updatedRows[0]
     return {
       id: row.id,
       nickname: row.nickname || '匿名',
       content: row.content,
       isOwn: true,
-      canEdit: false, // 刚修改过，今天不能再改
-      createdAt: new Date(row.created_at).toISOString(),
-      updatedAt: new Date(row.updated_at).toISOString(),
+      canEdit: false,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
     }
   }
   else {
     // 新增留言（last_modified_date 为 NULL，不算修改过）
-    const [result] = await pool.execute<ResultSetHeader>(
+    const result = db.prepare(
       'INSERT INTO messages (device_id, nickname, content, ip) VALUES (?, ?, ?, ?)',
-      [deviceId, nickname, content, clientIp],
-    )
+    ).run(deviceId, nickname, content, clientIp)
 
     // 查询新插入的记录
-    const [newRows] = await pool.execute(
+    const row = db.prepare(
       'SELECT id, nickname, content, last_modified_date, created_at, updated_at FROM messages WHERE id = ?',
-      [result.insertId],
-    ) as [RowDataPacket[], any]
+    ).get(Number(result.lastInsertRowid)) as any
 
-    const row = newRows[0]
     return {
       id: row.id,
       nickname: row.nickname || '匿名',
       content: row.content,
       isOwn: true,
-      canEdit: true, // 刚创建，last_modified_date 为 NULL，可以编辑
-      createdAt: new Date(row.created_at).toISOString(),
-      updatedAt: new Date(row.updated_at).toISOString(),
+      canEdit: true,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
     }
   }
 })

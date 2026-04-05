@@ -25,6 +25,6 @@ export default defineEventHandler(async (event) => {
     passwordHash = await bcrypt.hash(body.password.trim(), 10)
   }
 
-  const album = await createAlbum(body.name.trim(), body.description?.trim(), passwordHash)
+  const album = createAlbum(body.name.trim(), body.description?.trim(), passwordHash)
   return album
 })
