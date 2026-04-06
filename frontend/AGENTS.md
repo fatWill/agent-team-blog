@@ -194,6 +194,7 @@ frontend/
 | 组件 | 实际路径 | Nuxt 自动导入路径 | 说明 |
 |------|---------|------------------|------|
 | AppLoading | `shared/components/AppLoading.vue` | `components/AppLoading.vue` | 跨端 Loading 组件 |
+| SearchDialog | `components/SearchDialog.vue` | `components/SearchDialog.vue` | Cmd+K 搜索对话框 |
 
 ### Types（`shared/types.ts` → `types/index.ts` re-export）
 
@@ -353,6 +354,7 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-06: v1.1.0 新增TOC目录/Cmd+K搜索/阅读量统计/代码高亮+复制/访客足迹地图/随机文章功能
 - 2026-04-06: 新增数据统计功能（PV/UV 折线图、Top5 页面报表、访问日志查询）+ 前台 PV 自动埋点插件
 - 2026-04-05: 前端 Server Routes 全部改为透传代理，调用 Go 后端 API，移除 better-sqlite3/ioredis/cos-nodejs-sdk/bcryptjs/sharp/uuid 依赖
 - 2026-04-05: 上传接口迁移至腾讯云 COS，toCdnUrl 适配新 URL 格式
