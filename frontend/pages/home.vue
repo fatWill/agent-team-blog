@@ -630,7 +630,7 @@
           class="transition-colors duration-200 hover:text-gray-600 dark:hover:text-gray-400"
         >粤ICP备2025475180号</a>
         <span class="mx-2">|</span>
-        <span>© 2025 fatwill. All rights reserved.</span>
+        <span>© 2026 fatwill. All rights reserved.</span>
       </p>
     </footer>
 
