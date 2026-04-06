@@ -129,7 +129,7 @@
     </div>
 
     <!-- 个人信息区域 -->
-    <section class="mx-auto max-w-3xl px-4 pt-8 pb-6 md:pt-10">
+    <section class="w-full max-w-3xl px-4 pt-8 pb-6 md:pt-10">
       <div class="flex items-center gap-5">
         <img
           v-if="profile.avatar"
@@ -158,7 +158,7 @@
     </section>
 
     <!-- PC端 Tab 导航（仅 >= md 显示） -->
-    <nav class="mx-auto hidden max-w-3xl px-4 md:block">
+    <nav class="hidden w-full max-w-3xl px-4 md:block">
       <div class="flex gap-1 border-b border-gray-200/60 dark:border-gray-700/60">
         <button
           v-for="tab in tabs"
