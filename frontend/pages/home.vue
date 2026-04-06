@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen">
+  <div class="flex min-h-screen flex-col">
     <!-- 移动端顶部导航栏（仅 < md 显示） -->
     <header class="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-gray-200/60 bg-white/80 px-4 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80 md:hidden">
       <!-- 汉堡菜单按钮 -->
@@ -179,7 +179,7 @@
     </nav>
 
     <!-- 内容区域 -->
-    <main class="mx-auto max-w-3xl px-4 pt-3 pb-8">
+    <main class="mx-auto w-full max-w-3xl flex-1 px-4 pt-3 pb-8">
       <!-- 文章 Tab -->
       <div v-if="activeTab === 'articles'">
         <div class="mb-6">
