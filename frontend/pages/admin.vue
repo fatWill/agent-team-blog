@@ -494,8 +494,9 @@
             </span>
           </div>
           <!-- SVG 图表 -->
-          <div ref="chartContainerRef" class="relative w-full" style="height: 280px">
-            <svg v-if="trendData.length > 0" :width="chartWidth" :height="chartHeight" class="overflow-visible">
+          <div class="overflow-x-auto">
+          <div ref="chartContainerRef" class="relative" :style="{ width: chartWidth + 'px', minWidth: '320px', height: '280px' }">
+            <svg v-if="trendData.length > 0" :width="chartWidth" :height="chartHeight">
               <!-- 纵轴网格线 + 标签 -->
               <template v-for="(val, i) in yAxisTicks" :key="'y' + i">
                 <line
@@ -540,10 +541,9 @@
               <text
                 v-for="(label, i) in xLabels" :key="'xl' + i"
                 :x="xScale(i)"
-                :y="chartHeight - 4"
+                :y="chartHeight - 8"
                 text-anchor="middle"
                 class="fill-gray-400 text-[10px] dark:fill-gray-500"
-                :transform="chartWidth < 500 ? `rotate(-45, ${xScale(i)}, ${chartHeight - 4})` : ''"
               >{{ label }}</text>
             </svg>
             <div v-else class="flex h-full items-center justify-center">
@@ -559,6 +559,7 @@
               <p class="text-blue-500">PV: {{ tooltip.pv }}</p>
               <p class="text-emerald-500">UV: {{ tooltip.uv }}</p>
             </div>
+          </div>
           </div>
         </div>
 
@@ -1525,13 +1526,15 @@ let chartResizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
   if (chartContainerRef.value) {
-    chartWidth.value = chartContainerRef.value.clientWidth
-    chartResizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        chartWidth.value = entry.contentRect.width
-      }
-    })
-    chartResizeObserver.observe(chartContainerRef.value)
+    const updateWidth = () => {
+      const containerEl = chartContainerRef.value?.parentElement
+      if (!containerEl) return
+      const containerW = containerEl.clientWidth
+      chartWidth.value = trendDays.value <= 7 ? Math.max(containerW, 320) : Math.max(containerW, 600)
+    }
+    updateWidth()
+    chartResizeObserver = new ResizeObserver(updateWidth)
+    chartResizeObserver.observe(chartContainerRef.value.parentElement!)
   }
 })
 
@@ -1644,7 +1647,13 @@ async function fetchAnalyticsData() {
   await Promise.all([fetchOverview(), fetchTrend(), fetchTopPages(), fetchLogs(1)])
 }
 
-watch(trendDays, () => fetchTrend())
+watch(trendDays, () => {
+  const containerEl = chartContainerRef.value?.parentElement
+  if (containerEl) {
+    chartWidth.value = trendDays.value <= 7 ? Math.max(containerEl.clientWidth, 320) : Math.max(containerEl.clientWidth, 600)
+  }
+  fetchTrend()
+})
 watch(topPagesDays, () => fetchTopPages())
 
 onUnmounted(() => {
