@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/google/uuid v1.6.0
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20260405140448-5244ebad081e
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.73
 	golang.org/x/crypto v0.49.0

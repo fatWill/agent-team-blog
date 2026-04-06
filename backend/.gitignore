@@ -18,3 +18,6 @@ vendor/
 
 # macOS
 .DS_Store
+
+# 数据文件
+data/ip2region.xdb

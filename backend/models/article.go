@@ -10,6 +10,7 @@ type Article struct {
 	Content   JSON      `json:"content" gorm:"column:content;type:text"`
 	CoverImage string   `json:"coverImage" gorm:"column:cover_image;type:varchar(500)"`
 	LikeCount  int      `json:"likeCount" gorm:"column:like_count;type:int;default:0"`
+	Views      int      `json:"views" gorm:"column:views;type:int;default:0"`
 	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at"`
 	UpdatedAt time.Time `json:"updatedAt" gorm:"column:updated_at"`
 }
@@ -23,6 +24,7 @@ type ArticleListItem struct {
 	Summary    string    `json:"summary"`
 	CoverImage string    `json:"coverImage"`
 	LikeCount  int       `json:"likeCount"`
+	Views      int       `json:"views"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 }

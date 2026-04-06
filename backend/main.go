@@ -16,6 +16,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/theme"
 	"github.com/fatWill/agent-team-blog/backend/internal/upload"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
+	"github.com/fatWill/agent-team-blog/backend/pkg/ipgeo"
 	"github.com/fatWill/agent-team-blog/backend/pkg/middleware"
 	"github.com/fatWill/agent-team-blog/backend/pkg/rds"
 	"github.com/gin-contrib/cors"
@@ -41,6 +42,15 @@ func main() {
 	// 设置上传配置
 	upload.SetUploadConfig(&cfg.Upload)
 	upload.SetCOSConfig(&cfg.COS)
+
+	// 初始化 IP 地理位置解析（非关键服务，失败不阻塞启动）
+	ip2regionPath := cfg.Server.IP2RegionPath
+	if ip2regionPath == "" {
+		ip2regionPath = "data/ip2region.xdb"
+	}
+	if err := ipgeo.Init(ip2regionPath); err != nil {
+		log.Printf("⚠️ ip2region 初始化失败（地理位置功能不可用）: %v", err)
+	}
 
 	// 创建 Gin 引擎
 	gin.SetMode(gin.ReleaseMode)
@@ -82,12 +92,14 @@ func registerRoutes(api *gin.RouterGroup) {
 	// ========== 文章 ==========
 	articlesGroup := api.Group("/articles")
 	{
-		// 公开接口
+		// 公开接口（注意：/random 和 /like-status-batch 必须在 /:id 之前注册）
 		articlesGroup.GET("", article.GetArticles)
+		articlesGroup.GET("/random", article.GetRandomArticle)
 		articlesGroup.GET("/like-status-batch", article.GetArticleLikeStatusBatch)
 		articlesGroup.GET("/:id", article.GetArticle)
 		articlesGroup.GET("/:id/like-status", article.GetArticleLikeStatus)
 		articlesGroup.POST("/:id/like", article.LikeArticle)
+		articlesGroup.POST("/:id/view", article.ViewArticle)
 
 		// 需鉴权接口
 		articlesGroup.POST("", authMW, article.CreateArticle)
@@ -156,6 +168,7 @@ func registerRoutes(api *gin.RouterGroup) {
 		pvGroup.GET("/top-pages", authMW, pv.GetTopPages)
 		pvGroup.GET("/logs", authMW, pv.GetLogs)
 		pvGroup.GET("/overview", authMW, pv.GetOverview)
+		pvGroup.GET("/geo", authMW, pv.GetGeoDistribution)
 	}
 
 	// ========== 更新日志 ==========

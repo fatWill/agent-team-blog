@@ -11,6 +11,7 @@ import (
 
 	"github.com/fatWill/agent-team-blog/backend/models"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
+	"github.com/fatWill/agent-team-blog/backend/pkg/ipgeo"
 	"github.com/fatWill/agent-team-blog/backend/pkg/middleware"
 	"github.com/fatWill/agent-team-blog/backend/pkg/rds"
 	"github.com/gin-gonic/gin"
@@ -287,4 +288,80 @@ func GetOverview(c *gin.Context) {
 	db.DB.Raw(`SELECT COUNT(DISTINCT device_id) FROM page_views`).Scan(&overview.TotalUV)
 
 	c.JSON(http.StatusOK, gin.H{"ok": true, "data": overview})
+}
+
+// GetGeoDistribution GET /api/pv/geo — 访客地理分布（需鉴权）
+func GetGeoDistribution(c *gin.Context) {
+	loc := time.FixedZone("CST", 8*3600)
+	startDate := time.Now().In(loc).AddDate(0, 0, -30).Format("2006-01-02")
+
+	// 查询最近 30 天的去重 IP 列表
+	var ipRecords []struct {
+		IP    string `gorm:"column:ip"`
+		Count int64  `gorm:"column:cnt"`
+	}
+	db.DB.Raw(`
+		SELECT ip, COUNT(*) AS cnt
+		FROM page_views
+		WHERE date(created_at, '+8 hours') >= ?
+		  AND ip != ''
+		GROUP BY ip
+	`, startDate).Scan(&ipRecords)
+
+	// 按省份+城市聚合
+	type geoKey struct {
+		Province string
+		City     string
+	}
+	geoMap := make(map[geoKey]int64)
+
+	for _, r := range ipRecords {
+		info := ipgeo.Search(r.IP)
+		province := info.Province
+		city := info.City
+
+		// 跳过无法解析的 IP
+		if province == "" && city == "" && info.Country == "" {
+			continue
+		}
+
+		// 内网 IP 归类
+		if info.Country == "内网" {
+			province = "内网"
+			city = "内网IP"
+		}
+
+		// 省份为空时用国家代替
+		if province == "" {
+			province = info.Country
+		}
+		if city == "" {
+			city = province
+		}
+
+		key := geoKey{Province: province, City: city}
+		geoMap[key] += r.Count
+	}
+
+	// 转为列表
+	type geoItem struct {
+		Province string `json:"province"`
+		City     string `json:"city"`
+		Count    int64  `json:"count"`
+	}
+	data := make([]geoItem, 0, len(geoMap))
+	for k, v := range geoMap {
+		data = append(data, geoItem{Province: k.Province, City: k.City, Count: v})
+	}
+
+	// 按访问量降序排序
+	for i := 0; i < len(data); i++ {
+		for j := i + 1; j < len(data); j++ {
+			if data[j].Count > data[i].Count {
+				data[i], data[j] = data[j], data[i]
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": true, "data": data})
 }

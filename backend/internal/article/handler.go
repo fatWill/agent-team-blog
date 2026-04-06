@@ -1,12 +1,16 @@
 package article
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/fatWill/agent-team-blog/backend/models"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
+	"github.com/fatWill/agent-team-blog/backend/pkg/rds"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -20,7 +24,7 @@ func GetArticles(c *gin.Context) {
 		models.Article
 	}
 
-	q := db.DB.Select("id, title, summary, cover_image, like_count, created_at, updated_at")
+	q := db.DB.Select("id, title, summary, cover_image, like_count, views, created_at, updated_at")
 	if title != "" {
 		q = q.Where("title LIKE ?", "%"+title+"%")
 	}
@@ -39,6 +43,7 @@ func GetArticles(c *gin.Context) {
 			Summary:    a.Summary,
 			CoverImage: a.CoverImage,
 			LikeCount:  a.LikeCount,
+			Views:      a.Views,
 			CreatedAt:  a.CreatedAt,
 			UpdatedAt:  a.UpdatedAt,
 		})
@@ -68,6 +73,7 @@ func GetArticle(c *gin.Context) {
 		"coverImage": article.CoverImage,
 		"content":    article.Content,
 		"likeCount":  article.LikeCount,
+		"views":      article.Views,
 		"createdAt":  article.CreatedAt,
 		"updatedAt":  article.UpdatedAt,
 	})
@@ -117,6 +123,7 @@ func CreateArticle(c *gin.Context) {
 		"coverImage": a.CoverImage,
 		"content":    a.Content,
 		"likeCount":  a.LikeCount,
+		"views":      a.Views,
 		"createdAt":  a.CreatedAt,
 		"updatedAt":  a.UpdatedAt,
 	})
@@ -190,6 +197,7 @@ func UpdateArticle(c *gin.Context) {
 		"coverImage": a.CoverImage,
 		"content":    a.Content,
 		"likeCount":  a.LikeCount,
+		"views":      a.Views,
 		"createdAt":  a.CreatedAt,
 		"updatedAt":  a.UpdatedAt,
 	})
@@ -339,4 +347,69 @@ func GetArticleLikeStatusBatch(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"likedIds": likedIds})
+}
+
+// ViewArticle POST /api/articles/:id/view — 记录文章阅读量
+func ViewArticle(c *gin.Context) {
+	articleID := c.Param("id")
+	if articleID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "无效的文章 ID"})
+		return
+	}
+
+	var body struct {
+		DeviceID string `json:"deviceId"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "参数解析失败"})
+		return
+	}
+
+	deviceID := strings.TrimSpace(body.DeviceID)
+	if deviceID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "deviceId 不能为空"})
+		return
+	}
+
+	// 检查文章是否存在
+	var article models.Article
+	if err := db.DB.Select("id, views").Where("id = ?", articleID).First(&article).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "文章不存在"})
+		return
+	}
+
+	// 防刷：同一设备 1 小时内重复访问同一篇文章不重复计数
+	redisKey := fmt.Sprintf("view:%s:%s", articleID, deviceID)
+	ctx := context.Background()
+	exists, err := rds.RDB.Exists(ctx, redisKey).Result()
+	if err != nil {
+		// Redis 不可用时降级，直接计数
+	} else if exists > 0 {
+		// 1h 内重复访问，返回当前阅读量但不 +1
+		c.JSON(http.StatusOK, gin.H{"views": article.Views})
+		return
+	}
+
+	// 设置防刷 key，1h 过期
+	_ = rds.RDB.Set(ctx, redisKey, "1", time.Hour).Err()
+
+	// 阅读量 +1
+	db.DB.Model(&models.Article{}).Where("id = ?", articleID).
+		Update("views", gorm.Expr("views + 1"))
+
+	// 查询最新阅读量
+	db.DB.Select("views").Where("id = ?", articleID).First(&article)
+
+	c.JSON(http.StatusOK, gin.H{"views": article.Views})
+}
+
+// GetRandomArticle GET /api/articles/random — 随机返回一篇文章
+func GetRandomArticle(c *gin.Context) {
+	var article models.Article
+	if err := db.DB.Select("id").Order("RANDOM()").First(&article).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "暂无文章"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": article.ID})
 }

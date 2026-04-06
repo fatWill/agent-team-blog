@@ -65,6 +65,7 @@ func autoMigrate() error {
 			content TEXT,
 			cover_image TEXT NOT NULL DEFAULT '',
 			like_count INTEGER NOT NULL DEFAULT 0,
+			views INTEGER NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
@@ -168,11 +169,23 @@ func autoMigrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_pv_created_at ON page_views (created_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_pv_path ON page_views (path)`,
 		`CREATE INDEX IF NOT EXISTS idx_pv_device_id ON page_views (device_id)`,
+
+		// 兼容已有数据库：为 articles 表新增 views 字段（如果不存在）
+		// SQLite 不支持 IF NOT EXISTS 语法，用 SELECT 检测
 	}
 
 	for _, sql := range ddl {
 		if err := DB.Exec(sql).Error; err != nil {
 			return fmt.Errorf("执行 DDL 失败 [%s]: %w", sql[:60], err)
+		}
+	}
+
+	// 兼容迁移：为已有 articles 表新增 views 列
+	var viewsColCount int
+	DB.Raw(`SELECT COUNT(*) FROM pragma_table_info('articles') WHERE name = 'views'`).Scan(&viewsColCount)
+	if viewsColCount == 0 {
+		if err := DB.Exec(`ALTER TABLE articles ADD COLUMN views INTEGER NOT NULL DEFAULT 0`).Error; err != nil {
+			return fmt.Errorf("迁移 articles.views 失败: %w", err)
 		}
 	}
 

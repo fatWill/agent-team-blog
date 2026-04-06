@@ -13,8 +13,9 @@ type Config struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port       string
-	CORSOrigin string
+	Port          string
+	CORSOrigin    string
+	IP2RegionPath string // ip2region.xdb 数据文件路径
 }
 
 // DBConfig SQLite 配置
@@ -49,8 +50,9 @@ type UploadConfig struct {
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port:       getEnv("SERVER_PORT", "8080"),
-			CORSOrigin: getEnv("CORS_ORIGIN", "https://fatwill.cloud"),
+			Port:          getEnv("SERVER_PORT", "8080"),
+			CORSOrigin:    getEnv("CORS_ORIGIN", "https://fatwill.cloud"),
+			IP2RegionPath: getEnv("IP2REGION_PATH", "data/ip2region.xdb"),
 		},
 		DB: DBConfig{
 			Path: getEnv("DB_PATH", "/root/blog-data/blog.db"),
