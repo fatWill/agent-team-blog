@@ -2,7 +2,7 @@
   <!-- 悬浮按钮 -->
   <button
     v-if="!isOpen"
-    class="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-all duration-200 hover:scale-110 hover:bg-primary-600 hover:shadow-xl active:scale-95"
+    class="fixed bottom-16 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-all duration-200 hover:scale-110 hover:bg-primary-600 hover:shadow-xl active:scale-95"
     aria-label="打开留言板"
     @click="open"
   >
@@ -17,7 +17,7 @@
     <Transition name="bubble">
       <div
         v-if="isOpen"
-        class="fixed bottom-6 right-6 z-50 flex w-[360px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+        class="fixed bottom-16 right-6 z-50 flex w-[360px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
         style="max-height: min(500px, calc(100vh - 48px));"
       >
         <!-- Header -->
