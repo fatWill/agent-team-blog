@@ -315,7 +315,7 @@
                 <template v-else>
                   <img
                     v-if="album.coverUrl"
-                    :src="toCdnUrl(album.coverUrl)"
+                    :src="toThumbUrl(album.coverUrl, 400)"
                     :alt="album.name"
                     class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
@@ -413,7 +413,7 @@
                       <!-- 未加密或已解锁：正常显示图片 -->
                       <template v-else>
                         <img
-                          :src="toCdnUrl(photo.url)"
+                          :src="toThumbUrl(photo.url, 400)"
                           :alt="photo.caption || '照片'"
                           class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -815,7 +815,7 @@
 <script setup lang="ts">
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch } from '~/utils/api'
-import { toCdnUrl } from '~/utils/imageUrl'
+import { toCdnUrl, toThumbUrl } from '~/utils/imageUrl'
 
 const { isDark, toggleTheme } = useTheme()
 

@@ -25,3 +25,18 @@ export function toCdnUrl(url: string | null | undefined): string {
   }
   return url
 }
+
+/**
+ * 将图片路径转换为数据万象缩略图 URL
+ * 仅对 assets.fatwill.cloud 域名的图片追加缩略图参数
+ * 旧格式本地路径（/uploads/xxx）不做处理，直接走原图
+ * @param url 原始图片路径
+ * @param size 缩略图最大边长，默认 400
+ */
+export function toThumbUrl(url: string | null | undefined, size = 400): string {
+  const cdnUrl = toCdnUrl(url)
+  if (!cdnUrl) return ''
+  // 只对 COS/CDN 域名的图片追加缩略图参数，旧本地路径不处理
+  if (!cdnUrl.includes('assets.fatwill.cloud')) return cdnUrl
+  return `${cdnUrl}?imageMogr2/thumbnail/${size}x${size}>/format/webp/rquality/75/strip`
+}
