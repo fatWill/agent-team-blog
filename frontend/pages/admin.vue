@@ -331,9 +331,9 @@
                 </button>
               </template>
               <!-- 相册多选 input（不带 capture，让系统直接进入相册） -->
-              <input ref="photoFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple class="hidden" @change="handlePhotoUpload" />
+              <input ref="photoFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple class="hidden" @change="handleFileSelect" />
               <!-- 拍照 input（带 capture，直接打开相机，只接受图片） -->
-              <input ref="cameraFileInput" type="file" accept="image/jpeg,image/png" capture="environment" class="hidden" @change="handlePhotoUpload" />
+              <input ref="cameraFileInput" type="file" accept="image/jpeg,image/png" capture="environment" class="hidden" @change="handleFileSelect" />
               <div class="flex gap-2">
                 <button
                   class="flex flex-col items-center rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
@@ -348,6 +348,61 @@
                 >
                   <span>📷 拍照</span>
                   <span class="text-[10px] font-normal opacity-60">单张</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 待上传预览区 -->
+          <div v-if="pendingFiles.length > 0" class="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">
+            <!-- 横向滚动预览列表 -->
+            <div class="flex gap-2 overflow-x-auto pb-2" style="-webkit-overflow-scrolling: touch;">
+              <div
+                v-for="(file, idx) in pendingFiles"
+                :key="idx"
+                class="relative flex-shrink-0"
+              >
+                <!-- 图片预览 -->
+                <img
+                  v-if="pendingPreviews[idx]"
+                  :src="pendingPreviews[idx]"
+                  :alt="file.name"
+                  class="h-[60px] w-[60px] rounded-lg object-cover"
+                />
+                <!-- 视频占位 -->
+                <div
+                  v-else
+                  class="flex h-[60px] w-[60px] flex-col items-center justify-center rounded-lg bg-gray-800 text-white"
+                >
+                  <span class="text-lg">🎬</span>
+                  <span class="mt-0.5 max-w-[56px] truncate text-[8px] opacity-60">{{ file.name }}</span>
+                </div>
+                <!-- 删除按钮 -->
+                <button
+                  class="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white shadow-sm transition-colors hover:bg-red-600"
+                  @click="removePendingFile(idx)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <!-- 底部操作栏 -->
+            <div class="mt-2 flex items-center justify-between">
+              <span class="text-xs text-gray-500 dark:text-gray-400">共 {{ pendingFiles.length }} 个文件</span>
+              <div class="flex gap-2">
+                <button
+                  class="rounded-md px-3 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                  :disabled="isUploading"
+                  @click="clearPendingFiles"
+                >
+                  清空
+                </button>
+                <button
+                  class="rounded-md bg-primary-500 px-4 py-1 text-xs font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="isUploading || !adminSelectedAlbumId"
+                  @click="startUpload"
+                >
+                  {{ isUploading ? '上传中...' : `开始上传 (${pendingFiles.length})` }}
                 </button>
               </div>
             </div>
@@ -1325,6 +1380,11 @@ const adminDeletingPhotoId = ref<number | null>(null)
 const photoFileInput = ref<HTMLInputElement | null>(null)
 const cameraFileInput = ref<HTMLInputElement | null>(null)
 
+// 待上传文件队列（支持多次选择累积）
+const pendingFiles = ref<File[]>([])
+const pendingPreviews = ref<string[]>([])  // 图片用 ObjectURL 预览，视频用空字符串
+const isUploading = ref(false)  // 正在上传中
+
 // 多选模式
 const isSelectMode = ref(false)
 const selectedPhotoIds = ref<Set<number>>(new Set())
@@ -1415,6 +1475,8 @@ async function selectAdminAlbum(album: AlbumItem) {
   // 切换相册时退出多选模式
   isSelectMode.value = false
   selectedPhotoIds.value = new Set()
+  // 切换相册时清空待上传队列
+  clearPendingFiles()
 
   if (adminSelectedAlbumId.value === album.id) {
     adminSelectedAlbumId.value = null
@@ -1523,16 +1585,54 @@ function getVideoDuration(file: File): Promise<number> {
   })
 }
 
-/** 批量上传照片/视频（乐观更新：先插入占位卡，成功后替换，失败后显示裂图） */
-async function handlePhotoUpload(e: Event) {
+/** 清空待上传队列，释放 ObjectURL 内存 */
+function clearPendingFiles() {
+  pendingPreviews.value.forEach((url) => { if (url) URL.revokeObjectURL(url) })
+  pendingFiles.value = []
+  pendingPreviews.value = []
+}
+
+/** 移除待上传队列中的单个文件 */
+function removePendingFile(index: number) {
+  const url = pendingPreviews.value[index]
+  if (url) URL.revokeObjectURL(url)
+  pendingFiles.value.splice(index, 1)
+  pendingPreviews.value.splice(index, 1)
+}
+
+/** 选择文件 → 追加到待上传队列（不立即上传） */
+function handleFileSelect(e: Event) {
   const input = e.target as HTMLInputElement
   const files = input.files
-  if (!files || files.length === 0 || !adminSelectedAlbumId.value) return
+  if (!files || files.length === 0) return
+
+  Array.from(files).forEach((file) => {
+    pendingFiles.value.push(file)
+    // 图片生成预览 URL，视频用空字符串（模板中用 🎬 占位）
+    if (file.type.startsWith('video/')) {
+      pendingPreviews.value.push('')
+    } else {
+      pendingPreviews.value.push(URL.createObjectURL(file))
+    }
+  })
+
+  // 重置 input，允许重复选择同名文件
+  input.value = ''
+}
+
+/** 开始上传：将待上传队列中的文件全部上传 */
+async function startUpload() {
+  if (pendingFiles.value.length === 0 || !adminSelectedAlbumId.value || isUploading.value) return
 
   const albumId = adminSelectedAlbumId.value
+  const filesToUpload = [...pendingFiles.value]
+
+  // 立即清空队列（释放预览 URL）
+  clearPendingFiles()
+  isUploading.value = true
 
   // 为每个文件生成临时 id，并插入占位卡（插到列表最前面）
-  const tempItems: AdminPhotoItem[] = Array.from(files).map((file, i) => ({
+  const tempItems: AdminPhotoItem[] = filesToUpload.map((file, i) => ({
     id: -(Date.now() + i),   // 负数 id，避免与真实 id 冲突
     albumId,
     url: '',
@@ -1550,7 +1650,7 @@ async function handlePhotoUpload(e: Event) {
   adminPhotos.value = [...tempItems, ...adminPhotos.value]
 
   // 并发上传所有文件（每个独立处理，互不影响）
-  const uploadTasks = Array.from(files).map(async (file, i) => {
+  const uploadTasks = filesToUpload.map(async (file, i) => {
     const tempId = tempItems[i].id
     const isVideo = file.type.startsWith('video/')
 
@@ -1597,7 +1697,7 @@ async function handlePhotoUpload(e: Event) {
 
   await Promise.all(uploadTasks)
 
-  input.value = ''
+  isUploading.value = false
   await fetchAdminAlbums() // 刷新 photoCount 和封面
 }
 
