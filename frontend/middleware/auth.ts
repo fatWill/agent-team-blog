@@ -14,13 +14,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // 客户端导航时：内存中已有登录状态，直接放行，无需重复请求服务端
   if (import.meta.client && authStore.isLoggedIn) return
 
-  // 客户端导航时：如果没有 auth_token cookie，直接跳转登录页（避免无谓的网络请求）
-  if (import.meta.client) {
-    const hasToken = document.cookie.split(';').some(c => c.trim().startsWith('auth_token='))
-    if (!hasToken) {
-      return navigateTo(`/login?redirect=${encodeURIComponent(to.fullPath)}`, { replace: true })
-    }
-  }
+  // 注意：不能用 document.cookie 检测 auth_token，因为它是 HttpOnly cookie，JS 无法读取
+  // 直接调用 checkAuth，$fetch 会自动携带 HttpOnly cookie 发送给服务端验证
 
   // 首次进入（SSR 或内存无状态但有 cookie）：请求服务端验证 cookie
   // SSR 阶段在 middleware 上下文里读取 headers（这里有可靠的 Nuxt 请求上下文）
