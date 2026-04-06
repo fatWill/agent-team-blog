@@ -305,25 +305,30 @@
               @click="openAlbum(album)"
             >
               <div class="relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
-                <img
-                  v-if="album.coverUrl"
-                  :src="toCdnUrl(album.coverUrl)"
-                  :alt="album.name"
-                  class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div v-else class="flex h-full w-full items-center justify-center">
-                  <svg class="h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v14.25a1.5 1.5 0 001.5 1.5z" />
-                  </svg>
-                </div>
+                <!-- 加密且未解锁：直接显示锁定占位，不加载图片 -->
+                <template v-if="album.hasPassword && !isAlbumUnlocked(album.id)">
+                  <div class="flex h-full w-full items-center justify-center bg-gray-100 dark:bg-gray-800">
+                    <span class="text-4xl">🔒</span>
+                  </div>
+                </template>
+                <!-- 未加密或已解锁：正常显示封面图 -->
+                <template v-else>
+                  <img
+                    v-if="album.coverUrl"
+                    :src="toCdnUrl(album.coverUrl)"
+                    :alt="album.name"
+                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div v-else class="flex h-full w-full items-center justify-center">
+                    <svg class="h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v14.25a1.5 1.5 0 001.5 1.5z" />
+                    </svg>
+                  </div>
+                </template>
                 <!-- 照片数量角标 -->
                 <span class="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
                   {{ album.photoCount }}
                 </span>
-                <!-- 锁定标识 -->
-                <div v-if="album.hasPassword && !isAlbumUnlocked(album.id)" class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[20px]">
-                  <span class="text-3xl">🔒</span>
-                </div>
               </div>
               <h3 class="mt-2 truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ album.name }}</h3>
               <p v-if="album.description" class="truncate text-xs text-gray-400 dark:text-gray-500">{{ album.description }}</p>
@@ -399,16 +404,20 @@
                       class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
                       @click="openLightbox(photo)"
                     >
-                      <img
-                        :src="toCdnUrl(photo.url)"
-                        :alt="photo.caption || '照片'"
-                        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        :class="{ 'blur-md': photo.hasPassword && !isPhotoUnlocked(photo.id) }"
-                      />
-                      <!-- 照片锁定遮罩 -->
-                      <div v-if="photo.hasPassword && !isPhotoUnlocked(photo.id)" class="absolute inset-0 flex items-center justify-center bg-black/20">
-                        <span class="text-2xl">🔒</span>
-                      </div>
+                      <!-- 加密且未解锁：直接显示锁定占位，不加载图片 -->
+                      <template v-if="photo.hasPassword && !isPhotoUnlocked(photo.id)">
+                        <div class="flex h-full w-full items-center justify-center">
+                          <span class="text-3xl">🔒</span>
+                        </div>
+                      </template>
+                      <!-- 未加密或已解锁：正常显示图片 -->
+                      <template v-else>
+                        <img
+                          :src="toCdnUrl(photo.url)"
+                          :alt="photo.caption || '照片'"
+                          class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      </template>
                       <!-- 右下角点赞/踩按钮 -->
                       <div class="absolute bottom-1.5 right-1.5 flex items-center gap-1">
                         <!-- 点赞 -->
