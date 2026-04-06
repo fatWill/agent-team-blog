@@ -737,7 +737,13 @@
         <div class="mt-8 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">🗺️ 访客足迹</h3>
           <ClientOnly>
-            <div ref="geoChartRef" style="width: 100%; height: 400px;" />
+            <div v-if="geoError" class="flex h-[400px] flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+              <svg class="mb-2 h-10 w-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <p class="text-sm">地图加载失败</p>
+            </div>
+            <div v-else ref="geoChartRef" style="width: 100%; height: 400px;" />
             <template #fallback>
               <div class="flex h-[400px] items-center justify-center">
                 <AppLoading tip="加载地图..." />
@@ -1691,6 +1697,7 @@ interface GeoItem {
 
 const geoData = ref<GeoItem[]>([])
 const geoChartRef = ref<HTMLElement | null>(null)
+const geoError = ref(false)
 const geoTopCities = computed(() => {
   return [...geoData.value]
     .sort((a, b) => b.count - a.count)
@@ -1711,11 +1718,15 @@ async function renderGeoChart() {
   if (!geoChartRef.value || import.meta.server) return
   const echarts = await import('echarts')
 
-  // 加载中国地图 JSON
+  // 从本地 public 目录加载中国地图 GeoJSON
   try {
-    const chinaJson = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json').then(r => r.json())
+    const chinaJson = await fetch('/china.json').then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.json()
+    })
     echarts.registerMap('china', chinaJson)
   } catch {
+    geoError.value = true
     return
   }
 
