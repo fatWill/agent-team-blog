@@ -18,7 +18,6 @@
       <div
         v-if="isOpen"
         class="fixed bottom-16 right-6 z-50 flex w-[360px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
-        style="max-height: min(500px, calc(100vh - 48px));"
       >
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-700">
@@ -34,46 +33,11 @@
           </button>
         </div>
 
-        <!-- 留言列表（滚动区） -->
-        <div ref="listRef" class="flex-1 overflow-y-auto px-4 py-3" style="min-height: 0;">
-          <!-- 加载中 -->
-          <div v-if="messagesLoading" class="flex items-center justify-center py-10">
-            <AppLoading tip="加载中..." />
-          </div>
-
-          <!-- 空状态 -->
-          <div v-else-if="messages.length === 0" class="py-10 text-center">
-            <span class="mb-2 block text-2xl">💬</span>
-            <p class="text-sm text-gray-400 dark:text-gray-500">还没有留言，快来第一个～</p>
-          </div>
-
-          <!-- 留言列表 -->
-          <div v-else class="space-y-3">
-            <div
-              v-for="msg in messages"
-              :key="msg.id"
-              class="rounded-lg border border-gray-100 bg-gray-50/50 p-3 transition-colors dark:border-gray-700 dark:bg-gray-750/50"
-              :class="{ 'ring-1 ring-primary-200 dark:ring-primary-800': msg.isOwn }"
-            >
-              <div class="mb-1.5 flex items-center justify-between">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-xs font-medium text-gray-900 dark:text-gray-100">{{ msg.nickname }}</span>
-                  <span
-                    v-if="msg.isOwn"
-                    class="rounded-full bg-primary-100 px-1.5 py-0.5 text-[9px] font-medium leading-none text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-                  >我</span>
-                </div>
-                <time class="text-[10px] text-gray-400 dark:text-gray-500">{{ relativeTime(msg.createdAt) }}</time>
-              </div>
-              <p class="whitespace-pre-wrap text-xs leading-relaxed text-gray-600 dark:text-gray-400">{{ msg.content }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- 输入区（条件显示） -->
-        <div class="border-t border-gray-100 px-4 py-3 dark:border-gray-700">
+        <!-- 输入区 -->
+        <div class="px-4 py-3">
           <!-- 已留言提示 -->
-          <div v-if="myMessage" class="text-center">
+          <div v-if="hasPosted" class="py-4 text-center">
+            <span class="mb-2 block text-2xl">✨</span>
             <p class="text-xs text-gray-400 dark:text-gray-500">你已经留过言了 ✨</p>
           </div>
 
@@ -104,16 +68,12 @@
 </template>
 
 <script setup lang="ts">
-import type { MessageItem } from '~/features/guestbook'
 import { apiGetMessages, apiCreateMessage } from '~/features/guestbook'
 
 const isOpen = ref(false)
-const messages = ref<MessageItem[]>([])
-const messagesLoading = ref(false)
-const messagesLoaded = ref(false)
 const content = ref('')
 const submitting = ref(false)
-const listRef = ref<HTMLElement | null>(null)
+const hasPosted = ref(false)
 
 // 设备唯一 ID
 const deviceId = ref('')
@@ -132,41 +92,21 @@ function getOrCreateDeviceId(): string {
   return id
 }
 
-/** 当前设备已发过的留言 */
-const myMessage = computed(() => messages.value.find(m => m.isOwn))
-
-/** 相对时间格式化 */
-function relativeTime(dateStr: string): string {
-  const now = Date.now()
-  const diff = now - new Date(dateStr).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return '刚刚'
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}分钟前`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}小时前`
-  const days = Math.floor(hours / 24)
-  return `${days}天前`
-}
-
-async function fetchMessages() {
-  messagesLoading.value = true
+/** 检查当前设备是否已留过言 */
+async function checkHasPosted() {
+  if (!deviceId.value) return
   try {
-    const res = await apiGetMessages(deviceId.value || undefined)
-    messages.value = res.list
-    messagesLoaded.value = true
+    const res = await apiGetMessages(deviceId.value)
+    hasPosted.value = res.list.some(m => m.isOwn)
   } catch {
-    messages.value = []
-  } finally {
-    messagesLoading.value = false
+    // 静默处理
   }
 }
 
 function open() {
   isOpen.value = true
-  if (!messagesLoaded.value) {
-    fetchMessages()
-  }
+  // 每次打开时检查是否已留言
+  checkHasPosted()
 }
 
 function close() {
@@ -177,16 +117,20 @@ async function handleSubmit() {
   if (!content.value.trim() || !deviceId.value) return
   submitting.value = true
   try {
-    const created = await apiCreateMessage({
+    await apiCreateMessage({
       deviceId: deviceId.value,
       content: content.value.trim(),
     })
-    messages.value.unshift(created)
     content.value = ''
-    // 滚动到顶部
-    nextTick(() => {
-      listRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
-    })
+    hasPosted.value = true
+    // 通知留言板 Tab 刷新列表
+    if (import.meta.client) {
+      window.dispatchEvent(new CustomEvent('guestbook:new-message'))
+    }
+    // 提交成功后自动关闭气泡
+    setTimeout(() => {
+      close()
+    }, 800)
   } catch (err: unknown) {
     const fetchErr = err as { statusCode?: number; data?: { statusMessage?: string }; statusMessage?: string }
     const errMsg = fetchErr?.data?.statusMessage || fetchErr?.statusMessage || '操作失败'

@@ -538,6 +538,48 @@
 
       </div>
 
+      <!-- 留言板 Tab -->
+      <div v-else-if="activeTab === 'guestbook'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">💬 留言板</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">欢迎留下你的足迹</p>
+        </div>
+
+        <!-- 加载中 -->
+        <div v-if="guestbookLoading" class="flex items-center justify-center py-20">
+          <AppLoading tip="加载中..." />
+        </div>
+
+        <!-- 空状态 -->
+        <div v-else-if="guestbookMessages.length === 0" class="py-20 text-center">
+          <span class="mb-2 block text-3xl">💬</span>
+          <p class="text-sm text-gray-400 dark:text-gray-500">还没有留言，快来第一个～</p>
+          <p class="mt-1 text-xs text-gray-300 dark:text-gray-600">点击右下角气泡按钮留言</p>
+        </div>
+
+        <!-- 留言列表 -->
+        <div v-else class="space-y-3">
+          <div
+            v-for="msg in guestbookMessages"
+            :key="msg.id"
+            class="rounded-xl border border-gray-100 bg-white/60 p-4 transition-colors dark:border-gray-700 dark:bg-gray-800/60"
+            :class="{ 'ring-1 ring-primary-200 dark:ring-primary-800': msg.isOwn }"
+          >
+            <div class="mb-2 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ msg.nickname }}</span>
+                <span
+                  v-if="msg.isOwn"
+                  class="rounded-full bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
+                >我</span>
+              </div>
+              <time class="text-xs text-gray-400 dark:text-gray-500">{{ relativeTime(msg.createdAt) }}</time>
+            </div>
+            <p class="whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-400">{{ msg.content }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- 更新日志 Tab -->
       <div v-else-if="activeTab === 'changelog'">
         <div class="mb-6">
@@ -810,7 +852,9 @@
 
 <script setup lang="ts">
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
+import type { MessageItem } from '~/features/guestbook'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch } from '~/utils/api'
+import { apiGetMessages } from '~/features/guestbook'
 import { toCdnUrl, toThumbUrl } from '~/utils/imageUrl'
 
 // SEO meta
@@ -1070,6 +1114,7 @@ const tabs: TabItem[] = [
   { key: 'life', label: '📷 生活' },
   { key: 'tools', label: '🎮 玩具' },
   { key: 'agent-team', label: '🤖 Agent Team' },
+  { key: 'guestbook', label: '💬 留言板' },
   { key: 'changelog', label: '📋 更新日志' },
 ]
 const activeTab = ref('articles')
@@ -1750,6 +1795,45 @@ function formatDate(dateStr: string): string {
   })
 }
 
+// ====== 留言板 Tab ======
+const guestbookMessages = ref<MessageItem[]>([])
+const guestbookLoading = ref(false)
+const guestbookLoaded = ref(false)
+
+async function fetchGuestbookMessages() {
+  guestbookLoading.value = true
+  try {
+    const res = await apiGetMessages(deviceId.value || undefined)
+    guestbookMessages.value = res.list
+    guestbookLoaded.value = true
+  } catch {
+    guestbookMessages.value = []
+  } finally {
+    guestbookLoading.value = false
+  }
+}
+
+/** 相对时间格式化 */
+function relativeTime(dateStr: string): string {
+  const now = Date.now()
+  const diff = now - new Date(dateStr).getTime()
+  const seconds = Math.floor(diff / 1000)
+  if (seconds < 60) return '刚刚'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}分钟前`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}小时前`
+  const days = Math.floor(hours / 24)
+  return `${days}天前`
+}
+
+// 留言板 Tab 切换时加载留言
+watch(activeTab, (val) => {
+  if (val === 'guestbook' && !guestbookLoaded.value) {
+    fetchGuestbookMessages()
+  }
+})
+
 // 页面挂载
 onMounted(() => {
   deviceId.value = getOrCreateDeviceId()
@@ -1757,6 +1841,12 @@ onMounted(() => {
   // 客户端拉取文章点赞状态（依赖 localStorage deviceId，不做 SSR）
   nextTick(() => fetchArticleLikeStates())
   window.addEventListener('keydown', handleKeydown)
+  // 监听气泡留言提交事件，刷新留言板列表
+  window.addEventListener('guestbook:new-message', () => {
+    if (guestbookLoaded.value) {
+      fetchGuestbookMessages()
+    }
+  })
 })
 
 onUnmounted(() => {
