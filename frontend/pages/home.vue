@@ -396,7 +396,7 @@
             </button>
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ selectedAlbum.name }}</h2>
             <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">
-              共 {{ albumPhotos.length }} 张照片
+              共 {{ albumPhotos.length }} 个媒体
             </p>
           </div>
 
@@ -713,7 +713,7 @@
               <a
                 v-if="lightboxCurrentPhoto"
                 :href="toCdnUrl(lightboxCurrentPhoto.url)"
-                :download="`photo-${lightbox.index + 1}.jpg`"
+                :download="isVideoMedia(lightboxCurrentPhoto) ? `video-${lightbox.index + 1}.mp4` : `photo-${lightbox.index + 1}.jpg`"
                 target="_blank"
                 class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
                 @click.stop
@@ -1568,6 +1568,17 @@ const lightbox = reactive({
   panning: false,
 })
 
+/** 灯箱中的视频元素引用（按 index 存储） */
+const videoRefs: Record<number, HTMLVideoElement> = {}
+
+/** 暂停当前灯箱中正在播放的视频 */
+function pauseCurrentVideo() {
+  const video = videoRefs[lightbox.index]
+  if (video) {
+    try { video.pause() } catch { /* 忽略 */ }
+  }
+}
+
 const lightboxCurrentPhoto = computed(() => {
   if (!lightbox.visible || albumPhotos.value.length === 0) return null
   return albumPhotos.value[lightbox.index] || null
@@ -1590,6 +1601,7 @@ function openLightbox(photo: PhotoItem) {
 }
 
 function closeLightbox() {
+  pauseCurrentVideo()
   lightbox.visible = false
   lightbox.scale = 1
   lightbox.swipeX = 0
@@ -1602,6 +1614,7 @@ function prevPhoto() {
     const targetPhoto = albumPhotos.value[lightbox.index - 1]
     if (targetPhoto?.hasPassword && !isPhotoUnlocked(targetPhoto.id)) {
       passwordVerifiedCallback = () => {
+        pauseCurrentVideo()
         lightbox.index--
         lightbox.scale = 1
         lightbox.swipeX = 0
@@ -1611,6 +1624,7 @@ function prevPhoto() {
       openPasswordModal('photo', targetPhoto.id)
       return
     }
+    pauseCurrentVideo()
     lightbox.index--
     lightbox.scale = 1
     lightbox.swipeX = 0
@@ -1624,6 +1638,7 @@ function nextPhoto() {
     const targetPhoto = albumPhotos.value[lightbox.index + 1]
     if (targetPhoto?.hasPassword && !isPhotoUnlocked(targetPhoto.id)) {
       passwordVerifiedCallback = () => {
+        pauseCurrentVideo()
         lightbox.index++
         lightbox.scale = 1
         lightbox.swipeX = 0
@@ -1633,6 +1648,7 @@ function nextPhoto() {
       openPasswordModal('photo', targetPhoto.id)
       return
     }
+    pauseCurrentVideo()
     lightbox.index++
     lightbox.scale = 1
     lightbox.swipeX = 0
@@ -1790,10 +1806,10 @@ let mouseStartPanY = 0
 let mouseMoved = false
 
 function onMouseDown(e: MouseEvent) {
-  // 仅左键，且非按钮/链接等可交互元素
+  // 仅左键，且非按钮/链接/视频控件等可交互元素
   if (e.button !== 0) return
   const tag = (e.target as HTMLElement).tagName?.toLowerCase()
-  if (tag === 'button' || tag === 'a' || tag === 'svg' || tag === 'path' || tag === 'span') return
+  if (tag === 'button' || tag === 'a' || tag === 'svg' || tag === 'path' || tag === 'span' || tag === 'video') return
 
   mouseDown = true
   mouseMoved = false

@@ -330,14 +330,26 @@
                   多选
                 </button>
               </template>
+              <!-- 相册多选 input（不带 capture，让系统直接进入相册） -->
               <input ref="photoFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple class="hidden" @change="handlePhotoUpload" />
-              <button
-                class="flex flex-col items-center rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
-                @click="photoFileInput?.click()"
-              >
-                <span>上传照片/视频</span>
-                <span class="text-[10px] font-normal opacity-80">可多选</span>
-              </button>
+              <!-- 拍照 input（带 capture，直接打开相机，只接受图片） -->
+              <input ref="cameraFileInput" type="file" accept="image/jpeg,image/png" capture="environment" class="hidden" @change="handlePhotoUpload" />
+              <div class="flex gap-2">
+                <button
+                  class="flex flex-col items-center rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
+                  @click="photoFileInput?.click()"
+                >
+                  <span>选照片/视频</span>
+                  <span class="text-[10px] font-normal opacity-80">可多选</span>
+                </button>
+                <button
+                  class="flex flex-col items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  @click="cameraFileInput?.click()"
+                >
+                  <span>📷 拍照</span>
+                  <span class="text-[10px] font-normal opacity-60">单张</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1311,6 +1323,7 @@ const adminPhotosLoading = ref(false)
 const adminDeletingPhotoId = ref<number | null>(null)
 
 const photoFileInput = ref<HTMLInputElement | null>(null)
+const cameraFileInput = ref<HTMLInputElement | null>(null)
 
 // 多选模式
 const isSelectMode = ref(false)
