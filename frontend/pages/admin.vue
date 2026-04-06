@@ -1730,10 +1730,25 @@ async function renderGeoChart() {
     return
   }
 
+  // 省份名称标准化映射（对齐 ECharts china.json 中的名称格式）
+  const provinceNameMap: Record<string, string> = {
+    '北京': '北京市', '天津': '天津市', '上海': '上海市', '重庆': '重庆市',
+    '内蒙古': '内蒙古自治区', '广西': '广西壮族自治区', '西藏': '西藏自治区',
+    '新疆': '新疆维吾尔自治区', '宁夏': '宁夏回族自治区',
+    '香港': '香港特别行政区', '澳门': '澳门特别行政区',
+  }
+  function normalizeProvince(name: string): string {
+    // 已经带完整后缀的直接返回（如"广东省"、"北京市"、"内蒙古自治区"）
+    if (/省|自治区|特别行政区/.test(name)) return name
+    if (/市$/.test(name)) return name
+    // 直辖市和特殊行政区补全
+    return provinceNameMap[name] || name
+  }
+
   // 按省份聚合数据
   const provinceMap = new Map<string, number>()
   for (const item of geoData.value) {
-    const prov = item.province.replace(/省|市|自治区|特别行政区|壮族|回族|维吾尔/g, '')
+    const prov = normalizeProvince(item.province)
     provinceMap.set(prov, (provinceMap.get(prov) || 0) + item.count)
   }
   const mapData = Array.from(provinceMap.entries()).map(([name, value]) => ({ name, value }))
