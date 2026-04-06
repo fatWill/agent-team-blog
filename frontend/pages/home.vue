@@ -536,10 +536,6 @@
           </div>
         </div>
 
-        <!-- 底部说明 -->
-        <p class="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
-          本博客由 AI Agent 团队协作开发，由 <a href="https://knot.dev" target="_blank" rel="noopener noreferrer" class="text-primary-500 hover:text-primary-600 transition-colors">Knot</a> 平台提供支持
-        </p>
       </div>
 
       <!-- 更新日志 Tab -->
