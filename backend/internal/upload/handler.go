@@ -23,11 +23,17 @@ import (
 )
 
 var (
-	allowedExtensions = map[string]bool{
+	allowedImageExtensions = map[string]bool{
 		".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true,
 	}
-	allowedMIMEs = map[string]bool{
+	allowedVideoExtensions = map[string]bool{
+		".mp4": true, ".mov": true, ".webm": true, ".m4v": true,
+	}
+	allowedImageMIMEs = map[string]bool{
 		"image/jpeg": true, "image/png": true, "image/gif": true, "image/webp": true,
+	}
+	allowedVideoMIMEs = map[string]bool{
+		"video/mp4": true, "video/quicktime": true, "video/webm": true, "video/x-m4v": true,
 	}
 	uploadIDRegex = regexp.MustCompile(`^[\w-]+$`)
 )
@@ -65,6 +71,29 @@ func RandomString(n int) string {
 	b := make([]byte, n)
 	rand.Read(b)
 	return hex.EncodeToString(b)[:n]
+}
+
+// isAllowedExtension 检查扩展名是否允许（图片或视频）
+func isAllowedExtension(ext string) bool {
+	return allowedImageExtensions[ext] || allowedVideoExtensions[ext]
+}
+
+// isAllowedMIME 检查 MIME 类型是否允许（图片或视频）
+func isAllowedMIME(mime string) bool {
+	return allowedImageMIMEs[mime] || allowedVideoMIMEs[mime]
+}
+
+// IsVideoExtension 判断扩展名是否为视频类型（导出供其他模块使用）
+func IsVideoExtension(ext string) bool {
+	return allowedVideoExtensions[ext]
+}
+
+// MediaTypeByExt 根据扩展名返回 media_type（"image" 或 "video"）
+func MediaTypeByExt(ext string) string {
+	if allowedVideoExtensions[ext] {
+		return "video"
+	}
+	return "image"
 }
 
 // cosKey 生成 COS 存储路径：upload/时间戳-随机串.ext
@@ -209,14 +238,14 @@ func Upload(c *gin.Context) {
 	defer file.Close()
 
 	contentType := header.Header.Get("Content-Type")
-	if contentType != "" && !allowedMIMEs[contentType] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp"})
+	if contentType != "" && !isAllowedMIME(contentType) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp/mp4/mov/webm/m4v"})
 		return
 	}
 
 	ext := strings.ToLower(filepath.Ext(header.Filename))
-	if !allowedExtensions[ext] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp"})
+	if !isAllowedExtension(ext) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp/mp4/mov/webm/m4v"})
 		return
 	}
 
@@ -233,7 +262,7 @@ func Upload(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"url": fileURL})
+	c.JSON(http.StatusOK, gin.H{"url": fileURL, "mediaType": MediaTypeByExt(ext)})
 }
 
 // UploadChunk POST /api/upload/chunk
@@ -309,8 +338,8 @@ func MergeChunks(c *gin.Context) {
 	}
 
 	ext := strings.ToLower(filepath.Ext(body.Filename))
-	if !allowedExtensions[ext] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp"})
+	if !isAllowedExtension(ext) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp/mp4/mov/webm/m4v"})
 		return
 	}
 
@@ -343,7 +372,7 @@ func MergeChunks(c *gin.Context) {
 	// 清理本地临时文件
 	os.RemoveAll(tmpDir)
 
-	c.JSON(http.StatusOK, gin.H{"url": fileURL})
+	c.JSON(http.StatusOK, gin.H{"url": fileURL, "mediaType": MediaTypeByExt(ext)})
 }
 
 // CancelChunkUpload DELETE /api/upload/chunk

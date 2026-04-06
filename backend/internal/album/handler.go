@@ -250,14 +250,21 @@ func GetAlbumPhotos(c *gin.Context) {
 
 	list := make([]models.PhotoListItem, 0, len(photos))
 	for _, p := range photos {
+		mediaType := p.MediaType
+		if mediaType == "" {
+			mediaType = "image" // 历史数据兼容
+		}
 		list = append(list, models.PhotoListItem{
-			ID:          p.ID,
-			AlbumID:     p.AlbumID,
-			URL:         p.URL,
-			Caption:     p.Caption,
-			HasPassword: p.PasswordHash != nil && *p.PasswordHash != "",
-			CreatedAt:   p.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
-			UpdatedAt:   p.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
+			ID:           p.ID,
+			AlbumID:      p.AlbumID,
+			URL:          p.URL,
+			Caption:      p.Caption,
+			MediaType:    mediaType,
+			ThumbnailURL: p.ThumbnailURL,
+			Duration:     p.Duration,
+			HasPassword:  p.PasswordHash != nil && *p.PasswordHash != "",
+			CreatedAt:    p.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
+			UpdatedAt:    p.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
 		})
 	}
 
@@ -280,9 +287,12 @@ func AddAlbumPhoto(c *gin.Context) {
 	}
 
 	var body struct {
-		URL      string `json:"url"`
-		Caption  string `json:"caption"`
-		Password string `json:"password"`
+		URL          string `json:"url"`
+		Caption      string `json:"caption"`
+		Password     string `json:"password"`
+		MediaType    string `json:"mediaType"`
+		ThumbnailURL string `json:"thumbnailUrl"`
+		Duration     *int   `json:"duration"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -291,18 +301,34 @@ func AddAlbumPhoto(c *gin.Context) {
 	}
 
 	if strings.TrimSpace(body.URL) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "图片 URL 不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "文件 URL 不能为空"})
 		return
 	}
 
+	// 确定 media_type，默认为 image
+	mediaType := "image"
+	if body.MediaType == "video" {
+		mediaType = "video"
+	}
+
 	photo := models.Photo{
-		AlbumID: albumID,
-		URL:     strings.TrimSpace(body.URL),
+		AlbumID:   albumID,
+		URL:       strings.TrimSpace(body.URL),
+		MediaType: mediaType,
 	}
 
 	if body.Caption != "" {
 		caption := strings.TrimSpace(body.Caption)
 		photo.Caption = &caption
+	}
+
+	if body.ThumbnailURL != "" {
+		thumbURL := strings.TrimSpace(body.ThumbnailURL)
+		photo.ThumbnailURL = &thumbURL
+	}
+
+	if body.Duration != nil {
+		photo.Duration = body.Duration
 	}
 
 	if strings.TrimSpace(body.Password) != "" {
@@ -320,17 +346,22 @@ func AddAlbumPhoto(c *gin.Context) {
 		return
 	}
 
-	// 更新相册封面
-	UpdateAlbumCover(albumID)
+	// 更新相册封面（仅图片作为封面，视频不更新封面）
+	if mediaType == "image" {
+		UpdateAlbumCover(albumID)
+	}
 
 	c.JSON(http.StatusOK, models.PhotoListItem{
-		ID:          photo.ID,
-		AlbumID:     photo.AlbumID,
-		URL:         photo.URL,
-		Caption:     photo.Caption,
-		HasPassword: photo.PasswordHash != nil,
-		CreatedAt:   photo.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
-		UpdatedAt:   photo.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
+		ID:           photo.ID,
+		AlbumID:      photo.AlbumID,
+		URL:          photo.URL,
+		Caption:      photo.Caption,
+		MediaType:    photo.MediaType,
+		ThumbnailURL: photo.ThumbnailURL,
+		Duration:     photo.Duration,
+		HasPassword:  photo.PasswordHash != nil,
+		CreatedAt:    photo.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
+		UpdatedAt:    photo.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
 	})
 }
 
@@ -365,10 +396,12 @@ func VerifyAlbumPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": success})
 }
 
-// UpdateAlbumCover 更新相册封面（取最新照片），导出供 photo handler 调用
+// UpdateAlbumCover 更新相册封面（取最新图片，视频不作为封面），导出供 photo handler 调用
 func UpdateAlbumCover(albumID uint64) {
 	var photo models.Photo
-	err := db.DB.Select("url").Where("album_id = ?", albumID).Order("created_at DESC").First(&photo).Error
+	err := db.DB.Select("url").
+		Where("album_id = ? AND (media_type = 'image' OR media_type = '' OR media_type IS NULL)", albumID).
+		Order("created_at DESC").First(&photo).Error
 
 	if err != nil {
 		db.DB.Model(&models.Album{}).Where("id = ?", albumID).Update("cover_url", nil)

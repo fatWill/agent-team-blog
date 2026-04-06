@@ -33,6 +33,9 @@ type Photo struct {
 	AlbumID      uint64    `json:"albumId" gorm:"column:album_id"`
 	URL          string    `json:"url" gorm:"column:url;type:varchar(500)"`
 	Caption      *string   `json:"caption" gorm:"column:caption;type:varchar(200)"`
+	MediaType    string    `json:"mediaType" gorm:"column:media_type;type:varchar(10);default:'image'"`
+	ThumbnailURL *string   `json:"thumbnailUrl" gorm:"column:thumbnail_url;type:varchar(500)"`
+	Duration     *int      `json:"duration" gorm:"column:duration"`
 	PasswordHash *string   `json:"-" gorm:"column:password_hash;type:varchar(255)"`
 	CreatedAt    time.Time `json:"createdAt" gorm:"column:created_at"`
 	UpdatedAt    time.Time `json:"updatedAt" gorm:"column:updated_at"`
@@ -42,13 +45,16 @@ func (Photo) TableName() string { return "photos" }
 
 // PhotoListItem 照片列表项
 type PhotoListItem struct {
-	ID          uint64  `json:"id"`
-	AlbumID     uint64  `json:"albumId"`
-	URL         string  `json:"url"`
-	Caption     *string `json:"caption"`
-	HasPassword bool    `json:"hasPassword"`
-	CreatedAt   string  `json:"createdAt"`
-	UpdatedAt   string  `json:"updatedAt"`
+	ID           uint64  `json:"id"`
+	AlbumID      uint64  `json:"albumId"`
+	URL          string  `json:"url"`
+	Caption      *string `json:"caption"`
+	MediaType    string  `json:"mediaType"`
+	ThumbnailURL *string `json:"thumbnailUrl,omitempty"`
+	Duration     *int    `json:"duration,omitempty"`
+	HasPassword  bool    `json:"hasPassword"`
+	CreatedAt    string  `json:"createdAt"`
+	UpdatedAt    string  `json:"updatedAt"`
 }
 
 // PhotoLike 照片点赞记录

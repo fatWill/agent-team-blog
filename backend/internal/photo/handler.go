@@ -23,8 +23,10 @@ func UpdatePhoto(c *gin.Context) {
 	}
 
 	var body struct {
-		Caption  *string `json:"caption"`
-		Password *string `json:"password"`
+		Caption      *string `json:"caption"`
+		Password     *string `json:"password"`
+		ThumbnailURL *string `json:"thumbnailUrl"`
+		Duration     *int    `json:"duration"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -32,7 +34,7 @@ func UpdatePhoto(c *gin.Context) {
 		return
 	}
 
-	if body.Caption == nil && body.Password == nil {
+	if body.Caption == nil && body.Password == nil && body.ThumbnailURL == nil && body.Duration == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "没有需要更新的字段"})
 		return
 	}
@@ -40,6 +42,12 @@ func UpdatePhoto(c *gin.Context) {
 	updates := map[string]interface{}{}
 	if body.Caption != nil {
 		updates["caption"] = strings.TrimSpace(*body.Caption)
+	}
+	if body.ThumbnailURL != nil {
+		updates["thumbnail_url"] = strings.TrimSpace(*body.ThumbnailURL)
+	}
+	if body.Duration != nil {
+		updates["duration"] = *body.Duration
 	}
 	if body.Password != nil {
 		if *body.Password == "" {
@@ -67,14 +75,22 @@ func UpdatePhoto(c *gin.Context) {
 	var p models.Photo
 	db.DB.Where("id = ?", id).First(&p)
 
+	mediaType := p.MediaType
+	if mediaType == "" {
+		mediaType = "image"
+	}
+
 	c.JSON(http.StatusOK, models.PhotoListItem{
-		ID:          p.ID,
-		AlbumID:     p.AlbumID,
-		URL:         p.URL,
-		Caption:     p.Caption,
-		HasPassword: p.PasswordHash != nil && *p.PasswordHash != "",
-		CreatedAt:   p.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
-		UpdatedAt:   p.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
+		ID:           p.ID,
+		AlbumID:      p.AlbumID,
+		URL:          p.URL,
+		Caption:      p.Caption,
+		MediaType:    mediaType,
+		ThumbnailURL: p.ThumbnailURL,
+		Duration:     p.Duration,
+		HasPassword:  p.PasswordHash != nil && *p.PasswordHash != "",
+		CreatedAt:    p.CreatedAt.Format("2006-01-02T15:04:05.000Z"),
+		UpdatedAt:    p.UpdatedAt.Format("2006-01-02T15:04:05.000Z"),
 	})
 }
 

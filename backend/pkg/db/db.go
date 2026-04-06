@@ -96,6 +96,9 @@ func autoMigrate() error {
 			album_id INTEGER NOT NULL DEFAULT 0,
 			url TEXT NOT NULL DEFAULT '',
 			caption TEXT,
+			media_type TEXT NOT NULL DEFAULT 'image',
+			thumbnail_url TEXT,
+			duration INTEGER,
 			password_hash TEXT,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -187,6 +190,15 @@ func autoMigrate() error {
 		if err := DB.Exec(`ALTER TABLE articles ADD COLUMN views INTEGER NOT NULL DEFAULT 0`).Error; err != nil {
 			return fmt.Errorf("迁移 articles.views 失败: %w", err)
 		}
+	}
+
+	// 兼容迁移：为已有 photos 表新增 media_type、thumbnail_url、duration 列
+	var mediaTypeColCount int
+	DB.Raw(`SELECT COUNT(*) FROM pragma_table_info('photos') WHERE name = 'media_type'`).Scan(&mediaTypeColCount)
+	if mediaTypeColCount == 0 {
+		DB.Exec(`ALTER TABLE photos ADD COLUMN media_type TEXT NOT NULL DEFAULT 'image'`)
+		DB.Exec(`ALTER TABLE photos ADD COLUMN thumbnail_url TEXT`)
+		DB.Exec(`ALTER TABLE photos ADD COLUMN duration INTEGER`)
 	}
 
 	return nil
