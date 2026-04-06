@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /home
+Allow: /articles/
+Disallow: /admin
+Disallow: /login
+Disallow: /api/
+
+Sitemap: https://fatwill.cloud/sitemap.xml

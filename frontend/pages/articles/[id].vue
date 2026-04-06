@@ -105,9 +105,62 @@ import { apiFetchArticle, apiToggleArticleLike, apiGetArticleLikeStatus } from '
 const route = useRoute()
 const { isDark, toggleTheme } = useTheme()
 
-const article = ref<ArticleDetail | null>(null)
-const loading = ref(true)
+// SSR 预取文章数据
+const { data: articleData } = await useAsyncData(
+  `article-${route.params.id}`,
+  () => apiFetchArticle(route.params.id as string),
+  { default: () => null }
+)
+
+const article = ref<ArticleDetail | null>(articleData.value)
+const loading = ref(!articleData.value)
 const error = ref(false)
+
+// SEO meta（SSR 阶段即生效）
+useSeoMeta({
+  title: () => articleData.value ? `${articleData.value.title} - fatwill` : 'fatwill - 个人博客',
+  description: () => articleData.value?.summary || articleData.value?.title || 'fatwill 的个人博客',
+  ogTitle: () => articleData.value?.title || 'fatwill - 个人博客',
+  ogDescription: () => articleData.value?.summary || articleData.value?.title || '',
+  ogType: 'article',
+  ogUrl: () => `https://fatwill.cloud/articles/${route.params.id}`,
+  ogSiteName: 'fatwill',
+  twitterCard: 'summary',
+  twitterTitle: () => articleData.value?.title || 'fatwill - 个人博客',
+  twitterDescription: () => articleData.value?.summary || '',
+})
+
+// canonical + JSON-LD 结构化数据
+useHead({
+  link: [
+    { rel: 'canonical', href: () => `https://fatwill.cloud/articles/${route.params.id}` },
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: () => articleData.value ? JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: articleData.value.title,
+        description: articleData.value.summary || articleData.value.title,
+        author: {
+          '@type': 'Person',
+          name: 'fatwill',
+          url: 'https://fatwill.cloud',
+        },
+        publisher: {
+          '@type': 'Person',
+          name: 'fatwill',
+          url: 'https://fatwill.cloud',
+        },
+        datePublished: articleData.value.createdAt,
+        dateModified: articleData.value.updatedAt || articleData.value.createdAt,
+        url: `https://fatwill.cloud/articles/${route.params.id}`,
+        mainEntityOfPage: `https://fatwill.cloud/articles/${route.params.id}`,
+      }) : '{}',
+    },
+  ],
+})
 
 // ====== 设备唯一 ID ======
 const deviceId = ref('')
@@ -128,7 +181,7 @@ function getOrCreateDeviceId(): string {
 
 // ====== 文章点赞 ======
 const articleLiked = ref(false)
-const articleLikeCount = ref(0)
+const articleLikeCount = ref(articleData.value?.likeCount ?? 0)
 const likeAnimating = ref(false)
 
 async function fetchLikeStatus() {
@@ -212,17 +265,16 @@ function formatDate(dateStr: string): string {
 
 onMounted(() => {
   deviceId.value = getOrCreateDeviceId()
-  loadArticle()
-})
-
-watch(article, (val) => {
-  if (val) {
-    useHead({
-      title: `${val.title} - fatwill`,
-      meta: [
-        { name: 'description', content: val.summary || val.title },
-      ],
-    })
+  if (article.value) {
+    // SSR 已预取，直接初始化 editor
+    if (editor.value && article.value.content) {
+      editor.value.commands.setContent(article.value.content)
+    }
+    loading.value = false
+    nextTick(() => fetchLikeStatus())
+  } else {
+    // SSR 预取失败，客户端兜底
+    loadArticle()
   }
 })
 

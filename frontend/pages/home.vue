@@ -817,6 +817,21 @@ import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profil
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch } from '~/utils/api'
 import { toCdnUrl, toThumbUrl } from '~/utils/imageUrl'
 
+// SEO meta
+useSeoMeta({
+  title: 'fatwill - 个人博客',
+  description: '全栈开发者 fatwill 的个人博客，分享技术文章与生活记录。',
+  ogTitle: 'fatwill - 个人博客',
+  ogDescription: '全栈开发者 fatwill 的个人博客，分享技术文章与生活记录。',
+  ogType: 'website',
+  ogUrl: 'https://fatwill.cloud/home',
+  ogSiteName: 'fatwill',
+  twitterCard: 'summary',
+})
+useHead({
+  link: [{ rel: 'canonical', href: 'https://fatwill.cloud/home' }],
+})
+
 const { isDark, toggleTheme } = useTheme()
 
 // 移动端抽屉状态
