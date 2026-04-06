@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
       articlePages = res.list.map((article) => ({
         url: `${BASE_URL}/articles/${article.id}`,
         priority: '0.8',
-        changefreq: 'monthly',
+        changefreq: 'weekly',
         lastmod: article.updatedAt ? new Date(article.updatedAt).toISOString().split('T')[0] : undefined,
       }))
     }
