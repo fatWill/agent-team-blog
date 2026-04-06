@@ -217,7 +217,7 @@ frontend/
 | 页面 | 路由 | 文件 | 依赖模块 | 说明 |
 |------|------|------|----------|------|
 | 酷炫首页 | `/` | `pages/index.vue`（17KB） | @chenglou/pretext | Canvas 代码滚动背景 + 拖拽按钮 |
-| 博客主页 | `/home` | `pages/home.vue`（82KB） | useTheme, useDevice, api, types, vue-virtual-scroller, antd | 6 个 Tab：文章/生活/小工具·小游戏/Agent Team/更新日志/留言板 |
+| 博客主页 | `/home` | `pages/home.vue`（82KB） | useTheme, useDevice, api, types, vue-virtual-scroller, antd | 6 个 Tab：文章/生活/玩具/Agent Team/更新日志/留言板 |
 | 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（8KB） | useTheme, api, Tiptap | Tiptap 只读渲染 + 点赞 |
 | 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /home |
 | 管理后台 | `/admin` | `pages/admin.vue`（57KB） | auth store, api, Tiptap, antd, chunkedUpload | 6 个管理 Tab：文章/相册/个人资料/留言管理/数据统计 |
