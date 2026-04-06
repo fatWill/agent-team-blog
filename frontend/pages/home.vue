@@ -1072,7 +1072,7 @@ const agentColorMap: Record<string, { border: string; bg: string; tag: string; t
 const tabs: TabItem[] = [
   { key: 'articles', label: '📝 文章' },
   { key: 'life', label: '📷 生活' },
-  { key: 'tools', label: '🛠️ 玩具' },
+  { key: 'tools', label: '🎮 玩具' },
   { key: 'agent-team', label: '🤖 Agent Team' },
   { key: 'changelog', label: '📋 更新日志' },
 ]
