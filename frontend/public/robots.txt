@@ -1,9 +1,16 @@
 User-agent: *
-Allow: /
-Allow: /home
+
+# 只允许公开页面
+Allow: /$
+Allow: /home$
 Allow: /articles/
+
+# 屏蔽所有需要鉴权的页面
 Disallow: /admin
 Disallow: /login
 Disallow: /api/
+
+# 屏蔽其他非公开路由（兜底）
+Disallow: /
 
 Sitemap: https://fatwill.cloud/sitemap.xml

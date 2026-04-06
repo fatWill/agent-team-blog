@@ -336,6 +336,21 @@ frontend/
 - 每条最多 **20 字**，最多 **5 条**
 - 内容风格：Emoji 前缀 + 简短描述，如 `"🎉 个人博客正式上线"`
 
+## SEO 规范
+
+### robots.txt 规则（`public/robots.txt`）
+- **策略**：默认拒绝，只显式 Allow 公开页面
+- **允许抓取**：`/`（首页）、`/home`（博客主页）、`/articles/`（文章详情页）
+- **禁止抓取**：`/admin`（管理后台）、`/login`（登录页）、`/api/`（接口）、其余所有路径（兜底 `Disallow: /`）
+- **新增页面时**：如果是需要登录才能访问的页面，必须在 `robots.txt` 中添加对应的 `Disallow` 规则；如果是公开页面，需添加 `Allow` 规则并同步更新 `server/routes/sitemap.xml.ts`
+
+### sitemap.xml（`server/routes/sitemap.xml.ts`）
+- 动态生成，自动从后端 API 拉取所有文章列表
+- 静态页面：`/`（priority 1.0）、`/home`（priority 0.9）
+- 文章页面：`/articles/:id`（priority 0.8，含 lastmod）
+- 缓存：`Cache-Control: public, max-age=3600`（1小时）
+- 访问地址：`https://fatwill.cloud/sitemap.xml`
+
 ## 变更日志（最近重要变更）
 
 - 2026-04-06: 新增数据统计功能（PV/UV 折线图、Top5 页面报表、访问日志查询）+ 前台 PV 自动埋点插件
