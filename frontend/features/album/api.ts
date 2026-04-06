@@ -43,8 +43,14 @@ export async function apiGetPhotos(albumId: number): Promise<PhotoListResponse> 
   return res
 }
 
-/** 向相册添加照片 */
-export async function apiAddPhoto(albumId: number, data: { url: string; caption?: string }): Promise<PhotoItem> {
+/** 向相册添加照片/视频 */
+export async function apiAddPhoto(albumId: number, data: {
+  url: string
+  caption?: string
+  mediaType?: 'image' | 'video'
+  thumbnailUrl?: string
+  duration?: number
+}): Promise<PhotoItem> {
   const res = await $fetch<PhotoItem>(`/api/albums/${albumId}/photos`, {
     method: 'POST',
     body: data,

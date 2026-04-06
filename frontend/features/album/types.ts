@@ -22,6 +22,12 @@ export interface PhotoItem {
   url: string
   caption: string | null
   hasPassword: boolean
+  /** 媒体类型：'image' 或 'video'，历史数据可能为 null（视为 'image'） */
+  mediaType?: 'image' | 'video' | null
+  /** 视频封面图 URL */
+  thumbnailUrl?: string | null
+  /** 视频时长（秒） */
+  duration?: number | null
   createdAt: string
   updatedAt: string
   /** 点赞数（前端运行时附加，非数据库字段） */

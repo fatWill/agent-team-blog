@@ -306,12 +306,36 @@
               {{ adminSelectedAlbumName }} · 照片管理
             </h3>
             <div class="flex items-center gap-2">
-              <input ref="photoFileInput" type="file" accept="image/*" multiple class="hidden" @change="handlePhotoUpload" />
+              <!-- 多选模式按钮组 -->
+              <template v-if="isSelectMode">
+                <button
+                  class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  @click="toggleSelectAll"
+                >
+                  {{ isAllSelected ? '取消全选' : '全选' }}
+                </button>
+                <button
+                  class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  @click="toggleSelectMode"
+                >
+                  退出多选
+                </button>
+              </template>
+              <template v-else>
+                <button
+                  v-if="adminPhotos.filter(p => p.status === 'done').length > 0"
+                  class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  @click="toggleSelectMode"
+                >
+                  多选
+                </button>
+              </template>
+              <input ref="photoFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple class="hidden" @change="handlePhotoUpload" />
               <button
                 class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
                 @click="photoFileInput?.click()"
               >
-                上传照片
+                上传照片/视频
               </button>
             </div>
           </div>
@@ -327,6 +351,8 @@
               v-for="photo in adminPhotos"
               :key="photo.id"
               class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
+              :class="{ 'cursor-pointer ring-2 ring-primary-500': isSelectMode && photo.status === 'done' && selectedPhotoIds.has(photo.id) }"
+              @click="isSelectMode && photo.status === 'done' ? toggleSelectPhoto(photo.id) : undefined"
             >
               <!-- 上传中：loading 占位 -->
               <template v-if="photo.status === 'uploading'">
@@ -375,10 +401,25 @@
               <!-- 上传成功：正常显示图片 -->
               <template v-else>
                 <img :src="toCdnUrl(photo.url)" :alt="photo.caption || '照片'" class="h-full w-full object-cover" />
+                <!-- 多选模式复选框 -->
+                <div
+                  v-if="isSelectMode"
+                  class="absolute left-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border-2 transition-colors"
+                  :class="selectedPhotoIds.has(photo.id)
+                    ? 'border-primary-500 bg-primary-500'
+                    : 'border-white bg-black/30 backdrop-blur-sm'"
+                >
+                  <svg v-if="selectedPhotoIds.has(photo.id)" class="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <!-- 选中时半透明遮罩 -->
+                <div v-if="isSelectMode && selectedPhotoIds.has(photo.id)" class="absolute inset-0 bg-primary-500/10" />
                 <!-- 锁图标（有密码时显示） -->
-                <span v-if="photo.hasPassword" class="absolute top-1 left-1 rounded-full bg-black/50 px-1.5 py-0.5 text-xs backdrop-blur-sm">🔒</span>
+                <span v-if="photo.hasPassword && !isSelectMode" class="absolute top-1 left-1 rounded-full bg-black/50 px-1.5 py-0.5 text-xs backdrop-blur-sm">🔒</span>
                 <!-- 设置密码按钮 -->
                 <button
+                  v-if="!isSelectMode"
                   class="absolute left-1 bottom-1 flex h-6 items-center gap-0.5 rounded-full bg-black/50 px-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 backdrop-blur-sm"
                   @click="openPhotoPasswordModal(photo)"
                 >
@@ -386,6 +427,7 @@
                 </button>
                 <!-- 删除按钮 -->
                 <button
+                  v-if="!isSelectMode"
                   class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
                   :disabled="adminDeletingPhotoId === photo.id"
                   @click="handleDeletePhoto(photo)"
@@ -398,6 +440,40 @@
           <div v-else class="py-12 text-center">
             <p class="text-gray-400 dark:text-gray-500">暂无照片，点击上方按钮上传</p>
           </div>
+
+          <!-- 多选模式底部浮动操作栏 -->
+          <Teleport to="body">
+            <Transition
+              enter-active-class="transition-all duration-300 ease-out"
+              enter-from-class="translate-y-full opacity-0"
+              enter-to-class="translate-y-0 opacity-100"
+              leave-active-class="transition-all duration-200 ease-in"
+              leave-from-class="translate-y-0 opacity-100"
+              leave-to-class="translate-y-full opacity-0"
+            >
+              <div
+                v-if="isSelectMode"
+                class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-gray-200 bg-white/95 px-6 py-3 shadow-lg backdrop-blur-sm dark:border-gray-600 dark:bg-gray-800/95"
+              >
+                <span class="text-sm text-gray-600 dark:text-gray-300">
+                  已选择 <strong class="text-primary-500">{{ selectedPhotoIds.size }}</strong> 张
+                </span>
+                <button
+                  :disabled="selectedPhotoIds.size === 0 || batchDeleting"
+                  class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  @click="batchDeletePhotos"
+                >
+                  {{ batchDeleting ? '删除中...' : '批量删除' }}
+                </button>
+                <button
+                  class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  @click="toggleSelectMode"
+                >
+                  取消
+                </button>
+              </div>
+            </Transition>
+          </Teleport>
         </div>
       </div>
 
@@ -929,11 +1005,19 @@ interface AdminPhotoItem {
   url: string          // 占位时为空字符串，成功后为真实 url
   caption: string | null
   hasPassword: boolean
+  /** 媒体类型：'image' 或 'video'，历史数据可能为 null（视为 'image'） */
+  mediaType?: 'image' | 'video' | null
+  /** 视频封面图 URL */
+  thumbnailUrl?: string | null
+  /** 视频时长（秒） */
+  duration?: number | null
   createdAt: string
   updatedAt: string
   // 扩展字段（仅本地使用）
   status: 'done' | 'uploading' | 'error'
   uploadPercent: number  // 0-100，仅 uploading 时有效
+  /** 上传中的文件名（用于视频占位显示） */
+  fileName?: string
 }
 
 const authStore = useAuthStore()
@@ -1010,8 +1094,8 @@ async function uploadCoverFile(file: File) {
   coverUploading.value = true
   coverUploadPercent.value = 0
   try {
-    const url = await chunkedUpload(file, (p) => { coverUploadPercent.value = p.percent })
-    form.coverImage = url
+    const result = await chunkedUpload(file, (p) => { coverUploadPercent.value = p.percent })
+    form.coverImage = result.url
   } catch { showError('封面图上传失败，请重试') }
   finally { coverUploading.value = false; coverUploadPercent.value = 0 }
 }
@@ -1154,8 +1238,8 @@ async function handleAvatarFileChange(e: Event) {
   avatarUploading.value = true
   avatarUploadPercent.value = 0
   try {
-    const url = await chunkedUpload(file, (p) => { avatarUploadPercent.value = p.percent })
-    profileForm.avatar = url
+    const result = await chunkedUpload(file, (p) => { avatarUploadPercent.value = p.percent })
+    profileForm.avatar = result.url
     showSuccess('头像上传成功')
   } catch { showError('头像上传失败，请重试') }
   finally { avatarUploading.value = false; avatarUploadPercent.value = 0; input.value = '' }
@@ -1196,6 +1280,68 @@ const adminDeletingPhotoId = ref<number | null>(null)
 
 const photoFileInput = ref<HTMLInputElement | null>(null)
 
+// 多选模式
+const isSelectMode = ref(false)
+const selectedPhotoIds = ref<Set<number>>(new Set())
+const batchDeleting = ref(false)
+
+const isAllSelected = computed(() =>
+  adminPhotos.value.filter(p => p.status === 'done').length > 0
+  && adminPhotos.value.filter(p => p.status === 'done').every(p => selectedPhotoIds.value.has(p.id)),
+)
+
+function toggleSelectMode() {
+  isSelectMode.value = !isSelectMode.value
+  if (!isSelectMode.value) selectedPhotoIds.value = new Set()
+}
+
+function toggleSelectPhoto(id: number) {
+  const s = new Set(selectedPhotoIds.value)
+  s.has(id) ? s.delete(id) : s.add(id)
+  selectedPhotoIds.value = s
+}
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedPhotoIds.value = new Set()
+  } else {
+    selectedPhotoIds.value = new Set(adminPhotos.value.filter(p => p.status === 'done').map(p => p.id))
+  }
+}
+
+async function batchDeletePhotos() {
+  if (selectedPhotoIds.value.size === 0) return
+  showConfirm({
+    title: '批量删除',
+    content: `确定要删除选中的 ${selectedPhotoIds.value.size} 张照片吗？此操作不可撤销`,
+    okText: '确定删除',
+    danger: true,
+    cancelText: '取消',
+    async onOk() {
+      batchDeleting.value = true
+      try {
+        await Promise.all([...selectedPhotoIds.value].map(id => apiDeletePhoto(id)))
+        showSuccess(`已删除 ${selectedPhotoIds.value.size} 张照片`)
+        adminPhotos.value = adminPhotos.value.filter(p => !selectedPhotoIds.value.has(p.id))
+        selectedPhotoIds.value = new Set()
+        isSelectMode.value = false
+        await fetchAdminAlbums() // 刷新 photoCount
+      } catch (err: unknown) {
+        const fetchErr = err as { statusCode?: number }
+        if (fetchErr?.statusCode === 401) {
+          showError('登录已过期，请重新登录')
+          authStore.setLoggedIn(false)
+          router.push('/login')
+        } else {
+          showError('批量删除失败，请重试')
+        }
+      } finally {
+        batchDeleting.value = false
+      }
+    },
+  })
+}
+
 const adminSelectedAlbumName = computed(() => {
   return adminAlbums.value.find(a => a.id === adminSelectedAlbumId.value)?.name || ''
 })
@@ -1221,6 +1367,10 @@ async function fetchAdminAlbums() {
 }
 
 async function selectAdminAlbum(album: AlbumItem) {
+  // 切换相册时退出多选模式
+  isSelectMode.value = false
+  selectedPhotoIds.value = new Set()
+
   if (adminSelectedAlbumId.value === album.id) {
     adminSelectedAlbumId.value = null
     adminPhotos.value = []

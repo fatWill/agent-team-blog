@@ -8,13 +8,19 @@ export interface UploadProgress {
   percent: number  // 0-100
 }
 
+/** 上传结果 */
+export interface UploadResult {
+  url: string
+  mediaType?: 'image' | 'video'
+}
+
 /**
  * 小文件直传（使用 fetch，确保 cookie 鉴权正常）
  */
 async function uploadSmallFile(
   file: File,
   onProgress?: (progress: UploadProgress) => void,
-): Promise<string> {
+): Promise<UploadResult> {
   onProgress?.({ loaded: 0, total: file.size, percent: 0 })
 
   const formData = new FormData()
@@ -30,9 +36,9 @@ async function uploadSmallFile(
     throw new Error(`上传失败，状态码 ${res.status}`)
   }
 
-  const data = (await res.json()) as { url: string }
+  const data = (await res.json()) as { url: string; mediaType?: 'image' | 'video' }
   onProgress?.({ loaded: file.size, total: file.size, percent: 100 })
-  return data.url
+  return { url: data.url, mediaType: data.mediaType }
 }
 
 /**
@@ -57,7 +63,7 @@ async function cleanupChunks(uploadId: string): Promise<void> {
 async function uploadLargeFile(
   file: File,
   onProgress?: (progress: UploadProgress) => void,
-): Promise<string> {
+): Promise<UploadResult> {
   const uploadId = Date.now().toString(36) + Math.random().toString(36).slice(2)
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
   const totalSize = file.size
@@ -108,8 +114,8 @@ async function uploadLargeFile(
       throw new Error(`合并分片失败，状态码 ${mergeRes.status}`)
     }
 
-    const mergeData = (await mergeRes.json()) as { url: string }
-    return mergeData.url
+    const mergeData = (await mergeRes.json()) as { url: string; mediaType?: 'image' | 'video' }
+    return { url: mergeData.url, mediaType: mergeData.mediaType }
   } catch (err) {
     // 出错时清理临时文件
     await cleanupChunks(uploadId)
@@ -119,17 +125,19 @@ async function uploadLargeFile(
 
 /**
  * 分片上传主函数
- * - 文件 ≤ 1.5MB：直接用 fetch 上传（开始/结束两段式进度）
- * - 文件 > 1.5MB：分片上传
+ * - 图片 ≤ 1.5MB：直接用 fetch 上传（开始/结束两段式进度）
+ * - 图片 > 1.5MB 或 视频文件：分片上传
  * @param file 要上传的文件
  * @param onProgress 进度回调
- * @returns 最终图片 URL
+ * @returns 上传结果（url + mediaType）
  */
 export async function chunkedUpload(
   file: File,
   onProgress?: (progress: UploadProgress) => void,
-): Promise<string> {
-  if (file.size <= CHUNK_SIZE) {
+): Promise<UploadResult> {
+  // 视频文件统一走分片上传，无论大小
+  const isVideo = file.type.startsWith('video/')
+  if (!isVideo && file.size <= CHUNK_SIZE) {
     return uploadSmallFile(file, onProgress)
   }
   return uploadLargeFile(file, onProgress)
