@@ -444,13 +444,29 @@
                           <span class="text-3xl">🔒</span>
                         </div>
                       </template>
-                      <!-- 未加密或已解锁：正常显示图片 -->
+                      <!-- 未加密或已解锁：正常显示图片/视频 -->
                       <template v-else>
-                        <img
-                          :src="toThumbUrl(photo.url, 400)"
-                          :alt="photo.caption || '照片'"
-                          class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
+                        <!-- 视频卡片 -->
+                        <template v-if="isVideoMedia(photo)">
+                          <img v-if="photo.thumbnailUrl" :src="toCdnUrl(photo.thumbnailUrl)" :alt="photo.caption || '视频'" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          <div v-else class="flex h-full w-full items-center justify-center bg-gray-900">
+                            <svg class="h-10 w-10 text-white/60" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                          </div>
+                          <!-- 左上角视频标识 -->
+                          <span class="absolute top-1.5 left-1.5 rounded bg-black/50 px-1 py-0.5 text-[10px] text-white backdrop-blur-sm">🎬</span>
+                          <!-- 右上角时长 -->
+                          <span v-if="photo.duration" class="absolute top-1.5 right-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                            {{ formatDuration(photo.duration) }}
+                          </span>
+                        </template>
+                        <!-- 图片卡片 -->
+                        <template v-else>
+                          <img
+                            :src="toThumbUrl(photo.url, 400)"
+                            :alt="photo.caption || '照片'"
+                            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </template>
                       </template>
                       <!-- 右下角点赞/踩按钮 -->
                       <div class="absolute bottom-1.5 right-1.5 flex items-center gap-1">
@@ -757,8 +773,26 @@
                 class="flex h-full items-center justify-center flex-shrink-0"
                 :style="{ width: `${100 / albumPhotos.length}%` }"
               >
+                <!-- 视频播放 -->
+                <video
+                  v-if="isVideoMedia(photo) && Math.abs(idx - lightbox.index) <= 1"
+                  :ref="(el) => { if (el) videoRefs[idx] = el as HTMLVideoElement }"
+                  :src="toCdnUrl(photo.url)"
+                  :poster="photo.thumbnailUrl ? toCdnUrl(photo.thumbnailUrl) : undefined"
+                  controls
+                  :autoplay="idx === lightbox.index"
+                  playsinline
+                  class="max-h-[80vh] max-w-[90vw] object-contain"
+                  :style="idx === lightbox.index ? {
+                    transform: `scale(${lightbox.scale}) translate(${lightbox.panX / lightbox.scale}px, ${lightbox.panY / lightbox.scale}px)`,
+                    transition: (lightbox.panning || isPinchingRef) ? 'none' : (lightbox.scale === 1 ? 'transform 0.25s cubic-bezier(0.4,0,0.2,1)' : 'none'),
+                    willChange: 'transform',
+                  } : {}"
+                  @click.stop
+                />
+                <!-- 图片展示 -->
                 <img
-                  v-if="Math.abs(idx - lightbox.index) <= 1"
+                  v-else-if="!isVideoMedia(photo) && Math.abs(idx - lightbox.index) <= 1"
                   :src="toCdnUrl(photo.url)"
                   :alt="photo.caption || '照片'"
                   class="max-h-[85vh] max-w-[90vw] object-contain"
@@ -893,6 +927,19 @@ import type { MessageItem } from '~/features/guestbook'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle } from '~/utils/api'
 import { apiGetMessages } from '~/features/guestbook'
 import { toCdnUrl, toThumbUrl } from '~/utils/imageUrl'
+
+/** 判断是否为视频媒体（兼容历史数据 null → 视为图片） */
+function isVideoMedia(photo: PhotoItem): boolean {
+  return photo.mediaType === 'video'
+}
+
+/** 格式化视频时长（秒 → m:ss） */
+function formatDuration(seconds: number | null | undefined): string {
+  if (!seconds || seconds <= 0) return '0:00'
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
 
 // SEO meta
 useSeoMeta({

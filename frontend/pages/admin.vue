@@ -332,10 +332,11 @@
               </template>
               <input ref="photoFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple class="hidden" @change="handlePhotoUpload" />
               <button
-                class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
+                class="flex flex-col items-center rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
                 @click="photoFileInput?.click()"
               >
-                上传照片/视频
+                <span>上传照片/视频</span>
+                <span class="text-[10px] font-normal opacity-80">可多选</span>
               </button>
             </div>
           </div>
@@ -357,10 +358,17 @@
               <!-- 上传中：loading 占位 -->
               <template v-if="photo.status === 'uploading'">
                 <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800">
-                  <svg class="h-8 w-8 animate-spin text-primary-400" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
+                  <!-- 视频文件显示🎬图标 -->
+                  <template v-if="photo.mediaType === 'video'">
+                    <span class="text-2xl">🎬</span>
+                    <p v-if="photo.fileName" class="max-w-[80%] truncate text-xs text-gray-500 dark:text-gray-400">{{ photo.fileName }}</p>
+                  </template>
+                  <template v-else>
+                    <svg class="h-8 w-8 animate-spin text-primary-400" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </template>
                   <!-- 进度条 -->
                   <div class="w-3/4">
                     <div class="h-1 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600">
@@ -398,9 +406,25 @@
                 </button>
               </template>
 
-              <!-- 上传成功：正常显示图片 -->
+              <!-- 上传成功：正常显示图片/视频 -->
               <template v-else>
-                <img :src="toCdnUrl(photo.url)" :alt="photo.caption || '照片'" class="h-full w-full object-cover" />
+                <!-- 视频展示 -->
+                <template v-if="photo.mediaType === 'video'">
+                  <img v-if="photo.thumbnailUrl" :src="toCdnUrl(photo.thumbnailUrl)" :alt="photo.caption || '视频'" class="h-full w-full object-cover" />
+                  <div v-else class="flex h-full w-full items-center justify-center bg-gray-900">
+                    <svg class="h-12 w-12 text-white/60" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
+                  <!-- 视频标识 -->
+                  <span class="absolute top-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">🎬</span>
+                  <!-- 视频时长 -->
+                  <span v-if="photo.duration" class="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                    {{ formatDuration(photo.duration) }}
+                  </span>
+                </template>
+                <!-- 图片展示 -->
+                <template v-else>
+                  <img :src="toCdnUrl(photo.url)" :alt="photo.caption || '照片'" class="h-full w-full object-cover" />
+                </template>
                 <!-- 多选模式复选框 -->
                 <div
                   v-if="isSelectMode"
@@ -1021,6 +1045,14 @@ interface AdminPhotoItem {
 }
 
 const authStore = useAuthStore()
+
+/** 格式化视频时长（秒 → m:ss） */
+function formatDuration(seconds: number | null | undefined): string {
+  if (!seconds || seconds <= 0) return '0:00'
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
 
@@ -1460,7 +1492,25 @@ async function handleDeleteAlbum(album: AlbumItem) {
   })
 }
 
-/** 批量上传照片（乐观更新：先插入占位卡，成功后替换，失败后显示裂图） */
+/** 从视频文件获取时长（秒） */
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => {
+      const dur = Math.round(video.duration)
+      URL.revokeObjectURL(video.src)
+      resolve(dur)
+    }
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src)
+      resolve(0)
+    }
+    video.src = URL.createObjectURL(file)
+  })
+}
+
+/** 批量上传照片/视频（乐观更新：先插入占位卡，成功后替换，失败后显示裂图） */
 async function handlePhotoUpload(e: Event) {
   const input = e.target as HTMLInputElement
   const files = input.files
@@ -1468,35 +1518,50 @@ async function handlePhotoUpload(e: Event) {
 
   const albumId = adminSelectedAlbumId.value
 
-  // 为每张图片生成临时 id，并插入占位卡（插到列表最前面）
-  const tempItems: AdminPhotoItem[] = Array.from(files).map((_, i) => ({
+  // 为每个文件生成临时 id，并插入占位卡（插到列表最前面）
+  const tempItems: AdminPhotoItem[] = Array.from(files).map((file, i) => ({
     id: -(Date.now() + i),   // 负数 id，避免与真实 id 冲突
     albumId,
     url: '',
     caption: null,
     hasPassword: false,
+    mediaType: (file.type.startsWith('video/') ? 'video' : 'image') as 'image' | 'video',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     status: 'uploading' as const,
     uploadPercent: 0,
+    fileName: file.name,
   }))
 
   // 插入到列表最前面
   adminPhotos.value = [...tempItems, ...adminPhotos.value]
 
-  // 并发上传所有图片（每张独立处理，互不影响）
+  // 并发上传所有文件（每个独立处理，互不影响）
   const uploadTasks = Array.from(files).map(async (file, i) => {
     const tempId = tempItems[i].id
+    const isVideo = file.type.startsWith('video/')
 
     try {
-      // 上传文件，获取 url
-      const url = await chunkedUpload(file, (p) => {
+      // 上传文件，获取 url 和 mediaType
+      const result = await chunkedUpload(file, (p) => {
         const idx = adminPhotos.value.findIndex(ph => ph.id === tempId)
         if (idx !== -1) adminPhotos.value[idx].uploadPercent = p.percent
       })
 
+      // 构建添加照片/视频的请求参数
+      const addData: { url: string; mediaType?: 'image' | 'video'; duration?: number } = {
+        url: result.url,
+        mediaType: result.mediaType || (isVideo ? 'video' : 'image'),
+      }
+
+      // 如果是视频，获取时长
+      if (isVideo) {
+        const dur = await getVideoDuration(file)
+        if (dur > 0) addData.duration = dur
+      }
+
       // 调接口存入 DB
-      const photo = await apiAddPhoto(albumId, { url })
+      const photo = await apiAddPhoto(albumId, addData)
 
       // 替换占位项为真实数据
       const idx = adminPhotos.value.findIndex(ph => ph.id === tempId)
