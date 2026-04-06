@@ -8,5 +8,8 @@ export default defineEventHandler(async (event) => {
   if (query.title && typeof query.title === 'string') {
     params.title = query.title
   }
+  if (query.search && typeof query.search === 'string') {
+    params.search = query.search
+  }
   return proxyToBackend(event, '/api/articles', { query: params })
 })

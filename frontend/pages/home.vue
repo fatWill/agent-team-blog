@@ -12,8 +12,17 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
-      <!-- 右侧：Admin + GitHub + 主题切换 -->
+      <!-- 右侧：搜索 + Admin + GitHub + 主题切换 -->
       <div class="flex items-center gap-1">
+        <button
+          class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          aria-label="搜索"
+          @click="searchVisible = true"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+        </button>
         <NuxtLink
           to="/admin"
           class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
@@ -94,6 +103,15 @@
 
     <!-- PC端右上角固定按钮组（仅 >= md 显示） -->
     <div class="fixed right-6 top-6 z-50 hidden items-center gap-1 md:flex">
+      <button
+        class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+        aria-label="搜索"
+        @click="searchVisible = true"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      </button>
       <NuxtLink
         to="/admin"
         class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
@@ -182,9 +200,19 @@
     <main class="mx-auto w-full max-w-3xl flex-1 px-4 pt-3 pb-8">
       <!-- 文章 Tab -->
       <div v-if="activeTab === 'articles'">
-        <div class="mb-6">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📝 文章</h2>
-          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">记录技术探索与思考的点滴</p>
+        <div class="mb-6 flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📝 文章</h2>
+            <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">记录技术探索与思考的点滴</p>
+          </div>
+          <button
+            :disabled="randomLoading"
+            class="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            @click="handleRandomArticle"
+          >
+            <span :class="randomLoading ? 'animate-spin' : ''">🎲</span>
+            {{ randomLoading ? '跳转中...' : '随机' }}
+          </button>
         </div>
         <div v-if="articlesStatus === 'pending'" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
@@ -222,7 +250,10 @@
                     <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
                     <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
                     <div class="flex items-center justify-between">
-                      <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                      <div class="flex items-center gap-3">
+                        <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                        <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">👁 {{ article.views ?? 0 }}</span>
+                      </div>
                       <button
                         class="group/like flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
                         @click.prevent.stop="handleArticleLike(article.id, $event)"
@@ -265,7 +296,10 @@
                   <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
                   <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
                   <div class="flex items-center justify-between">
-                    <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                    <div class="flex items-center gap-3">
+                      <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                      <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">👁 {{ article.views ?? 0 }}</span>
+                    </div>
                     <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                       <svg class="h-3.5 w-3.5 fill-none stroke-gray-400 dark:stroke-gray-500" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
@@ -620,6 +654,9 @@
       </div>
     </main>
 
+    <!-- 搜索对话框 -->
+    <SearchDialog v-model:visible="searchVisible" />
+
     <!-- 底部备案信息 -->
     <footer class="py-4 text-center text-xs text-gray-400 dark:text-gray-500">
       <p>
@@ -853,7 +890,7 @@
 <script setup lang="ts">
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
 import type { MessageItem } from '~/features/guestbook'
-import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch } from '~/utils/api'
+import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle } from '~/utils/api'
 import { apiGetMessages } from '~/features/guestbook'
 import { toCdnUrl, toThumbUrl } from '~/utils/imageUrl'
 
@@ -876,6 +913,25 @@ const { isDark, toggleTheme } = useTheme()
 
 // 移动端抽屉状态
 const drawerOpen = ref(false)
+
+// ====== 搜索对话框 ======
+const searchVisible = ref(false)
+
+// ====== 随机文章 ======
+const randomLoading = ref(false)
+const router = useRouter()
+
+async function handleRandomArticle() {
+  randomLoading.value = true
+  try {
+    const res = await apiGetRandomArticle()
+    router.push(`/articles/${res.id}`)
+  } catch {
+    // 静默处理
+  } finally {
+    randomLoading.value = false
+  }
+}
 
 // ====== 设备唯一 ID（持久化到 localStorage） ======
 const deviceId = ref('')
@@ -1841,6 +1897,8 @@ onMounted(() => {
   // 客户端拉取文章点赞状态（依赖 localStorage deviceId，不做 SSR）
   nextTick(() => fetchArticleLikeStates())
   window.addEventListener('keydown', handleKeydown)
+  // Cmd+K / Ctrl+K 搜索快捷键
+  window.addEventListener('keydown', handleSearchShortcut)
   // 监听气泡留言提交事件，刷新留言板列表
   window.addEventListener('guestbook:new-message', () => {
     if (guestbookLoaded.value) {
@@ -1851,7 +1909,15 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('keydown', handleSearchShortcut)
 })
+
+function handleSearchShortcut(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault()
+    searchVisible.value = !searchVisible.value
+  }
+}
 
 useHead({
   title: 'fatwill - 个人博客',

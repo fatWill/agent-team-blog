@@ -732,6 +732,39 @@
             </div>
           </div>
         </div>
+
+        <!-- 访客足迹地图 -->
+        <div class="mt-8 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">🗺️ 访客足迹</h3>
+          <ClientOnly>
+            <div ref="geoChartRef" style="width: 100%; height: 400px;" />
+            <template #fallback>
+              <div class="flex h-[400px] items-center justify-center">
+                <AppLoading tip="加载地图..." />
+              </div>
+            </template>
+          </ClientOnly>
+          <!-- Top10 城市列表 -->
+          <div v-if="geoTopCities.length > 0" class="mt-4">
+            <h4 class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Top10 城市</h4>
+            <div class="grid grid-cols-1 gap-1.5 md:grid-cols-2">
+              <div
+                v-for="(city, i) in geoTopCities"
+                :key="i"
+                class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700/50"
+              >
+                <div class="flex items-center gap-2">
+                  <span
+                    class="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                    :class="i < 3 ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'"
+                  >{{ i + 1 }}</span>
+                  <span class="text-xs text-gray-700 dark:text-gray-300">{{ city.province }} · {{ city.city }}</span>
+                </div>
+                <span class="text-xs font-medium text-gray-900 dark:text-gray-100">{{ city.count }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       </div>
     </main>
@@ -1646,7 +1679,102 @@ function resetLogFilter() {
 }
 
 async function fetchAnalyticsData() {
-  await Promise.all([fetchOverview(), fetchTrend(), fetchTopPages(), fetchLogs(1)])
+  await Promise.all([fetchOverview(), fetchTrend(), fetchTopPages(), fetchLogs(1), fetchGeoData()])
+}
+
+// ====== 访客足迹地图 ======
+interface GeoItem {
+  province: string
+  city: string
+  count: number
+}
+
+const geoData = ref<GeoItem[]>([])
+const geoChartRef = ref<HTMLElement | null>(null)
+const geoTopCities = computed(() => {
+  return [...geoData.value]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+})
+
+async function fetchGeoData() {
+  try {
+    const res = await $fetch<{ ok: boolean; data: GeoItem[] }>('/api/pv/geo')
+    geoData.value = res.data || []
+    nextTick(() => renderGeoChart())
+  } catch {
+    geoData.value = []
+  }
+}
+
+async function renderGeoChart() {
+  if (!geoChartRef.value || import.meta.server) return
+  const echarts = await import('echarts')
+
+  // 加载中国地图 JSON
+  try {
+    const chinaJson = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json').then(r => r.json())
+    echarts.registerMap('china', chinaJson)
+  } catch {
+    return
+  }
+
+  // 按省份聚合数据
+  const provinceMap = new Map<string, number>()
+  for (const item of geoData.value) {
+    const prov = item.province.replace(/省|市|自治区|特别行政区|壮族|回族|维吾尔/g, '')
+    provinceMap.set(prov, (provinceMap.get(prov) || 0) + item.count)
+  }
+  const mapData = Array.from(provinceMap.entries()).map(([name, value]) => ({ name, value }))
+
+  const chart = echarts.init(geoChartRef.value)
+  chart.setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: (params: any) => {
+        return `${params.name}<br/>访问量: ${params.value || 0}`
+      },
+    },
+    visualMap: {
+      min: 0,
+      max: Math.max(...mapData.map(d => d.value), 10),
+      left: 'left',
+      top: 'bottom',
+      text: ['高', '低'],
+      inRange: {
+        color: ['#e0f2fe', '#7dd3fc', '#38bdf8', '#0284c7', '#075985'],
+      },
+      textStyle: {
+        color: '#999',
+      },
+      calculable: true,
+    },
+    series: [
+      {
+        name: '访客分布',
+        type: 'map',
+        map: 'china',
+        roam: true,
+        label: {
+          show: false,
+        },
+        emphasis: {
+          label: { show: true, color: '#333' },
+          itemStyle: { areaColor: '#fbbf24' },
+        },
+        itemStyle: {
+          areaColor: '#f1f5f9',
+          borderColor: '#cbd5e1',
+          borderWidth: 0.5,
+        },
+        data: mapData,
+      },
+    ],
+  })
+
+  // 响应式
+  const resizeOb = new ResizeObserver(() => chart.resize())
+  resizeOb.observe(geoChartRef.value)
 }
 
 watch(trendDays, () => {

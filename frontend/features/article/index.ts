@@ -17,4 +17,7 @@ export {
   apiToggleArticleLike,
   apiGetArticleLikeStatus,
   apiGetArticleLikeStatusBatch,
+  apiRecordArticleView,
+  apiGetRandomArticle,
+  apiSearchArticles,
 } from './api'

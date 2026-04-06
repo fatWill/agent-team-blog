@@ -82,3 +82,26 @@ export async function apiGetArticleLikeStatusBatch(ids: string[], deviceId: stri
   })
   return res
 }
+
+/** 记录文章阅读量 */
+export async function apiRecordArticleView(articleId: string, deviceId: string): Promise<{ views: number }> {
+  const res = await $fetch<{ views: number }>(`/api/articles/${articleId}/view`, {
+    method: 'POST',
+    body: { deviceId },
+  })
+  return res
+}
+
+/** 获取随机文章 */
+export async function apiGetRandomArticle(): Promise<{ id: string }> {
+  const res = await $fetch<{ id: string }>('/api/articles/random')
+  return res
+}
+
+/** 搜索文章（利用已有接口的 search 参数） */
+export async function apiSearchArticles(keyword: string): Promise<ArticleListResponse> {
+  const res = await $fetch<ArticleListResponse>('/api/articles', {
+    params: { search: keyword },
+  })
+  return res
+}

@@ -26,6 +26,9 @@ export {
   apiToggleArticleLike,
   apiGetArticleLikeStatus,
   apiGetArticleLikeStatusBatch,
+  apiRecordArticleView,
+  apiGetRandomArticle,
+  apiSearchArticles,
 } from '~/features/article'
 
 // === 相册领域 ===

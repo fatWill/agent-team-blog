@@ -19,6 +19,8 @@
     "@tiptap/starter-kit": "^3.21.0",
     "@tiptap/vue-3": "^3.21.0",
     "ant-design-vue": "^4.2.6",
+    "echarts": "^6.0.0",
+    "highlight.js": "^11.11.1",
     "nprogress": "^0.2.0",
     "nuxt": "^3.16.1",
     "pinia": "^2.3.0",

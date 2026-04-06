@@ -5,6 +5,7 @@ export interface ArticleListItem {
   summary: string
   coverImage: string
   likeCount: number
+  views: number
   createdAt: string
   updatedAt: string
 }
