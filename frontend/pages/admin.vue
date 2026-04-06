@@ -1585,6 +1585,72 @@ function getVideoDuration(file: File): Promise<number> {
   })
 }
 
+/** 截取视频第1帧生成封面图（JPEG） */
+function generateVideoThumbnail(file: File): Promise<File | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.muted = true
+    video.playsInline = true
+    const url = URL.createObjectURL(file)
+    video.src = url
+
+    // 超时兜底：5秒内无法截取则放弃
+    const timeout = setTimeout(() => {
+      URL.revokeObjectURL(url)
+      resolve(null)
+    }, 5000)
+
+    video.onloadedmetadata = () => {
+      // 截取0.5秒处（避免黑帧），如果视频不足0.5秒则截取0秒
+      video.currentTime = Math.min(0.5, video.duration * 0.5)
+    }
+
+    video.onseeked = () => {
+      clearTimeout(timeout)
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth || 640
+        canvas.height = video.videoHeight || 360
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url)
+          if (!blob) { resolve(null); return }
+          const thumbName = file.name.replace(/\.[^.]+$/, '') + '_thumb.jpg'
+          resolve(new File([blob], thumbName, { type: 'image/jpeg' }))
+        }, 'image/jpeg', 0.8)
+      } catch {
+        URL.revokeObjectURL(url)
+        resolve(null)
+      }
+    }
+
+    video.onerror = () => {
+      clearTimeout(timeout)
+      URL.revokeObjectURL(url)
+      resolve(null)
+    }
+
+    video.load()
+  })
+}
+
+/** 上传封面图（小文件直传，不走分片） */
+async function uploadThumbnail(thumbFile: File): Promise<string | null> {
+  try {
+    const formData = new FormData()
+    formData.append('file', thumbFile)
+    const res = await $fetch<{ url: string }>('/api/upload', {
+      method: 'POST',
+      body: formData,
+    })
+    return res.url
+  } catch {
+    return null
+  }
+}
+
 /** 清空待上传队列，释放 ObjectURL 内存 */
 function clearPendingFiles() {
   pendingPreviews.value.forEach((url) => { if (url) URL.revokeObjectURL(url) })
@@ -1662,15 +1728,23 @@ async function startUpload() {
       })
 
       // 构建添加照片/视频的请求参数
-      const addData: { url: string; mediaType?: 'image' | 'video'; duration?: number } = {
+      const addData: { url: string; mediaType?: 'image' | 'video'; duration?: number; thumbnailUrl?: string } = {
         url: result.url,
         mediaType: result.mediaType || (isVideo ? 'video' : 'image'),
       }
 
-      // 如果是视频，获取时长
+      // 如果是视频，获取时长 + 生成封面图
       if (isVideo) {
-        const dur = await getVideoDuration(file)
+        const [dur, thumbFile] = await Promise.all([
+          getVideoDuration(file),
+          generateVideoThumbnail(file),
+        ])
         if (dur > 0) addData.duration = dur
+        // 封面图生成成功则上传，失败静默忽略
+        if (thumbFile) {
+          const thumbUrl = await uploadThumbnail(thumbFile)
+          if (thumbUrl) addData.thumbnailUrl = thumbUrl
+        }
       }
 
       // 调接口存入 DB
