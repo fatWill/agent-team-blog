@@ -173,6 +173,23 @@ func autoMigrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_pv_path ON page_views (path)`,
 		`CREATE INDEX IF NOT EXISTS idx_pv_device_id ON page_views (device_id)`,
 
+		// 前端性能指标表
+		`CREATE TABLE IF NOT EXISTS perf_metrics (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			page TEXT NOT NULL DEFAULT '',
+			fcp REAL,
+			lcp REAL,
+			ttfb REAL,
+			dom_ready REAL,
+			load_time REAL,
+			js_load REAL,
+			device_type TEXT,
+			ua TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_perf_page ON perf_metrics (page)`,
+		`CREATE INDEX IF NOT EXISTS idx_perf_created ON perf_metrics (created_at)`,
+
 		// 兼容已有数据库：为 articles 表新增 views 字段（如果不存在）
 		// SQLite 不支持 IF NOT EXISTS 语法，用 SELECT 检测
 	}

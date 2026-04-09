@@ -10,6 +10,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/auth"
 	"github.com/fatWill/agent-team-blog/backend/internal/changelog"
 	"github.com/fatWill/agent-team-blog/backend/internal/guestbook"
+	"github.com/fatWill/agent-team-blog/backend/internal/perf"
 	"github.com/fatWill/agent-team-blog/backend/internal/photo"
 	"github.com/fatWill/agent-team-blog/backend/internal/profile"
 	"github.com/fatWill/agent-team-blog/backend/internal/pv"
@@ -169,6 +170,16 @@ func registerRoutes(api *gin.RouterGroup) {
 		pvGroup.GET("/logs", authMW, pv.GetLogs)
 		pvGroup.GET("/overview", authMW, pv.GetOverview)
 		pvGroup.GET("/geo", authMW, pv.GetGeoDistribution)
+	}
+
+	// ========== 前端性能监控 ==========
+	perfGroup := api.Group("/perf")
+	{
+		perfGroup.POST("/report", perf.Report)
+		perfGroup.GET("/overview", authMW, perf.GetOverview)
+		perfGroup.GET("/pages", authMW, perf.GetPages)
+		perfGroup.GET("/trend", authMW, perf.GetTrend)
+		perfGroup.GET("/logs", authMW, perf.GetLogs)
 	}
 
 	// ========== 更新日志 ==========
