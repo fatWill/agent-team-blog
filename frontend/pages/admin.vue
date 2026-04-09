@@ -939,6 +939,287 @@
           </div>
         </div>
       </div>
+
+      <!-- ========== Tab 7: 性能监控 ========== -->
+      <div v-if="activeTab === 'perf'">
+        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">性能监控</h2>
+
+        <!-- 概览卡片 -->
+        <div class="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">平均 FCP</p>
+            <p class="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">首次内容绘制</p>
+            <p class="mt-1 text-2xl font-bold" :class="perfLcpColor(perfOverview?.avgFcp)">
+              {{ perfOverview ? Math.round(perfOverview.avgFcp) + ' ms' : '--' }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">平均 LCP</p>
+            <p class="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">最大内容绘制</p>
+            <p class="mt-1 text-2xl font-bold" :class="perfLcpColor(perfOverview?.avgLcp)">
+              {{ perfOverview ? Math.round(perfOverview.avgLcp) + ' ms' : '--' }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">P75 LCP</p>
+            <p class="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">75% 用户体验</p>
+            <p class="mt-1 text-2xl font-bold" :class="perfLcpColor(perfOverview?.p75Lcp)">
+              {{ perfOverview ? Math.round(perfOverview.p75Lcp) + ' ms' : '--' }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">平均 TTFB</p>
+            <p class="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">首字节时间</p>
+            <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {{ perfOverview ? Math.round(perfOverview.avgTtfb) + ' ms' : '--' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- LCP/FCP 趋势折线图 -->
+        <div class="mb-8 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">LCP / FCP 趋势</h3>
+            <div class="flex gap-1">
+              <button
+                v-for="d in [7, 14, 30]" :key="d"
+                class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
+                :class="perfTrendDays === d ? 'bg-primary-500 text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'"
+                @click="perfTrendDays = d"
+              >{{ d }} 天</button>
+            </div>
+          </div>
+          <!-- 图例 -->
+          <div class="mb-3 flex items-center gap-4">
+            <span class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+              <span class="inline-block h-2 w-4 rounded-sm bg-[#3b82f6]" /> LCP
+            </span>
+            <span class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+              <span class="inline-block h-2 w-4 rounded-sm bg-[#10b981]" /> FCP
+            </span>
+          </div>
+          <!-- SVG 图表 -->
+          <div class="overflow-x-auto">
+          <div ref="perfChartContainerRef" class="relative" :style="{ width: perfChartWidth + 'px', minWidth: '320px', height: '280px' }">
+            <svg v-if="perfTrendData.length > 0" :width="perfChartWidth" :height="perfChartH">
+              <!-- 纵轴网格线 + 标签 -->
+              <template v-for="(val, i) in perfYAxisTicks" :key="'py' + i">
+                <line
+                  :x1="perfChartPad.left" :y1="perfYScale(val)"
+                  :x2="perfChartWidth - perfChartPad.right" :y2="perfYScale(val)"
+                  stroke="currentColor" class="text-gray-100 dark:text-gray-700" stroke-width="1"
+                />
+                <text
+                  :x="perfChartPad.left - 8" :y="perfYScale(val) + 4"
+                  text-anchor="end" class="fill-gray-400 text-[10px] dark:fill-gray-500"
+                >{{ val }}</text>
+              </template>
+              <!-- LCP 折线 -->
+              <polyline
+                :points="perfLcpPoints"
+                fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+              />
+              <!-- FCP 折线 -->
+              <polyline
+                :points="perfFcpPoints"
+                fill="none" stroke="#10b981" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+              />
+              <!-- LCP 数据点 -->
+              <circle
+                v-for="(pt, i) in perfLcpCircles" :key="'plc' + i"
+                :cx="pt.x" :cy="pt.y" r="3.5"
+                fill="#3b82f6" stroke="white" stroke-width="1.5"
+                class="cursor-pointer dark:stroke-gray-800"
+                @mouseenter="showPerfTooltip($event, i)"
+                @mouseleave="hidePerfTooltip"
+              />
+              <!-- FCP 数据点 -->
+              <circle
+                v-for="(pt, i) in perfFcpCircles" :key="'pfc' + i"
+                :cx="pt.x" :cy="pt.y" r="3.5"
+                fill="#10b981" stroke="white" stroke-width="1.5"
+                class="cursor-pointer dark:stroke-gray-800"
+                @mouseenter="showPerfTooltip($event, i)"
+                @mouseleave="hidePerfTooltip"
+              />
+              <!-- 横轴标签 -->
+              <text
+                v-for="(label, i) in perfXLabels" :key="'pxl' + i"
+                :x="perfXScale(i)"
+                :y="perfChartH - 8"
+                text-anchor="middle"
+                class="fill-gray-400 text-[10px] dark:fill-gray-500"
+              >{{ label }}</text>
+            </svg>
+            <div v-else class="flex h-full items-center justify-center">
+              <p class="text-sm text-gray-400 dark:text-gray-500">暂无数据</p>
+            </div>
+            <!-- Tooltip -->
+            <div
+              v-if="perfTooltip.visible"
+              class="pointer-events-none absolute z-10 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs shadow-lg dark:border-gray-600 dark:bg-gray-700"
+              :style="{ left: perfTooltip.x + 'px', top: perfTooltip.y + 'px' }"
+            >
+              <p class="font-medium text-gray-700 dark:text-gray-200">{{ perfTooltip.date }}</p>
+              <p class="text-blue-500">LCP: {{ perfTooltip.lcp }} ms</p>
+              <p class="text-emerald-500">FCP: {{ perfTooltip.fcp }} ms</p>
+              <p class="text-gray-400">采样: {{ perfTooltip.count }}</p>
+            </div>
+          </div>
+          </div>
+        </div>
+
+        <!-- 各页面性能排行 -->
+        <div class="mb-8 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">各页面性能排行</h3>
+          <!-- PC 端表格 -->
+          <div class="hidden md:block">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <th class="whitespace-nowrap pb-2 pr-4 font-medium text-gray-500 dark:text-gray-400">页面路径</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 text-right font-medium text-gray-500 dark:text-gray-400">采样数</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 text-right font-medium text-gray-500 dark:text-gray-400">平均 FCP</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 text-right font-medium text-gray-500 dark:text-gray-400">平均 LCP</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 text-right font-medium text-gray-500 dark:text-gray-400">平均 TTFB</th>
+                    <th class="whitespace-nowrap pb-2 text-right font-medium text-gray-500 dark:text-gray-400">平均加载</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="pg in perfPagesData" :key="pg.page" class="border-b border-gray-50 dark:border-gray-700/50">
+                    <td class="max-w-[200px] truncate py-2.5 pr-4 font-mono text-xs text-gray-700 dark:text-gray-300">{{ pg.page }}</td>
+                    <td class="whitespace-nowrap py-2.5 pr-4 text-right text-xs text-gray-500 dark:text-gray-400">{{ pg.count }}</td>
+                    <td class="whitespace-nowrap py-2.5 pr-4 text-right text-xs text-gray-700 dark:text-gray-300">{{ Math.round(pg.avgFcp) }} ms</td>
+                    <td class="whitespace-nowrap py-2.5 pr-4 text-right text-xs font-medium">
+                      <span class="inline-flex items-center gap-1" :class="perfLcpColor(pg.avgLcp)">
+                        <span class="h-1.5 w-1.5 rounded-full" :class="perfLcpDotColor(pg.avgLcp)" />
+                        {{ Math.round(pg.avgLcp) }} ms
+                      </span>
+                    </td>
+                    <td class="whitespace-nowrap py-2.5 pr-4 text-right text-xs text-gray-700 dark:text-gray-300">{{ Math.round(pg.avgTtfb) }} ms</td>
+                    <td class="whitespace-nowrap py-2.5 text-right text-xs text-gray-700 dark:text-gray-300">{{ Math.round(pg.avgLoadTime) }} ms</td>
+                  </tr>
+                  <tr v-if="perfPagesData.length === 0">
+                    <td colspan="6" class="py-8 text-center text-gray-400 dark:text-gray-500">暂无数据</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 移动端卡片 -->
+          <div class="space-y-2 md:hidden">
+            <div
+              v-for="pg in perfPagesData" :key="pg.page"
+              class="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50"
+            >
+              <p class="mb-1.5 truncate font-mono text-xs font-medium text-gray-700 dark:text-gray-300">{{ pg.page }}</p>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                <span class="text-gray-400 dark:text-gray-500">采样 {{ pg.count }}</span>
+                <span class="text-right" :class="perfLcpColor(pg.avgLcp)">LCP {{ Math.round(pg.avgLcp) }} ms</span>
+                <span class="text-gray-500 dark:text-gray-400">FCP {{ Math.round(pg.avgFcp) }} ms</span>
+                <span class="text-right text-gray-500 dark:text-gray-400">TTFB {{ Math.round(pg.avgTtfb) }} ms</span>
+              </div>
+            </div>
+            <div v-if="perfPagesData.length === 0" class="py-8 text-center text-sm text-gray-400 dark:text-gray-500">暂无数据</div>
+          </div>
+        </div>
+
+        <!-- 原始日志表格 -->
+        <div class="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">性能日志</h3>
+          <!-- 筛选条件 -->
+          <div class="mb-4 flex flex-wrap items-end gap-3">
+            <div class="min-w-0 flex-1">
+              <label class="mb-1 block text-xs text-gray-500 dark:text-gray-400">页面路径</label>
+              <input
+                v-model="perfLogFilter.path"
+                type="text"
+                placeholder="/home"
+                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              />
+            </div>
+            <div class="flex gap-2">
+              <button
+                class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
+                @click="fetchPerfLogs(1)"
+              >查询</button>
+              <button
+                class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                @click="perfLogFilter.path = ''; fetchPerfLogs(1)"
+              >重置</button>
+            </div>
+          </div>
+          <!-- PC 端表格 -->
+          <div class="hidden md:block">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <th class="whitespace-nowrap pb-2 pr-4 font-medium text-gray-500 dark:text-gray-400">时间</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 font-medium text-gray-500 dark:text-gray-400">页面</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 text-right font-medium text-gray-500 dark:text-gray-400">FCP</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 text-right font-medium text-gray-500 dark:text-gray-400">LCP</th>
+                    <th class="whitespace-nowrap pb-2 pr-4 text-right font-medium text-gray-500 dark:text-gray-400">TTFB</th>
+                    <th class="whitespace-nowrap pb-2 text-right font-medium text-gray-500 dark:text-gray-400">设备</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="log in perfLogsData.list" :key="log.id" class="border-b border-gray-50 dark:border-gray-700/50">
+                    <td class="whitespace-nowrap py-2 pr-4 text-xs text-gray-500 dark:text-gray-400">{{ formatTime(log.createdAt) }}</td>
+                    <td class="max-w-[160px] truncate py-2 pr-4 font-mono text-xs text-gray-700 dark:text-gray-300">{{ log.page }}</td>
+                    <td class="whitespace-nowrap py-2 pr-4 text-right text-xs text-gray-700 dark:text-gray-300">{{ log.fcp ? Math.round(log.fcp) : '-' }}</td>
+                    <td class="whitespace-nowrap py-2 pr-4 text-right text-xs font-medium" :class="perfLcpColor(log.lcp)">{{ log.lcp ? Math.round(log.lcp) : '-' }}</td>
+                    <td class="whitespace-nowrap py-2 pr-4 text-right text-xs text-gray-700 dark:text-gray-300">{{ log.ttfb ? Math.round(log.ttfb) : '-' }}</td>
+                    <td class="whitespace-nowrap py-2 text-right text-xs text-gray-500 dark:text-gray-400">{{ log.deviceType || '-' }}</td>
+                  </tr>
+                  <tr v-if="perfLogsData.list.length === 0">
+                    <td colspan="6" class="py-8 text-center text-gray-400 dark:text-gray-500">暂无日志</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 移动端卡片 -->
+          <div class="space-y-2 md:hidden">
+            <div
+              v-for="log in perfLogsData.list" :key="log.id"
+              class="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50"
+            >
+              <div class="mb-1.5 flex items-center justify-between">
+                <span class="font-mono text-xs font-medium text-gray-700 dark:text-gray-300">{{ log.page }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ formatTime(log.createdAt) }}</span>
+              </div>
+              <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                <span v-if="log.fcp">FCP {{ Math.round(log.fcp) }}</span>
+                <span v-if="log.lcp" :class="perfLcpColor(log.lcp)">LCP {{ Math.round(log.lcp) }}</span>
+                <span v-if="log.ttfb">TTFB {{ Math.round(log.ttfb) }}</span>
+                <span>{{ log.deviceType }}</span>
+              </div>
+            </div>
+            <div v-if="perfLogsData.list.length === 0" class="py-8 text-center text-sm text-gray-400 dark:text-gray-500">暂无日志</div>
+          </div>
+          <!-- 分页 -->
+          <div v-if="perfLogsData.total > 0" class="mt-4 flex items-center justify-between">
+            <span class="text-xs text-gray-400 dark:text-gray-500">
+              第 {{ perfLogsData.page }} / {{ Math.ceil(perfLogsData.total / perfLogsData.pageSize) }} 页，共 {{ perfLogsData.total }} 条
+            </span>
+            <div class="flex gap-2">
+              <button
+                :disabled="perfLogsData.page <= 1"
+                class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                @click="fetchPerfLogs(perfLogsData.page - 1)"
+              >上一页</button>
+              <button
+                :disabled="perfLogsData.page >= Math.ceil(perfLogsData.total / perfLogsData.pageSize)"
+                class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                @click="fetchPerfLogs(perfLogsData.page + 1)"
+              >下一页</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       </div>
     </main>
 
@@ -1131,6 +1412,7 @@ const adminTabs = [
   { key: 'albums', label: '相册管理' },
   { key: 'messages', label: '留言管理' },
   { key: 'analytics', label: '数据统计' },
+  { key: 'perf', label: '📊 性能' },
 ]
 const activeTab = ref('write')
 
@@ -1277,6 +1559,7 @@ watch(activeTab, (val) => {
   if (val === 'albums') fetchAdminAlbums()
   if (val === 'messages') fetchAdminMessages()
   if (val === 'analytics') fetchAnalyticsData()
+  if (val === 'perf') fetchPerfData()
 })
 
 async function startEdit(article: ArticleListItem) {
@@ -1979,6 +2262,21 @@ onMounted(() => {
     chartResizeObserver = new ResizeObserver(updateWidth)
     chartResizeObserver.observe(chartContainerRef.value.parentElement!)
   }
+  // 性能图表容器 resize（延迟初始化，因为 Tab 可能未激活）
+  const initPerfChart = () => {
+    if (perfChartContainerRef.value?.parentElement) {
+      const updatePerfWidth = () => {
+        const el = perfChartContainerRef.value?.parentElement
+        if (!el) return
+        perfChartWidth.value = perfTrendDays.value <= 7 ? Math.max(el.clientWidth, 320) : Math.max(el.clientWidth, 600)
+      }
+      updatePerfWidth()
+      perfChartResizeOb = new ResizeObserver(updatePerfWidth)
+      perfChartResizeOb.observe(perfChartContainerRef.value.parentElement)
+    }
+  }
+  // 如果性能 Tab 还没激活，等 Tab 切换时再初始化
+  watch(() => perfChartContainerRef.value, (el) => { if (el) initPerfChart() })
 })
 
 // 纵轴刻度
@@ -2088,6 +2386,175 @@ function resetLogFilter() {
 
 async function fetchAnalyticsData() {
   await Promise.all([fetchOverview(), fetchTrend(), fetchTopPages(), fetchLogs(1), fetchGeoData()])
+}
+
+// ====== 性能监控 ======
+interface PerfOverview {
+  totalCount: number
+  avgFcp: number
+  avgLcp: number
+  avgTtfb: number
+  avgLoadTime: number
+  p75Lcp: number
+  p75Fcp: number
+}
+interface PerfTrendItem {
+  date: string
+  avgFcp: number
+  avgLcp: number
+  avgTtfb: number
+  count: number
+}
+interface PerfPageItem {
+  page: string
+  count: number
+  avgFcp: number
+  avgLcp: number
+  avgTtfb: number
+  avgLoadTime: number
+}
+interface PerfLogItem {
+  id: number
+  page: string
+  fcp: number | null
+  lcp: number | null
+  ttfb: number | null
+  domReady: number | null
+  loadTime: number | null
+  jsLoad: number | null
+  deviceType: string
+  createdAt: string
+}
+
+const perfOverview = ref<PerfOverview | null>(null)
+const perfTrendData = ref<PerfTrendItem[]>([])
+const perfTrendDays = ref(7)
+const perfPagesData = ref<PerfPageItem[]>([])
+const perfLogFilter = reactive({ path: '' })
+const perfLogsData = reactive({
+  list: [] as PerfLogItem[],
+  total: 0,
+  page: 1,
+  pageSize: 20,
+})
+
+// LCP 颜色判断
+function perfLcpColor(val?: number | null): string {
+  if (val == null) return 'text-gray-900 dark:text-gray-100'
+  if (val < 2500) return 'text-emerald-500'
+  if (val < 4000) return 'text-orange-500'
+  return 'text-red-500'
+}
+function perfLcpDotColor(val?: number | null): string {
+  if (val == null) return 'bg-gray-400'
+  if (val < 2500) return 'bg-emerald-500'
+  if (val < 4000) return 'bg-orange-500'
+  return 'bg-red-500'
+}
+
+// 性能趋势折线图
+const perfChartContainerRef = ref<HTMLElement | null>(null)
+const perfChartWidth = ref(600)
+const perfChartH = 280
+const perfChartPad = { top: 20, right: 20, bottom: 50, left: 55 }
+const perfTooltip = reactive({ visible: false, x: 0, y: 0, date: '', lcp: 0, fcp: 0, count: 0 })
+
+let perfChartResizeOb: ResizeObserver | null = null
+
+const perfYMax = computed(() => {
+  if (perfTrendData.value.length === 0) return 1000
+  const max = Math.max(...perfTrendData.value.map(d => Math.max(d.avgLcp, d.avgFcp)))
+  return max < 500 ? 500 : Math.ceil(max * 1.2)
+})
+const perfYAxisTicks = computed(() => {
+  const ticks: number[] = []
+  const step = Math.ceil(perfYMax.value / 5)
+  for (let i = 0; i <= 5; i++) ticks.push(step * i)
+  return ticks
+})
+
+function perfXScale(i: number): number {
+  const total = perfTrendData.value.length
+  if (total <= 1) return perfChartPad.left + (perfChartWidth.value - perfChartPad.left - perfChartPad.right) / 2
+  const drawW = perfChartWidth.value - perfChartPad.left - perfChartPad.right
+  return perfChartPad.left + (i / (total - 1)) * drawW
+}
+function perfYScale(val: number): number {
+  const drawH = perfChartH - perfChartPad.top - perfChartPad.bottom
+  return perfChartPad.top + drawH - (val / perfYMax.value) * drawH
+}
+
+const perfLcpCircles = computed(() => perfTrendData.value.map((d, i) => ({ x: perfXScale(i), y: perfYScale(d.avgLcp) })))
+const perfFcpCircles = computed(() => perfTrendData.value.map((d, i) => ({ x: perfXScale(i), y: perfYScale(d.avgFcp) })))
+const perfLcpPoints = computed(() => perfLcpCircles.value.map(p => `${p.x},${p.y}`).join(' '))
+const perfFcpPoints = computed(() => perfFcpCircles.value.map(p => `${p.x},${p.y}`).join(' '))
+
+const perfXLabels = computed(() => {
+  return perfTrendData.value.map((d, i) => {
+    const short = d.date.slice(5)
+    if (perfTrendDays.value <= 7) return short
+    return i % 5 === 0 || i === perfTrendData.value.length - 1 ? short : ''
+  })
+})
+
+function showPerfTooltip(e: MouseEvent, idx: number) {
+  const d = perfTrendData.value[idx]
+  if (!d || !perfChartContainerRef.value) return
+  const rect = perfChartContainerRef.value.getBoundingClientRect()
+  perfTooltip.x = e.clientX - rect.left + 12
+  perfTooltip.y = e.clientY - rect.top - 60
+  perfTooltip.date = d.date
+  perfTooltip.lcp = Math.round(d.avgLcp)
+  perfTooltip.fcp = Math.round(d.avgFcp)
+  perfTooltip.count = d.count
+  perfTooltip.visible = true
+}
+function hidePerfTooltip() { perfTooltip.visible = false }
+
+// 性能数据请求
+async function fetchPerfOverview() {
+  try {
+    const res = await $fetch<PerfOverview>('/api/perf/overview', { params: { days: perfTrendDays.value } })
+    perfOverview.value = res
+  } catch { perfOverview.value = null }
+}
+
+async function fetchPerfTrend() {
+  try {
+    const res = await $fetch<{ list: PerfTrendItem[] }>('/api/perf/trend', { params: { days: perfTrendDays.value } })
+    perfTrendData.value = res.list || []
+  } catch { perfTrendData.value = [] }
+}
+
+async function fetchPerfPages() {
+  try {
+    const res = await $fetch<{ list: PerfPageItem[] }>('/api/perf/pages', { params: { days: perfTrendDays.value } })
+    perfPagesData.value = res.list || []
+  } catch { perfPagesData.value = [] }
+}
+
+async function fetchPerfLogs(page: number = 1) {
+  try {
+    const res = await $fetch<{ list: PerfLogItem[]; total: number; page: number; pageSize: number }>('/api/perf/logs', {
+      params: {
+        page,
+        pageSize: perfLogsData.pageSize,
+        path: perfLogFilter.path || undefined,
+        days: perfTrendDays.value,
+      },
+    })
+    perfLogsData.list = res.list || []
+    perfLogsData.total = res.total
+    perfLogsData.page = res.page
+    perfLogsData.pageSize = res.pageSize
+  } catch {
+    perfLogsData.list = []
+    perfLogsData.total = 0
+  }
+}
+
+async function fetchPerfData() {
+  await Promise.all([fetchPerfOverview(), fetchPerfTrend(), fetchPerfPages(), fetchPerfLogs(1)])
 }
 
 // ====== 访客足迹地图 ======
@@ -2214,10 +2681,22 @@ watch(trendDays, () => {
 })
 watch(topPagesDays, () => fetchTopPages())
 
+watch(perfTrendDays, () => {
+  const containerEl = perfChartContainerRef.value?.parentElement
+  if (containerEl) {
+    perfChartWidth.value = perfTrendDays.value <= 7 ? Math.max(containerEl.clientWidth, 320) : Math.max(containerEl.clientWidth, 600)
+  }
+  fetchPerfOverview()
+  fetchPerfTrend()
+  fetchPerfPages()
+  fetchPerfLogs(1)
+})
+
 onUnmounted(() => {
   editor.value?.destroy()
   if (searchTimer) clearTimeout(searchTimer)
   chartResizeObserver?.disconnect()
+  perfChartResizeOb?.disconnect()
 })
 
 useHead({ title: '管理后台 - fatwill' })
