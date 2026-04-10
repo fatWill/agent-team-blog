@@ -8,8 +8,26 @@
       />
     </div>
 
-    <!-- 右上角固定：主题切换 -->
-    <div class="fixed right-4 top-4 z-50">
+    <!-- 顶部操作栏：返回首页 + 主题切换（滚动隐藏） -->
+    <div
+      class="fixed left-0 right-0 top-0 z-50 flex items-center justify-between px-4 pt-4 transition-all duration-300"
+      :style="{
+        transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)',
+        opacity: headerVisible ? 1 : 0,
+      }"
+    >
+      <!-- 左：返回首页 -->
+      <NuxtLink
+        to="/home"
+        class="flex h-9 items-center gap-1.5 rounded-lg bg-white/80 px-3 text-sm text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        <span class="hidden sm:inline">返回首页</span>
+      </NuxtLink>
+
+      <!-- 右：主题切换 -->
       <button
         class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/80 text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
         aria-label="切换主题"
@@ -24,23 +42,72 @@
       </button>
     </div>
 
-    <!-- 左上角固定：返回首页 -->
-    <div class="fixed left-4 top-4 z-50">
-      <NuxtLink
-        to="/home"
-        class="flex h-9 items-center gap-1.5 rounded-lg bg-white/80 px-3 text-sm text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+    <!-- 左侧 TOC（PC 端，fixed 定位，不占文章流式空间） -->
+    <aside
+      v-if="tocItems.length > 0"
+      class="fixed left-0 top-0 z-40 hidden h-full md:block"
+      :style="{
+        transform: tocPanelVisible ? 'translateX(0)' : 'translateX(-100%)',
+        opacity: tocPanelVisible ? 1 : 0,
+        transition: 'transform 0.3s ease, opacity 0.3s ease',
+      }"
+    >
+      <!-- 展开状态的完整 TOC -->
+      <nav
+        class="flex h-full flex-col pt-20 pb-8 pl-4 pr-2 transition-all duration-300"
+        :style="{
+          width: tocExpanded ? '220px' : '0px',
+          opacity: tocExpanded ? 1 : 0,
+          overflow: 'hidden',
+        }"
+      >
+        <div class="mb-3 flex items-center justify-between pr-1">
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">目录</h4>
+          <button
+            class="flex h-6 w-6 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+            aria-label="收起目录"
+            @click="tocExpanded = false"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+        <ul class="flex-1 space-y-1 overflow-y-auto border-l border-gray-200 dark:border-gray-700">
+          <li v-for="item in tocItems" :key="item.id">
+            <button
+              class="block w-full truncate border-l-2 py-1 text-left text-xs transition-colors"
+              :class="[
+                activeTocId === item.id
+                  ? 'border-primary-500 font-medium text-primary-600 dark:text-primary-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
+                item.level === 1 ? 'pl-3' : item.level === 2 ? 'pl-5' : 'pl-7',
+              ]"
+              @click="scrollToHeading(item.id)"
+            >
+              {{ item.text }}
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- 收起状态的小图标按钮 -->
+      <button
+        v-show="!tocExpanded"
+        class="absolute left-3 top-20 flex h-10 w-8 items-center justify-center rounded-lg bg-white/90 text-gray-400 shadow-md backdrop-blur-lg transition-all duration-200 hover:bg-gray-50 hover:text-gray-600 dark:bg-gray-800/90 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+        aria-label="展开目录"
+        @click="tocExpanded = true"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h16" />
         </svg>
-        <span class="hidden sm:inline">返回首页</span>
-      </NuxtLink>
-    </div>
+      </button>
+    </aside>
 
-    <!-- 文章内容 + 右侧 TOC -->
-    <div class="mx-auto flex max-w-5xl gap-8 px-4 pt-16 pb-10">
+    <!-- 文章内容区域（居中布局） -->
+    <div class="mx-auto max-w-3xl px-4 pt-16 pb-10">
       <!-- 文章主体 -->
-      <main class="min-w-0 flex-1 max-w-3xl">
+      <main class="min-w-0">
         <!-- 加载状态 -->
         <div v-if="loading" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
@@ -99,30 +166,66 @@
           </div>
         </article>
       </main>
+    </div>
 
-      <!-- 右侧 TOC（仅 PC 端） -->
-      <aside v-if="tocItems.length > 0" class="hidden w-52 shrink-0 md:block">
-        <nav class="sticky top-20">
-          <h4 class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">目录</h4>
-          <ul class="space-y-1 border-l border-gray-200 dark:border-gray-700">
+    <!-- 移动端：右下角悬浮目录按钮 -->
+    <button
+      v-if="tocItems.length > 0"
+      class="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-all duration-200 hover:bg-primary-600 active:scale-95 md:hidden"
+      aria-label="打开目录"
+      @click="mobileTocOpen = true"
+    >
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h16" />
+      </svg>
+    </button>
+
+    <!-- 移动端：底部抽屉式目录 -->
+    <Teleport to="body">
+      <Transition name="mobile-toc-overlay">
+        <div
+          v-if="mobileTocOpen"
+          class="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm md:hidden"
+          @click="mobileTocOpen = false"
+        />
+      </Transition>
+      <Transition name="mobile-toc-drawer">
+        <div
+          v-if="mobileTocOpen"
+          class="fixed bottom-0 left-0 right-0 z-[71] max-h-[60vh] overflow-y-auto rounded-t-2xl bg-white pb-safe dark:bg-gray-800 md:hidden"
+        >
+          <!-- 抽屉把手 -->
+          <div class="sticky top-0 flex items-center justify-between bg-white/95 px-5 py-4 backdrop-blur dark:bg-gray-800/95">
+            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">目录</h4>
+            <button
+              class="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+              @click="mobileTocOpen = false"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <!-- 目录列表 -->
+          <ul class="space-y-0.5 px-5 pb-6">
             <li v-for="item in tocItems" :key="item.id">
               <button
-                class="block w-full truncate border-l-2 py-1 text-left text-xs transition-colors"
+                class="block w-full truncate rounded-lg py-2.5 text-left text-sm transition-colors"
                 :class="[
                   activeTocId === item.id
-                    ? 'border-primary-500 font-medium text-primary-600 dark:text-primary-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-                  item.level === 1 ? 'pl-3' : item.level === 2 ? 'pl-5' : 'pl-7',
+                    ? 'bg-primary-50 font-medium text-primary-600 dark:bg-primary-900/20 dark:text-primary-400'
+                    : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700/50',
+                  item.level === 1 ? 'pl-3' : item.level === 2 ? 'pl-6' : 'pl-9',
                 ]"
-                @click="scrollToHeading(item.id)"
+                @click="handleMobileTocClick(item.id)"
               >
                 {{ item.text }}
               </button>
             </li>
           </ul>
-        </nav>
-      </aside>
-    </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- 页脚 -->
     <footer class="border-t border-gray-200/60 py-8 text-center text-sm text-gray-400 transition-colors dark:border-gray-700/60 dark:text-gray-500">
@@ -160,10 +263,33 @@ const articleViews = ref(articleData.value?.views ?? 0)
 // ====== 阅读进度条 ======
 const readProgress = ref(0)
 
+// ====== 滚动方向检测 & 顶栏/TOC 可见性 ======
+const headerVisible = ref(true)
+const tocPanelVisible = ref(true)
+const tocExpanded = ref(true)
+const mobileTocOpen = ref(false)
+let lastScrollY = 0
+const SCROLL_THRESHOLD = 10 // 防抖阈值，避免微小滚动触发
+
 function updateReadProgress() {
   const scrollTop = window.scrollY
   const docHeight = document.documentElement.scrollHeight - window.innerHeight
   readProgress.value = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0
+
+  // 滚动方向检测
+  const delta = scrollTop - lastScrollY
+  if (Math.abs(delta) > SCROLL_THRESHOLD) {
+    if (delta > 0 && scrollTop > 80) {
+      // 向下滚动且超过一定距离：隐藏顶栏和 TOC
+      headerVisible.value = false
+      tocPanelVisible.value = false
+    } else if (delta < 0) {
+      // 向上滚动：显示顶栏和 TOC
+      headerVisible.value = true
+      tocPanelVisible.value = true
+    }
+    lastScrollY = scrollTop
+  }
 }
 
 // ====== TOC ======
@@ -199,6 +325,14 @@ function scrollToHeading(id: string) {
   }
 }
 
+function handleMobileTocClick(id: string) {
+  mobileTocOpen.value = false
+  // 等抽屉关闭动画结束后再滚动
+  setTimeout(() => {
+    scrollToHeading(id)
+  }, 300)
+}
+
 let tocObserver: IntersectionObserver | null = null
 
 function setupTocObserver() {
@@ -208,7 +342,6 @@ function setupTocObserver() {
 
   tocObserver = new IntersectionObserver(
     (entries) => {
-      // 找到最近进入视口的标题
       for (const entry of entries) {
         if (entry.isIntersecting) {
           activeTocId.value = entry.target.id
@@ -235,14 +368,11 @@ async function enhanceCodeBlocks() {
     const pre = block.parentElement
     if (!pre) return
 
-    // 让 pre 相对定位以放置按钮
     pre.style.position = 'relative'
 
-    // 检测语言
     const langClass = Array.from(block.classList).find(c => c.startsWith('language-'))
     const lang = langClass ? langClass.replace('language-', '') : ''
 
-    // 语言标签
     if (lang) {
       const langLabel = document.createElement('span')
       langLabel.className = 'code-lang-label'
@@ -250,7 +380,6 @@ async function enhanceCodeBlocks() {
       pre.appendChild(langLabel)
     }
 
-    // 复制按钮
     const copyBtn = document.createElement('button')
     copyBtn.className = 'code-copy-btn'
     copyBtn.textContent = '复制'
@@ -361,12 +490,10 @@ async function fetchLikeStatus() {
 async function handleArticleLike() {
   if (!deviceId.value || !article.value) return
 
-  // 乐观更新
   const wasLiked = articleLiked.value
   articleLiked.value = !wasLiked
   articleLikeCount.value = wasLiked ? Math.max(0, articleLikeCount.value - 1) : articleLikeCount.value + 1
 
-  // 弹跳动画
   likeAnimating.value = true
   setTimeout(() => { likeAnimating.value = false }, 600)
 
@@ -375,7 +502,6 @@ async function handleArticleLike() {
     articleLiked.value = res.liked
     articleLikeCount.value = res.likeCount
   } catch {
-    // 回滚
     articleLiked.value = wasLiked
     articleLikeCount.value = wasLiked ? articleLikeCount.value + 1 : Math.max(0, articleLikeCount.value - 1)
   }
@@ -409,7 +535,6 @@ async function loadArticle() {
     if (editor.value && data.content) {
       editor.value.commands.setContent(data.content)
     }
-    // 客户端拉取点赞状态 + 记录阅读量
     nextTick(() => {
       fetchLikeStatus()
       recordView()
@@ -435,10 +560,10 @@ function formatDate(dateStr: string): string {
 
 onMounted(() => {
   deviceId.value = getOrCreateDeviceId()
+  lastScrollY = window.scrollY
   window.addEventListener('scroll', updateReadProgress, { passive: true })
 
   if (article.value) {
-    // SSR 已预取，直接初始化 editor
     if (editor.value && article.value.content) {
       editor.value.commands.setContent(article.value.content)
     }
@@ -451,7 +576,6 @@ onMounted(() => {
       nextTick(() => setupTocObserver())
     })
   } else {
-    // SSR 预取失败，客户端兜底
     loadArticle()
   }
 })
@@ -500,5 +624,31 @@ pre {
 .code-copy-btn:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* 移动端目录抽屉动画 */
+.mobile-toc-overlay-enter-active,
+.mobile-toc-overlay-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.mobile-toc-overlay-enter-from,
+.mobile-toc-overlay-leave-to {
+  opacity: 0;
+}
+
+.mobile-toc-drawer-enter-active,
+.mobile-toc-drawer-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.mobile-toc-drawer-enter-from,
+.mobile-toc-drawer-leave-to {
+  transform: translateY(100%);
+}
+
+/* iOS 安全区域适配 */
+.pb-safe {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
 }
 </style>
