@@ -8,26 +8,14 @@
       />
     </div>
 
-    <!-- 顶部操作栏：返回首页 + 主题切换（滚动隐藏） -->
+    <!-- 右上角：主题切换按钮（滚动隐藏） -->
     <div
-      class="fixed left-0 right-0 top-0 z-50 flex items-center justify-between px-4 pt-4 transition-all duration-300"
+      class="fixed right-4 top-4 z-50 transition-all duration-300"
       :style="{
-        transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)',
+        transform: headerVisible ? 'translateY(0)' : 'translateY(-200%)',
         opacity: headerVisible ? 1 : 0,
       }"
     >
-      <!-- 左：返回首页 -->
-      <NuxtLink
-        to="/home"
-        class="flex h-9 items-center gap-1.5 rounded-lg bg-white/80 px-3 text-sm text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-      >
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        <span class="hidden sm:inline">返回首页</span>
-      </NuxtLink>
-
-      <!-- 右：主题切换 -->
       <button
         class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/80 text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
         aria-label="切换主题"
@@ -42,9 +30,8 @@
       </button>
     </div>
 
-    <!-- 左侧 TOC（PC 端，fixed 定位，不占文章流式空间） -->
+    <!-- 左侧面板：返回按钮 + TOC 目录（PC 端，合并为统一 UI） -->
     <aside
-      v-if="tocItems.length > 0"
       class="fixed left-0 top-0 z-40 hidden h-full md:block"
       :style="{
         transform: tocPanelVisible ? 'translateX(0)' : 'translateX(-100%)',
@@ -52,49 +39,63 @@
         transition: 'transform 0.3s ease, opacity 0.3s ease',
       }"
     >
-      <!-- 展开状态的完整 TOC -->
-      <nav
-        class="flex h-full flex-col pt-20 pb-8 pl-4 pr-2 transition-all duration-300"
+      <!-- 展开状态：返回按钮 + TOC 列表 -->
+      <div
+        class="flex h-full flex-col pt-5 pb-8 pl-4 pr-2 transition-all duration-300"
         :style="{
-          width: tocExpanded ? '220px' : '0px',
-          opacity: tocExpanded ? 1 : 0,
+          width: (tocItems.length === 0 || tocExpanded) ? '220px' : '0px',
+          opacity: (tocItems.length === 0 || tocExpanded) ? 1 : 0,
           overflow: 'hidden',
         }"
       >
-        <div class="mb-3 flex items-center justify-between pr-1">
-          <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">目录</h4>
-          <button
-            class="flex h-6 w-6 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-            aria-label="收起目录"
-            @click="tocExpanded = false"
-          >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7" />
-            </svg>
-          </button>
-        </div>
-        <ul class="flex-1 space-y-1 overflow-y-auto border-l border-gray-200 dark:border-gray-700">
-          <li v-for="item in tocItems" :key="item.id">
-            <button
-              class="block w-full truncate border-l-2 py-1 text-left text-xs transition-colors"
-              :class="[
-                activeTocId === item.id
-                  ? 'border-primary-500 font-medium text-primary-600 dark:text-primary-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-                item.level === 1 ? 'pl-3' : item.level === 2 ? 'pl-5' : 'pl-7',
-              ]"
-              @click="scrollToHeading(item.id)"
-            >
-              {{ item.text }}
-            </button>
-          </li>
-        </ul>
-      </nav>
+        <!-- 返回按钮 -->
+        <NuxtLink
+          to="/home"
+          class="mb-4 flex h-9 w-fit items-center gap-1.5 rounded-lg bg-white/80 px-3 text-sm text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>返回首页</span>
+        </NuxtLink>
 
-      <!-- 收起状态的小图标按钮 -->
+        <!-- TOC 目录区域 -->
+        <nav v-if="tocItems.length > 0" class="flex min-h-0 flex-1 flex-col">
+          <div class="mb-3 flex items-center justify-between pr-1">
+            <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">目录</h4>
+            <button
+              class="flex h-6 w-6 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              aria-label="收起目录"
+              @click="tocExpanded = false"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
+          <ul class="flex-1 space-y-1 overflow-y-auto border-l border-gray-200 dark:border-gray-700">
+            <li v-for="item in tocItems" :key="item.id">
+              <button
+                class="block w-full truncate border-l-2 py-1 text-left text-xs transition-colors"
+                :class="[
+                  activeTocId === item.id
+                    ? 'border-primary-500 font-medium text-primary-600 dark:text-primary-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
+                  item.level === 1 ? 'pl-3' : item.level === 2 ? 'pl-5' : 'pl-7',
+                ]"
+                @click="scrollToHeading(item.id)"
+              >
+                {{ item.text }}
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <!-- 收起状态：小图标按钮（仅在有 TOC 时显示收起/展开） -->
       <button
-        v-show="!tocExpanded"
-        class="absolute left-3 top-20 flex h-10 w-8 items-center justify-center rounded-lg bg-white/90 text-gray-400 shadow-md backdrop-blur-lg transition-all duration-200 hover:bg-gray-50 hover:text-gray-600 dark:bg-gray-800/90 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+        v-show="!tocExpanded && tocItems.length > 0"
+        class="absolute left-3 top-5 flex h-10 w-8 items-center justify-center rounded-lg bg-white/90 text-gray-400 shadow-md backdrop-blur-lg transition-all duration-200 hover:bg-gray-50 hover:text-gray-600 dark:bg-gray-800/90 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
         aria-label="展开目录"
         @click="tocExpanded = true"
       >
@@ -103,6 +104,25 @@
         </svg>
       </button>
     </aside>
+
+    <!-- 移动端：左上角返回按钮（滚动隐藏） -->
+    <div
+      class="fixed left-4 top-4 z-50 md:hidden transition-all duration-300"
+      :style="{
+        transform: headerVisible ? 'translateY(0)' : 'translateY(-200%)',
+        opacity: headerVisible ? 1 : 0,
+      }"
+    >
+      <NuxtLink
+        to="/home"
+        class="flex h-9 items-center gap-1.5 rounded-lg bg-white/80 px-3 text-sm text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        <span>返回</span>
+      </NuxtLink>
+    </div>
 
     <!-- 文章内容区域（居中布局） -->
     <div class="mx-auto max-w-3xl px-4 pt-16 pb-10">
