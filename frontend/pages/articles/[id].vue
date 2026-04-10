@@ -39,15 +39,9 @@
         transition: 'transform 0.3s ease, opacity 0.3s ease',
       }"
     >
-      <!-- 展开状态：返回图标 + TOC 横向排列 -->
-      <div
-        class="flex h-full flex-row pt-5 pb-8 pl-3 transition-all duration-300"
-        :style="{
-          opacity: (tocItems.length === 0 || tocExpanded) ? 1 : 0,
-          overflow: 'hidden',
-        }"
-      >
-        <!-- 左列：返回图标按钮 -->
+      <!-- 返回图标 + TOC 横向排列（始终渲染，返回箭头不受 tocExpanded 影响） -->
+      <div class="flex h-full flex-row pt-5 pb-8 pl-3">
+        <!-- 左列：返回图标按钮（始终可见） -->
         <div class="flex flex-shrink-0 flex-col items-center">
           <NuxtLink
             to="/home"
@@ -58,13 +52,24 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </NuxtLink>
+          <!-- 收起状态下的展开按钮（紧贴返回箭头下方） -->
+          <button
+            v-if="tocItems.length > 0 && !tocExpanded"
+            class="mt-2 flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-all duration-200 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+            aria-label="展开目录"
+            @click="tocExpanded = true"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h16" />
+            </svg>
+          </button>
         </div>
 
-        <!-- 右列：TOC 目录区域 -->
+        <!-- 右列：TOC 目录区域（展开/收起独立控制） -->
         <nav
-          v-if="tocItems.length > 0"
-          class="flex min-h-0 min-w-0 flex-1 flex-col pr-2 transition-all duration-300"
-          :style="{ width: tocExpanded ? '190px' : '0px', opacity: tocExpanded ? 1 : 0, overflow: 'hidden' }"
+          v-if="tocItems.length > 0 && tocExpanded"
+          class="flex min-h-0 min-w-0 flex-col pr-2"
+          style="width: 190px"
         >
           <div class="mb-3 flex items-center justify-between pr-1">
             <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">目录</h4>
@@ -78,7 +83,7 @@
               </svg>
             </button>
           </div>
-          <ul class="flex-1 space-y-1 overflow-y-auto border-l border-gray-200 dark:border-gray-700">
+          <ul class="flex-1 space-y-1 overflow-y-auto border-l border-gray-200 overscroll-contain dark:border-gray-700">
             <li v-for="item in tocItems" :key="item.id">
               <button
                 class="block w-full truncate border-l-2 py-1 text-left text-xs transition-colors"
@@ -96,18 +101,6 @@
           </ul>
         </nav>
       </div>
-
-      <!-- 收起状态：小图标按钮（仅在有 TOC 且收起时显示） -->
-      <button
-        v-show="!tocExpanded && tocItems.length > 0"
-        class="absolute left-3 top-5 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-gray-400 shadow-md backdrop-blur-lg transition-all duration-200 hover:bg-gray-50 hover:text-gray-600 dark:bg-gray-800/90 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-        aria-label="展开目录"
-        @click="tocExpanded = true"
-      >
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h16" />
-        </svg>
-      </button>
     </aside>
 
     <!-- 移动端：左上角返回按钮（滚动隐藏） -->
