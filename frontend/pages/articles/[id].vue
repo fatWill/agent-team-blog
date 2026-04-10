@@ -103,23 +103,38 @@
       </div>
     </aside>
 
-    <!-- 移动端：左上角返回按钮（滚动隐藏） -->
+    <!-- 移动端：左上角返回 + 目录工具栏（滚动隐藏） -->
     <div
-      class="fixed left-4 top-4 z-50 md:hidden transition-all duration-300"
+      class="fixed left-4 top-4 z-50 flex items-center gap-1 rounded-lg bg-white/80 shadow-sm backdrop-blur-lg dark:bg-gray-800/80 md:hidden transition-all duration-300"
       :style="{
         transform: headerVisible ? 'translateY(0)' : 'translateY(-200%)',
         opacity: headerVisible ? 1 : 0,
       }"
     >
+      <!-- 返回按钮 -->
       <NuxtLink
         to="/home"
-        class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/80 text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+        class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
         aria-label="返回首页"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
       </NuxtLink>
+      <!-- 分割线 + 目录按钮（仅有目录时显示） -->
+      <template v-if="tocItems.length > 0">
+        <div class="h-4 w-px bg-gray-200 dark:bg-gray-600" />
+        <button
+          class="flex h-9 items-center gap-1 rounded-lg px-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+          aria-label="打开目录"
+          @click="mobileTocOpen = true"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h16" />
+          </svg>
+          <span class="text-xs">目录</span>
+        </button>
+      </template>
     </div>
 
     <!-- 文章内容区域（居中布局） -->
@@ -185,18 +200,6 @@
         </article>
       </main>
     </div>
-
-    <!-- 移动端：右下角悬浮目录按钮 -->
-    <button
-      v-if="tocItems.length > 0"
-      class="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-all duration-200 hover:bg-primary-600 active:scale-95 md:hidden"
-      aria-label="打开目录"
-      @click="mobileTocOpen = true"
-    >
-      <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h16" />
-      </svg>
-    </button>
 
     <!-- 移动端：底部抽屉式目录 -->
     <Teleport to="body">
