@@ -30,79 +30,6 @@
       </button>
     </div>
 
-    <!-- 左侧面板：返回按钮 + TOC 目录（PC 端，横向统一面板） -->
-    <aside
-      class="fixed left-0 top-0 z-40 hidden h-full md:block"
-      :style="{
-        transform: tocPanelVisible ? 'translateX(0)' : 'translateX(-100%)',
-        opacity: tocPanelVisible ? 1 : 0,
-        transition: 'transform 0.3s ease, opacity 0.3s ease',
-      }"
-    >
-      <!-- 返回图标 + TOC 横向排列（始终渲染，返回箭头不受 tocExpanded 影响） -->
-      <div class="flex h-full flex-row pt-5 pb-8 pl-3">
-        <!-- 左列：返回图标按钮（始终可见） -->
-        <div class="flex flex-shrink-0 flex-col items-center">
-          <NuxtLink
-            to="/home"
-            class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-            aria-label="返回首页"
-          >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </NuxtLink>
-          <!-- 收起状态下的展开按钮（紧贴返回箭头下方） -->
-          <button
-            v-if="tocItems.length > 0 && !tocExpanded"
-            class="mt-2 flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-all duration-200 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-            aria-label="展开目录"
-            @click="tocExpanded = true"
-          >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h16" />
-            </svg>
-          </button>
-        </div>
-
-        <!-- 右列：TOC 目录区域（展开/收起独立控制） -->
-        <nav
-          v-if="tocItems.length > 0 && tocExpanded"
-          class="flex min-h-0 min-w-0 flex-col pr-2"
-          style="width: 190px"
-        >
-          <div class="mb-3 flex items-center justify-between pr-1">
-            <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">目录</h4>
-            <button
-              class="flex h-6 w-6 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-              aria-label="收起目录"
-              @click="tocExpanded = false"
-            >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7" />
-              </svg>
-            </button>
-          </div>
-          <ul class="flex-1 space-y-1 overflow-y-auto border-l border-gray-200 overscroll-contain dark:border-gray-700">
-            <li v-for="item in tocItems" :key="item.id">
-              <button
-                class="block w-full truncate border-l-2 py-1 text-left text-xs transition-colors"
-                :class="[
-                  activeTocId === item.id
-                    ? 'border-primary-500 font-medium text-primary-600 dark:text-primary-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-                  item.level === 1 ? 'pl-3' : item.level === 2 ? 'pl-5' : 'pl-7',
-                ]"
-                @click="scrollToHeading(item.id)"
-              >
-                {{ item.text }}
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
-    </aside>
-
     <!-- 移动端：左上角返回 + 目录工具栏（滚动隐藏） -->
     <div
       class="fixed left-4 top-4 z-50 flex items-center gap-1 rounded-lg bg-white/80 shadow-sm backdrop-blur-lg dark:bg-gray-800/80 md:hidden transition-all duration-300"
@@ -111,7 +38,6 @@
         opacity: headerVisible ? 1 : 0,
       }"
     >
-      <!-- 返回按钮 -->
       <NuxtLink
         to="/home"
         class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
@@ -121,7 +47,6 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
       </NuxtLink>
-      <!-- 分割线 + 目录按钮（仅有目录时显示） -->
       <template v-if="tocItems.length > 0">
         <div class="h-4 w-px bg-gray-200 dark:bg-gray-600" />
         <button
@@ -137,10 +62,48 @@
       </template>
     </div>
 
-    <!-- 文章内容区域（居中布局） -->
-    <div class="mx-auto max-w-3xl px-4 pt-16 pb-10">
-      <!-- 文章主体 -->
-      <main class="min-w-0">
+    <!-- PC 端三栏布局容器 + 移动端单栏 -->
+    <div class="mx-auto max-w-6xl md:flex">
+      <!-- 左侧 TOC 侧边栏（仅PC端可见） -->
+      <aside class="article-toc-sidebar sticky top-0 hidden h-screen w-56 shrink-0 md:block lg:w-60">
+        <div class="flex h-full flex-col pb-8 pl-4 pr-2 pt-8">
+          <!-- 返回按钮 -->
+          <NuxtLink
+            to="/home"
+            class="mb-5 flex w-fit items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>返回</span>
+          </NuxtLink>
+
+          <!-- 目录内容 -->
+          <nav v-if="tocItems.length > 0" class="flex min-h-0 flex-1 flex-col">
+            <h4 class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">目录</h4>
+            <ul class="flex-1 space-y-0.5 overflow-y-auto overscroll-contain border-l border-gray-200/80 dark:border-gray-700/80">
+              <li v-for="item in tocItems" :key="item.id">
+                <button
+                  class="block w-full truncate border-l-2 py-1.5 text-left text-[13px] leading-snug transition-all duration-150"
+                  :class="[
+                    activeTocId === item.id
+                      ? 'border-primary-500 font-medium text-primary-600 dark:text-primary-400'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300',
+                    item.level === 1 ? 'pl-3' : item.level === 2 ? 'pl-5' : 'pl-7',
+                  ]"
+                  @click="scrollToHeading(item.id)"
+                >
+                  {{ item.text }}
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- 文章内容（PC端flex-1 + 移动端全宽） -->
+      <div class="min-w-0 flex-1 px-4 pt-16 pb-10 md:px-6 md:pt-10 lg:px-10">
+        <main class="mx-auto max-w-3xl">
         <!-- 加载状态 -->
         <div v-if="loading" class="flex items-center justify-center py-20">
           <AppLoading tip="加载中..." />
@@ -198,7 +161,8 @@
             </button>
           </div>
         </article>
-      </main>
+        </main>
+      </div>
     </div>
 
     <!-- 移动端：底部抽屉式目录 -->
@@ -286,8 +250,6 @@ const readProgress = ref(0)
 
 // ====== 滚动方向检测 & 顶栏/TOC 可见性 ======
 const headerVisible = ref(true)
-const tocPanelVisible = ref(true)
-const tocExpanded = ref(true)
 const mobileTocOpen = ref(false)
 let lastScrollY = 0
 const SCROLL_THRESHOLD = 10 // 防抖阈值，避免微小滚动触发
@@ -301,13 +263,11 @@ function updateReadProgress() {
   const delta = scrollTop - lastScrollY
   if (Math.abs(delta) > SCROLL_THRESHOLD) {
     if (delta > 0 && scrollTop > 80) {
-      // 向下滚动且超过一定距离：隐藏顶栏和 TOC
+      // 向下滚动且超过一定距离：隐藏移动端顶栏
       headerVisible.value = false
-      tocPanelVisible.value = false
     } else if (delta < 0) {
-      // 向上滚动：显示顶栏和 TOC
+      // 向上滚动：显示移动端顶栏
       headerVisible.value = true
-      tocPanelVisible.value = true
     }
     lastScrollY = scrollTop
   }

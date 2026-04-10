@@ -51,7 +51,7 @@
                 @click="goToArticle(article.id)"
                 @mouseenter="selectedIndex = index"
               >
-                <span class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1">{{ article.title }}</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1" v-html="highlightKeyword(article.title, keyword)" />
                 <span v-if="article.summary" class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{{ article.summary }}</span>
               </button>
             </template>
@@ -136,6 +136,22 @@ function confirmSelect() {
   }
 }
 
+/** 高亮搜索关键词 */
+function highlightKeyword(text: string, kw: string): string {
+  if (!kw.trim()) return escapeHtml(text)
+  const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escaped})`, 'gi')
+  return escapeHtml(text).replace(regex, '<mark class="search-highlight">$1</mark>')
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 // Debounce 搜索
 watch(keyword, (val) => {
   if (searchTimer) clearTimeout(searchTimer)
@@ -170,7 +186,7 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
+<style>
 .search-overlay-enter-active {
   transition: opacity 0.2s ease;
 }
@@ -180,5 +196,16 @@ onUnmounted(() => {
 .search-overlay-enter-from,
 .search-overlay-leave-to {
   opacity: 0;
+}
+
+.search-highlight {
+  background-color: rgba(234, 179, 8, 0.3);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.dark .search-highlight {
+  background-color: rgba(234, 179, 8, 0.25);
 }
 </style>
