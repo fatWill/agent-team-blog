@@ -50,7 +50,7 @@ const snippets = [
   'transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform, opacity;',
   'const { data, pending } = await useAsyncData("articles", () => $fetch("/api/articles"))',
   'CREATE TABLE articles (id INT PRIMARY KEY AUTO_INCREMENT, title VARCHAR(255) NOT NULL);',
-  'pm2 start ecosystem.config.cjs --env production && pm2 save && pm2 logs --lines 20',
+  'systemctl restart blog-frontend && systemctl is-active blog-frontend',
   'type Props = { title: string; description?: string; onClick?: () => void; className?: string }',
   'nginx -t && systemctl reload nginx  # test config and graceful reload',
   'const router = useRouter(); watch(() => route.path, () => { scrollTo(0, 0) })',
