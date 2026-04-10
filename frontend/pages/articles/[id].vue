@@ -30,7 +30,7 @@
       </button>
     </div>
 
-    <!-- 左侧面板：返回按钮 + TOC 目录（PC 端，合并为统一 UI） -->
+    <!-- 左侧面板：返回按钮 + TOC 目录（PC 端，横向统一面板） -->
     <aside
       class="fixed left-0 top-0 z-40 hidden h-full md:block"
       :style="{
@@ -39,28 +39,33 @@
         transition: 'transform 0.3s ease, opacity 0.3s ease',
       }"
     >
-      <!-- 展开状态：返回按钮 + TOC 列表 -->
+      <!-- 展开状态：返回图标 + TOC 横向排列 -->
       <div
-        class="flex h-full flex-col pt-5 pb-8 pl-4 pr-2 transition-all duration-300"
+        class="flex h-full flex-row pt-5 pb-8 pl-3 transition-all duration-300"
         :style="{
-          width: (tocItems.length === 0 || tocExpanded) ? '220px' : '0px',
           opacity: (tocItems.length === 0 || tocExpanded) ? 1 : 0,
           overflow: 'hidden',
         }"
       >
-        <!-- 返回按钮 -->
-        <NuxtLink
-          to="/home"
-          class="mb-4 flex h-9 w-fit items-center gap-1.5 rounded-lg bg-white/80 px-3 text-sm text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          <span>返回首页</span>
-        </NuxtLink>
+        <!-- 左列：返回图标按钮 -->
+        <div class="flex flex-shrink-0 flex-col items-center">
+          <NuxtLink
+            to="/home"
+            class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+            aria-label="返回首页"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </NuxtLink>
+        </div>
 
-        <!-- TOC 目录区域 -->
-        <nav v-if="tocItems.length > 0" class="flex min-h-0 flex-1 flex-col">
+        <!-- 右列：TOC 目录区域 -->
+        <nav
+          v-if="tocItems.length > 0"
+          class="flex min-h-0 min-w-0 flex-1 flex-col pr-2 transition-all duration-300"
+          :style="{ width: tocExpanded ? '190px' : '0px', opacity: tocExpanded ? 1 : 0, overflow: 'hidden' }"
+        >
           <div class="mb-3 flex items-center justify-between pr-1">
             <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">目录</h4>
             <button
@@ -92,10 +97,10 @@
         </nav>
       </div>
 
-      <!-- 收起状态：小图标按钮（仅在有 TOC 时显示收起/展开） -->
+      <!-- 收起状态：小图标按钮（仅在有 TOC 且收起时显示） -->
       <button
         v-show="!tocExpanded && tocItems.length > 0"
-        class="absolute left-3 top-5 flex h-10 w-8 items-center justify-center rounded-lg bg-white/90 text-gray-400 shadow-md backdrop-blur-lg transition-all duration-200 hover:bg-gray-50 hover:text-gray-600 dark:bg-gray-800/90 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+        class="absolute left-3 top-5 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-gray-400 shadow-md backdrop-blur-lg transition-all duration-200 hover:bg-gray-50 hover:text-gray-600 dark:bg-gray-800/90 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
         aria-label="展开目录"
         @click="tocExpanded = true"
       >
@@ -115,12 +120,12 @@
     >
       <NuxtLink
         to="/home"
-        class="flex h-9 items-center gap-1.5 rounded-lg bg-white/80 px-3 text-sm text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+        class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/80 text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+        aria-label="返回首页"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
-        <span>返回</span>
       </NuxtLink>
     </div>
 
