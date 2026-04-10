@@ -19,6 +19,7 @@ import (
 // GetArticles GET /api/articles
 func GetArticles(c *gin.Context) {
 	title := c.Query("title")
+	search := c.Query("search")
 
 	var articles []struct {
 		models.Article
@@ -27,6 +28,9 @@ func GetArticles(c *gin.Context) {
 	q := db.DB.Select("id, title, summary, cover_image, like_count, views, created_at, updated_at")
 	if title != "" {
 		q = q.Where("title LIKE ?", "%"+title+"%")
+	}
+	if search != "" {
+		q = q.Where("title LIKE ?", "%"+search+"%")
 	}
 	q = q.Order("created_at DESC")
 
