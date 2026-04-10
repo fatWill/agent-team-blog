@@ -539,8 +539,10 @@ async function loadArticle() {
       fetchLikeStatus()
       recordView()
       enhanceCodeBlocks()
-      buildToc()
-      nextTick(() => setupTocObserver())
+      nextTick(() => {
+        buildToc()
+        nextTick(() => setupTocObserver())
+      })
     })
   } catch {
     error.value = true
@@ -572,8 +574,10 @@ onMounted(() => {
       fetchLikeStatus()
       recordView()
       enhanceCodeBlocks()
-      buildToc()
-      nextTick(() => setupTocObserver())
+      nextTick(() => {
+        buildToc()
+        nextTick(() => setupTocObserver())
+      })
     })
   } else {
     loadArticle()
