@@ -221,101 +221,50 @@
           <p class="text-red-600 dark:text-red-400">加载文章失败，请稍后重试</p>
           <button class="mt-3 text-sm text-primary-500 hover:text-primary-600" @click="fetchArticles">重新加载</button>
         </div>
-        <ClientOnly v-else-if="articles.length > 0">
-          <DynamicScroller
-            :items="articles"
-            :min-item-size="100"
-            key-field="id"
-            class="article-scroller"
+        <div v-else-if="articles.length > 0" class="space-y-4">
+          <NuxtLink
+            v-for="article in articles"
+            :key="article.id"
+            :to="`/articles/${article.id}`"
+            class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
           >
-            <template #default="{ item: article, index, active }">
-              <DynamicScrollerItem
-                :item="article"
-                :active="active"
-                :size-dependencies="[article.coverImage, article.summary]"
-                :data-index="index"
-                class="pb-4"
-              >
-                <NuxtLink
-                  :to="`/articles/${article.id}`"
-                  class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
-                >
-                  <div v-if="article.coverImage" class="w-full overflow-hidden aspect-video">
-                    <img :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-full w-full object-cover object-center" />
-                  </div>
-                  <div v-else class="flex w-full aspect-video items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
-                    <svg class="h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21zm16.5-13.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                    </svg>
-                  </div>
-                  <div class="p-5">
-                    <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
-                    <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-3">
-                        <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
-                        <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">👁 {{ article.views ?? 0 }}</span>
-                      </div>
-                      <button
-                        class="group/like flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
-                        @click.prevent.stop="handleArticleLike(article.id, $event)"
-                      >
-                        <svg
-                          class="h-3.5 w-3.5 transition-all duration-300"
-                          :class="[
-                            isArticleLiked(article.id) ? 'text-red-500 fill-red-500' : 'text-gray-400 fill-none stroke-gray-400 dark:text-gray-500 dark:stroke-gray-500',
-                            articleLikeAnimating[article.id] ? 'scale-125' : '',
-                          ]"
-                          viewBox="0 0 24 24"
-                          stroke-width="2"
-                        >
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                        </svg>
-                        <span :class="isArticleLiked(article.id) ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'">{{ getArticleLikeCount(article) }}</span>
-                      </button>
-                    </div>
-                  </div>
-                </NuxtLink>
-              </DynamicScrollerItem>
-            </template>
-          </DynamicScroller>
-          <!-- SSR fallback：静态文章列表，保证首屏 HTML 包含内容 -->
-          <template #fallback>
-            <div class="space-y-4" style="min-height: calc(100vh - 220px)">
-              <NuxtLink
-                v-for="article in articles"
-                :key="article.id"
-                :to="`/articles/${article.id}`"
-                class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
-              >
-                <div v-if="article.coverImage" class="w-full overflow-hidden aspect-video">
-                  <img :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-full w-full object-cover object-center" />
-                </div>
-                <div v-else class="flex w-full aspect-video items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
-                  <svg class="h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21zm16.5-13.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                  </svg>
-                </div>
-                <div class="p-5">
-                  <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
-                  <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                      <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
-                      <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">👁 {{ article.views ?? 0 }}</span>
-                    </div>
-                    <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                      <svg class="h-3.5 w-3.5 fill-none stroke-gray-400 dark:stroke-gray-500" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                      </svg>
-                      {{ article.likeCount ?? 0 }}
-                    </span>
-                  </div>
-                </div>
-              </NuxtLink>
+            <div v-if="article.coverImage" class="w-full overflow-hidden aspect-video">
+              <img :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-full w-full object-cover object-center" />
             </div>
-          </template>
-        </ClientOnly>
+            <div v-else class="flex w-full aspect-video items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+              <svg class="h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21zm16.5-13.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+              </svg>
+            </div>
+            <div class="p-5">
+              <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h2>
+              <p v-if="article.summary" class="mb-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-2">{{ article.summary }}</p>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+                  <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">👁 {{ article.views ?? 0 }}</span>
+                </div>
+                <button
+                  class="group/like flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                  @click.prevent.stop="handleArticleLike(article.id, $event)"
+                >
+                  <svg
+                    class="h-3.5 w-3.5 transition-all duration-300"
+                    :class="[
+                      isArticleLiked(article.id) ? 'text-red-500 fill-red-500' : 'text-gray-400 fill-none stroke-gray-400 dark:text-gray-500 dark:stroke-gray-500',
+                      articleLikeAnimating[article.id] ? 'scale-125' : '',
+                    ]"
+                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                  </svg>
+                  <span :class="isArticleLiked(article.id) ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'">{{ getArticleLikeCount(article) }}</span>
+                </button>
+              </div>
+            </div>
+          </NuxtLink>
+        </div>
         <div v-else class="py-20 text-center">
           <p class="text-gray-400 dark:text-gray-500">暂无文章</p>
         </div>
@@ -410,114 +359,88 @@
           </div>
 
           <!-- 按年月分组展示照片（虚拟滚动） -->
-          <ClientOnly v-else-if="albumPhotos.length > 0">
-            <DynamicScroller
-              :items="flatPhotoRows"
-              :min-item-size="40"
-              key-field="id"
-              class="photo-scroller"
-            >
-              <template #default="{ item: row, index, active }">
-                <DynamicScrollerItem
-                  :item="row"
-                  :active="active"
-                  :size-dependencies="[row.type, row.type === 'grid' ? row.photos.length : row.label]"
-                  :data-index="index"
-                >
-                  <!-- 标题行 -->
-                  <div v-if="row.type === 'header'" class="min-h-[40px] flex items-end pb-2 pt-4">
-                    <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      {{ row.label }}
-                    </h3>
-                  </div>
-                  <!-- 图片网格行 -->
-                  <div
-                    v-else-if="row.type === 'grid'"
-                    class="mb-2 grid grid-cols-2 gap-2 md:grid-cols-5"
-                    style="min-height: 120px;"
-                  >
-                    <button
-                      v-for="photo in row.photos"
-                      :key="photo.id"
-                      class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
-                      @click="openLightbox(photo)"
-                    >
-                      <!-- 加密且未解锁：直接显示锁定占位，不加载图片 -->
-                      <template v-if="photo.hasPassword && !isPhotoUnlocked(photo.id)">
-                        <div class="flex h-full w-full items-center justify-center">
-                          <span class="text-3xl">🔒</span>
-                        </div>
-                      </template>
-                      <!-- 未加密或已解锁：正常显示图片/视频 -->
-                      <template v-else>
-                        <!-- 视频卡片 -->
-                        <template v-if="isVideoMedia(photo)">
-                          <img v-if="photo.thumbnailUrl" :src="toCdnUrl(photo.thumbnailUrl)" :alt="photo.caption || '视频'" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                          <div v-else class="flex h-full w-full items-center justify-center bg-gray-900">
-                            <svg class="h-10 w-10 text-white/60" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                          </div>
-                          <!-- 左上角视频标识 -->
-                          <span class="absolute top-1.5 left-1.5 rounded bg-black/50 px-1 py-0.5 text-[10px] text-white backdrop-blur-sm">🎬</span>
-                          <!-- 右上角时长 -->
-                          <span v-if="photo.duration" class="absolute top-1.5 right-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                            {{ formatDuration(photo.duration) }}
-                          </span>
-                        </template>
-                        <!-- 图片卡片 -->
-                        <template v-else>
-                          <img
-                            :src="toThumbUrl(photo.url, 400)"
-                            :alt="photo.caption || '照片'"
-                            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                        </template>
-                      </template>
-                      <!-- 右下角点赞/踩按钮 -->
-                      <div class="absolute bottom-1.5 right-1.5 flex items-center gap-1">
-                        <!-- 点赞 -->
-                        <div
-                          class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
-                          @click.stop="handleLike(photo)"
-                        >
-                          <svg
-                            class="h-3 w-3 transition-colors duration-200"
-                            :class="photo.liked ? 'text-red-500 fill-red-500' : 'text-white/80 fill-none stroke-white/80'"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                          >
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                          </svg>
-                          <span class="text-[10px] text-white font-medium leading-none">{{ photo.likes ?? 0 }}</span>
-                        </div>
-                        <!-- 踩 -->
-                        <div
-                          class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
-                          @click.stop="handleDislike(photo)"
-                        >
-                          <span class="text-[11px] leading-none transition-transform duration-200" :class="photo.disliked ? 'scale-110' : ''">👎</span>
-                          <span class="text-[10px] text-white font-medium leading-none">{{ photo.dislikes ?? 0 }}</span>
-                        </div>
-                      </div>
-                      <!-- 飘动 +1 动画容器 -->
-                      <div class="pointer-events-none absolute inset-0 overflow-hidden">
-                        <span
-                          v-for="anim in (floatAnims[photo.id] || [])"
-                          :key="anim.id"
-                          class="float-plus-one absolute bottom-6 right-2 text-xs font-bold text-red-400 select-none"
-                        >+1</span>
-                      </div>
-                    </button>
-                  </div>
-                </DynamicScrollerItem>
-              </template>
-            </DynamicScroller>
-            <!-- SSR fallback：静态照片列表 -->
-            <template #fallback>
-              <div class="flex items-center justify-center py-20" style="min-height: calc(100vh - 220px)">
-                <AppLoading tip="加载中..." />
+          <div v-else-if="albumPhotos.length > 0">
+            <div v-for="group in groupedPhotos" :key="group.label">
+              <div class="min-h-[40px] flex items-end pb-2 pt-4">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {{ group.label }}
+                </h3>
               </div>
-            </template>
-          </ClientOnly>
+              <div class="mb-2 grid grid-cols-2 gap-2 md:grid-cols-5">
+                <button
+                  v-for="photo in group.photos"
+                  :key="photo.id"
+                  class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
+                  @click="openLightbox(photo)"
+                >
+                  <!-- 加密且未解锁：直接显示锁定占位，不加载图片 -->
+                  <template v-if="photo.hasPassword && !isPhotoUnlocked(photo.id)">
+                    <div class="flex h-full w-full items-center justify-center">
+                      <span class="text-3xl">🔒</span>
+                    </div>
+                  </template>
+                  <!-- 未加密或已解锁：正常显示图片/视频 -->
+                  <template v-else>
+                    <!-- 视频卡片 -->
+                    <template v-if="isVideoMedia(photo)">
+                      <img v-if="photo.thumbnailUrl" :src="toCdnUrl(photo.thumbnailUrl)" :alt="photo.caption || '视频'" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      <div v-else class="flex h-full w-full items-center justify-center bg-gray-900">
+                        <svg class="h-10 w-10 text-white/60" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      </div>
+                      <!-- 左上角视频标识 -->
+                      <span class="absolute top-1.5 left-1.5 rounded bg-black/50 px-1 py-0.5 text-[10px] text-white backdrop-blur-sm">🎬</span>
+                      <!-- 右上角时长 -->
+                      <span v-if="photo.duration" class="absolute top-1.5 right-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                        {{ formatDuration(photo.duration) }}
+                      </span>
+                    </template>
+                    <!-- 图片卡片 -->
+                    <template v-else>
+                      <img
+                        :src="toThumbUrl(photo.url, 400)"
+                        :alt="photo.caption || '照片'"
+                        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </template>
+                  </template>
+                  <!-- 右下角点赞/踩按钮 -->
+                  <div class="absolute bottom-1.5 right-1.5 flex items-center gap-1">
+                    <!-- 点赞 -->
+                    <div
+                      class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
+                      @click.stop="handleLike(photo)"
+                    >
+                      <svg
+                        class="h-3 w-3 transition-colors duration-200"
+                        :class="photo.liked ? 'text-red-500 fill-red-500' : 'text-white/80 fill-none stroke-white/80'"
+                        viewBox="0 0 24 24"
+                        stroke-width="2"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                      </svg>
+                      <span class="text-[10px] text-white font-medium leading-none">{{ photo.likes ?? 0 }}</span>
+                    </div>
+                    <!-- 踩 -->
+                    <div
+                      class="flex items-center gap-0.5 rounded-full bg-black/40 px-1.5 py-0.5 backdrop-blur-sm"
+                      @click.stop="handleDislike(photo)"
+                    >
+                      <span class="text-[11px] leading-none transition-transform duration-200" :class="photo.disliked ? 'scale-110' : ''">👎</span>
+                      <span class="text-[10px] text-white font-medium leading-none">{{ photo.dislikes ?? 0 }}</span>
+                    </div>
+                  </div>
+                  <!-- 飘动 +1 动画容器 -->
+                  <div class="pointer-events-none absolute inset-0 overflow-hidden">
+                    <span
+                      v-for="anim in (floatAnims[photo.id] || [])"
+                      :key="anim.id"
+                      class="float-plus-one absolute bottom-6 right-2 text-xs font-bold text-red-400 select-none"
+                    >+1</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
 
           <!-- 空状态 -->
           <div v-else class="py-20 text-center">
@@ -2027,13 +1950,6 @@ useHead({
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
-}
-
-/* 虚拟滚动容器：铺满内容区，由父容器决定可视高度 */
-.article-scroller,
-.photo-scroller {
-  height: calc(100vh - 220px);
-  min-height: 400px;
 }
 
 /* +1 飘动消失动画 */
