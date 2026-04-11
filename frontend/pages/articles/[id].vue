@@ -653,15 +653,16 @@ pre {
   font-size: 0.68rem;
   padding: 0.15rem 0.55rem;
   border-radius: 9999px;
-  font-weight: 600;
+  font-weight: 700;
   color: white;
-  background: linear-gradient(90deg, #a855f7, #3b82f6, #06b6d4, #a855f7);
-  background-size: 300% 100%;
-  animation: aiTagShift 3s linear infinite;
+  background: linear-gradient(90deg, #f43f5e, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #f43f5e);
+  background-size: 400% 100%;
+  animation: aiTagShift 4s linear infinite;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
 }
 
 @keyframes aiTagShift {
-  0% { background-position: 0% 50%; }
+  0%   { background-position: 0% 50%; }
   100% { background-position: 100% 50%; }
 }
 </style>

@@ -1,2 +1,10 @@
 .agent
 .DS_Store
+node_modules/
+excalidraw_diagrams/
+.excalidraw-renderer/
+blogs/
+*.png
+gen_cover.py
+gen_diagrams.py
+publish-article.mjs
