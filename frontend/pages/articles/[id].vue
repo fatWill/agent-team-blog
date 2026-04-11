@@ -230,6 +230,10 @@ import { generateHTML } from '@tiptap/html'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableHeader } from '@tiptap/extension-table-header'
+import { TableCell } from '@tiptap/extension-table-cell'
 import type { ArticleDetail } from '~/types'
 import { apiFetchArticle, apiToggleArticleLike, apiGetArticleLikeStatus, apiRecordArticleView } from '~/utils/api'
 
@@ -262,6 +266,10 @@ const tiptapExtensions = [
       rel: 'noopener noreferrer',
     },
   }),
+  Table.configure({ resizable: false }),
+  TableRow,
+  TableHeader,
+  TableCell,
 ]
 
 const ssrHtml = computed(() => {
@@ -701,5 +709,48 @@ pre {
   50%  { background-position: 50% 100%; }
   75%  { background-position: 0% 50%; }
   100% { background-position: 0% 0%; }
+}
+
+/* 表格样式 */
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+  overflow-x: auto;
+  display: block;
+}
+
+.tiptap table th,
+.tiptap table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tiptap table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.tiptap table tr:nth-child(even) td {
+  background-color: #f9fafb;
+}
+
+/* Dark mode */
+.dark .tiptap table th,
+.dark .tiptap table td {
+  border-color: #374151;
+}
+
+.dark .tiptap table th {
+  background-color: #1f2937;
+  color: #d1d5db;
+}
+
+.dark .tiptap table tr:nth-child(even) td {
+  background-color: #111827;
 }
 </style>
