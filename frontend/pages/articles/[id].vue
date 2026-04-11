@@ -122,9 +122,7 @@
           </h1>
           <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-400 sm:gap-3 dark:text-gray-500">
             <time>{{ formatDate(article.createdAt) }}</time>
-            <span v-if="article.updatedAt !== article.createdAt">
-              · 更新于 {{ formatDate(article.updatedAt) }}
-            </span>
+            <span class="ai-tag">✦ AI 生成</span>
             <span class="flex items-center gap-1">
               · 👁 {{ articleViews }}
             </span>
@@ -645,5 +643,25 @@ pre {
 /* iOS 安全区域适配 */
 .pb-safe {
   padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+/* AI 生成 tag 渐变动画 */
+.ai-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.68rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(90deg, #a855f7, #3b82f6, #06b6d4, #a855f7);
+  background-size: 300% 100%;
+  animation: aiTagShift 3s linear infinite;
+}
+
+@keyframes aiTagShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
 }
 </style>
