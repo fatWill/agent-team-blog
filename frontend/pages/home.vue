@@ -211,7 +211,7 @@
             @click="handleRandomArticle"
           >
             <span :class="randomLoading ? 'animate-spin' : ''">🎲</span>
-            {{ randomLoading ? '跳转中...' : '随机' }}
+            {{ randomLoading ? '跳转中...' : '随机阅读' }}
           </button>
         </div>
         <div v-if="articlesStatus === 'pending'" class="flex items-center justify-center py-20">
