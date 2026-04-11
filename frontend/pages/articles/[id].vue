@@ -387,9 +387,19 @@ useSeoMeta({
   ogType: 'article',
   ogUrl: () => `https://fatwill.cloud/articles/${route.params.id}`,
   ogSiteName: 'fatwill',
-  twitterCard: 'summary',
+  ogImage: () => articleData.value?.coverImage
+    ? articleData.value.coverImage.startsWith('http')
+      ? articleData.value.coverImage
+      : `https://cdn.fatwill.cloud${articleData.value.coverImage}`
+    : 'https://fatwill.cloud/og-default.png',
+  twitterCard: 'summary_large_image',
   twitterTitle: () => articleData.value?.title || 'fatwill - 个人博客',
   twitterDescription: () => articleData.value?.summary || '',
+  twitterImage: () => articleData.value?.coverImage
+    ? articleData.value.coverImage.startsWith('http')
+      ? articleData.value.coverImage
+      : `https://cdn.fatwill.cloud${articleData.value.coverImage}`
+    : 'https://fatwill.cloud/og-default.png',
 })
 
 // canonical + JSON-LD 结构化数据

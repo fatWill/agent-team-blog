@@ -38,6 +38,7 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'canonical', href: 'https://fatwill.cloud' },
+        { rel: 'sitemap', type: 'application/xml', href: '/sitemap.xml' },
       ],
     },
   },
