@@ -1100,6 +1100,16 @@ const agents = [
     icon: '🔧',
     color: 'orange',
   },
+  {
+    name: '写手 · 博客写手',
+    englishName: 'blog-writer',
+    model: 'claude-4.6-sonnet',
+    role: '专注于技术内容创作，能将复杂的技术概念转化为易读的博客文章。擅长深度架构解析、技术趋势洞察，文章风格兼具技术深度与可读性，并能生成手绘风格架构图配图。',
+    tags: ['技术写作', '架构解析', '手绘图表', 'Hacker News', '内容策划'],
+    skills: ['blog-post', 'hackernews', 'excalidraw-design-guide'],
+    icon: '✍️',
+    color: 'pink',
+  },
 ]
 
 // Agent 卡片主题色映射
@@ -1135,6 +1145,14 @@ const agentColorMap: Record<string, { border: string; bg: string; tag: string; t
     tagText: 'text-orange-700 dark:text-orange-300',
     badge: 'bg-orange-100 dark:bg-orange-900/30',
     badgeText: 'text-orange-600 dark:text-orange-400',
+  },
+  pink: {
+    border: 'border-l-pink-500',
+    bg: 'bg-pink-50 dark:bg-pink-900/10',
+    tag: 'bg-pink-100 dark:bg-pink-900/30',
+    tagText: 'text-pink-700 dark:text-pink-300',
+    badge: 'bg-pink-100 dark:bg-pink-900/30',
+    badgeText: 'text-pink-600 dark:text-pink-400',
   },
 }
 
