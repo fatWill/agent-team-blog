@@ -1103,7 +1103,7 @@ const agents = [
   {
     name: '写手 · 博客写手',
     englishName: 'blog-writer',
-    model: 'claude-4.6-sonnet',
+    model: 'claude-4.6-opus',
     role: '专注于技术内容创作，能将复杂的技术概念转化为易读的博客文章。擅长深度架构解析、技术趋势洞察，文章风格兼具技术深度与可读性，并能生成手绘风格架构图配图。',
     tags: ['技术写作', '架构解析', '手绘图表', 'Hacker News', '内容策划'],
     skills: ['blog-post', 'hackernews', 'excalidraw-design-guide'],
