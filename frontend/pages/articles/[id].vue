@@ -133,7 +133,14 @@
 
           <!-- Tiptap 渲染区域 -->
           <div ref="articleContentRef" class="tiptap-renderer mt-8">
-            <EditorContent v-if="editor" :editor="editor" />
+            <!-- SSR / 编辑器未就绪时：直接输出静态 HTML -->
+            <div
+              v-if="!editorReady && ssrHtml"
+              class="tiptap ProseMirror"
+              v-html="ssrHtml"
+            />
+            <!-- 编辑器就绪后：切换为 Tiptap EditorContent -->
+            <EditorContent v-if="editorReady && editor" :editor="editor" />
           </div>
 
           <!-- 点赞按钮 -->
@@ -219,6 +226,7 @@
 
 <script setup lang="ts">
 import { useEditor, EditorContent } from '@tiptap/vue-3'
+import { generateHTML } from '@tiptap/html'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
@@ -239,6 +247,34 @@ const article = ref<ArticleDetail | null>(articleData.value)
 const loading = ref(!articleData.value)
 const error = ref(false)
 const articleContentRef = ref<HTMLElement | null>(null)
+
+// ====== SSR 预渲染 HTML ======
+const editorReady = ref(false)
+
+// Tiptap 扩展配置（SSR generateHTML 和客户端 editor 共用）
+const tiptapExtensions = [
+  StarterKit,
+  Image,
+  Link.configure({
+    openOnClick: true,
+    HTMLAttributes: {
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    },
+  }),
+]
+
+const ssrHtml = computed(() => {
+  if (!articleData.value?.content) return ''
+  try {
+    const content = typeof articleData.value.content === 'string'
+      ? JSON.parse(articleData.value.content)
+      : articleData.value.content
+    return generateHTML(content, tiptapExtensions)
+  } catch {
+    return ''
+  }
+})
 
 // ====== 阅读量 ======
 const articleViews = ref(articleData.value?.views ?? 0)
@@ -499,17 +535,7 @@ async function handleArticleLike() {
 // Tiptap 只读编辑器
 const editor = useEditor({
   editable: false,
-  extensions: [
-    StarterKit,
-    Image,
-    Link.configure({
-      openOnClick: true,
-      HTMLAttributes: {
-        target: '_blank',
-        rel: 'noopener noreferrer',
-      },
-    }),
-  ],
+  extensions: tiptapExtensions,
 })
 
 async function loadArticle() {
@@ -523,6 +549,7 @@ async function loadArticle() {
     articleViews.value = data.views ?? 0
     if (editor.value && data.content) {
       editor.value.commands.setContent(data.content)
+      editorReady.value = true
     }
     nextTick(() => {
       fetchLikeStatus()
@@ -557,6 +584,7 @@ onMounted(() => {
   if (article.value) {
     if (editor.value && article.value.content) {
       editor.value.commands.setContent(article.value.content)
+      editorReady.value = true
     }
     loading.value = false
     nextTick(() => {
