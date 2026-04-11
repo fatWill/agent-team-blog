@@ -655,14 +655,22 @@ pre {
   border-radius: 9999px;
   font-weight: 700;
   color: white;
-  background: linear-gradient(90deg, #f43f5e, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #f43f5e);
-  background-size: 400% 100%;
-  animation: aiTagShift 4s linear infinite;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  background: linear-gradient(90deg,
+    #a855f7 0%,
+    #818cf8 16%,
+    #38bdf8 33%,
+    #06b6d4 50%,
+    #38bdf8 67%,
+    #818cf8 84%,
+    #a855f7 100%
+  );
+  background-size: 200% 100%;
+  animation: aiTagWave 2.5s ease-in-out infinite;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
-@keyframes aiTagShift {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
+@keyframes aiTagWave {
+  0%   { background-position: 100% 0%; }
+  100% { background-position: -100% 0%; }
 }
 </style>
