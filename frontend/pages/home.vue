@@ -948,6 +948,7 @@ const searchVisible = ref(false)
 // ====== 随机文章 ======
 const randomLoading = ref(false)
 const router = useRouter()
+const route = useRoute()
 
 async function handleRandomArticle() {
   randomLoading.value = true
@@ -1219,10 +1220,17 @@ const tabs: TabItem[] = [
   { key: 'guestbook', label: '💬 留言板' },
   { key: 'changelog', label: '📋 更新日志' },
 ]
-const activeTab = ref('articles')
+// Tab 路由化：activeTab 由 URL query 参数 ?tab=xxx 驱动
+const validTabKeys = tabs.map(t => t.key)
+const activeTab = computed(() => {
+  const tab = route.query.tab as string | undefined
+  return tab && validTabKeys.includes(tab) ? tab : 'articles'
+})
 
 function selectTab(key: string) {
-  activeTab.value = key
+  // 默认 Tab（articles）不带 query 参数，保持 URL 干净
+  const query = key === 'articles' ? {} : { tab: key }
+  router.push({ path: '/home', query })
   drawerOpen.value = false
 }
 
