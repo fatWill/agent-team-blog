@@ -218,10 +218,18 @@ frontend/
 | 页面 | 路由 | 文件 | 依赖模块 | 说明 |
 |------|------|------|----------|------|
 | 酷炫首页 | `/` | `pages/index.vue`（17KB） | @chenglou/pretext | Canvas 代码滚动背景 + 拖拽按钮 |
-| 博客主页 | `/home` | `pages/home.vue`（82KB） | useTheme, useDevice, api, types, vue-virtual-scroller, antd | 6 个 Tab：文章/生活/玩具/Agent Team/更新日志/留言板 |
-| 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（8KB） | useTheme, api, Tiptap | Tiptap 只读渲染 + 点赞 |
-| 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /home |
-| 管理后台 | `/admin` | `pages/admin.vue`（57KB） | auth store, api, Tiptap, antd, chunkedUpload | 6 个管理 Tab：文章/相册/个人资料/留言管理/数据统计 |
+| 📝 文章 | `/articles` | `pages/home.vue`（84KB） | useTheme, useDevice, api, types, vue-virtual-scroller, antd | 默认 Tab，文章列表 |
+| 📷 生活 | `/life` | `pages/home.vue`（alias） | 同上 | 生活相册 Tab |
+| 🎮 玩具 | `/tools` | `pages/home.vue`（alias） | 同上 | 玩具 Tab |
+| 🤖 Agent Team | `/agent-team` | `pages/home.vue`（alias） | 同上 | Agent Team Tab |
+| 💬 留言板 | `/guestbook` | `pages/home.vue`（alias） | 同上 | 留言板 Tab |
+| 📋 更新日志 | `/changelog` | `pages/home.vue`（alias） | 同上 | 更新日志 Tab |
+| 旧主页重定向 | `/home` | `middleware/tab-redirect.global.ts` | — | 301 重定向到 `/articles`，兼容 `?tab=xxx` |
+| 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（25KB） | useTheme, api, Tiptap, marked | Tiptap 只读渲染 + 点赞 + Markdown 代码块渲染 |
+| 太空游戏 | `/toys/starfling` | `pages/toys/starfling.vue` | — | 全屏 iframe 嵌入 |
+| SBTI 测试 | `/toys/sbti` | `pages/toys/sbti.vue` | — | SBTI 人格测试 |
+| 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /articles |
+| 管理后台 | `/admin` | `pages/admin.vue`（125KB） | auth store, api, Tiptap, antd, chunkedUpload | 6 个管理 Tab：文章/相册/个人资料/留言管理/数据统计 |
 
 ## 后端 API（透传代理 → Go 后端 `http://127.0.0.1:8080`）
 
@@ -354,6 +362,8 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-13: Tab 路由改为独立路径（/articles /life /tools /agent-team /guestbook /changelog），/home 301 重定向兼容
+- 2026-04-13: 文章详情页 Markdown 代码块用 marked 引擎渲染（保留容器样式/语言标签/复制按钮）
 - 2026-04-10: 文章详情页 TOC 重构（右侧→左侧 fixed + 收起/展开）+ 顶部操作栏滚动隐藏 + 移动端底部抽屉式目录
 - 2026-04-06: 相册支持视频上传和播放（前端 UI：视频卡片区分展示、灯箱视频播放、视频时长获取、切换暂停）
 - 2026-04-06: v1.1.0 新增TOC目录/Cmd+K搜索/阅读量统计/代码高亮+复制/访客足迹地图/随机文章功能
