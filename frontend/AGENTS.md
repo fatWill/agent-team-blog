@@ -225,7 +225,7 @@ frontend/
 | 💬 留言板 | `/guestbook` | `pages/home.vue`（alias） | 同上 | 留言板 Tab |
 | 📋 更新日志 | `/changelog` | `pages/home.vue`（alias） | 同上 | 更新日志 Tab |
 | 旧主页重定向 | `/home` | `middleware/tab-redirect.global.ts` | — | 301 重定向到 `/articles`，兼容 `?tab=xxx` |
-| 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（25KB） | useTheme, api, Tiptap, marked | Tiptap 只读渲染 + 点赞 + Markdown 代码块渲染 |
+| 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（25KB） | useTheme, api, Tiptap | Tiptap 只读渲染 + 点赞 + 代码高亮 |
 | 太空游戏 | `/toys/starfling` | `pages/toys/starfling.vue` | — | 全屏 iframe 嵌入 |
 | SBTI 测试 | `/toys/sbti` | `pages/toys/sbti.vue` | — | SBTI 人格测试 |
 | 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /articles |
@@ -362,6 +362,7 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-13: 移除 Markdown 代码块的 marked 引擎渲染，改回普通代码高亮展示，卸载 marked 依赖
 - 2026-04-13: Tab 路由改为独立路径（/articles /life /tools /agent-team /guestbook /changelog），/home 301 重定向兼容
 - 2026-04-13: 文章详情页 Markdown 代码块用 marked 引擎渲染（保留容器样式/语言标签/复制按钮）
 - 2026-04-10: 文章详情页 TOC 重构（右侧→左侧 fixed + 收起/展开）+ 顶部操作栏滚动隐藏 + 移动端底部抽屉式目录
