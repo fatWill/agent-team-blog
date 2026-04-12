@@ -2,8 +2,12 @@ User-agent: *
 
 # 只允许公开页面
 Allow: /$
-Allow: /home$
-Allow: /articles/
+Allow: /articles
+Allow: /life$
+Allow: /tools$
+Allow: /agent-team$
+Allow: /guestbook$
+Allow: /changelog$
 
 # 屏蔽所有需要鉴权的页面
 Disallow: /admin

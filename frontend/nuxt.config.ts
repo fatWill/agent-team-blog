@@ -11,6 +11,16 @@ export default defineNuxtConfig({
     maxRequestBodySize: 500 * 1024 * 1024, // 500MB
   },
 
+  hooks: {
+    'pages:extend'(pages) {
+      // 为 home 页面添加 Tab 路径别名
+      const homePage = pages.find(p => p.path === '/home')
+      if (homePage) {
+        homePage.alias = ['/articles', '/life', '/tools', '/agent-team', '/guestbook', '/changelog']
+      }
+    },
+  },
+
   devtools: { enabled: false },
 
   modules: [

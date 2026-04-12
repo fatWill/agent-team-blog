@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const urls = [
     // 首页
     `  <url>
-    <loc>${baseUrl}/home</loc>
+    <loc>${baseUrl}/articles</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <lastmod>${now}</lastmod>

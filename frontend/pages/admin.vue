@@ -4,7 +4,7 @@
     <header class="shrink-0 border-b border-gray-200/60 bg-white/80 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80">
       <div class="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
         <div class="flex items-center gap-3">
-          <NuxtLink to="/home" class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <NuxtLink to="/articles" class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
             ← 首页
           </NuxtLink>
           <span class="text-gray-300 dark:text-gray-600">/</span>
@@ -2194,7 +2194,7 @@ async function handleLogout() {
     await $fetch('/api/auth/logout', { method: 'POST' })
   } catch {}
   authStore.logout()
-  router.push('/home')
+  router.push('/articles')
 }
 
 // ====== 数据统计 ======

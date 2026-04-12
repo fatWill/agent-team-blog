@@ -39,7 +39,7 @@
       }"
     >
       <NuxtLink
-        to="/home"
+        to="/articles"
         class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
         aria-label="回到首页"
       >
@@ -69,7 +69,7 @@
         <div class="flex h-full flex-col pb-8 pl-4 pr-2 pt-8">
           <!-- 返回按钮 -->
           <NuxtLink
-            to="/home"
+            to="/articles"
             class="mb-5 flex w-fit items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -112,7 +112,7 @@
         <!-- 错误状态 -->
         <div v-else-if="error" class="py-20 text-center">
           <p class="text-red-500">文章加载失败</p>
-          <NuxtLink to="/home" class="mt-3 inline-block text-sm text-primary-500 hover:text-primary-600">返回首页</NuxtLink>
+          <NuxtLink to="/articles" class="mt-3 inline-block text-sm text-primary-500 hover:text-primary-600">返回首页</NuxtLink>
         </div>
 
         <!-- 文章详情 -->
@@ -383,11 +383,10 @@ async function enhanceCodeBlocks() {
   if (!articleContentRef.value) return
   const hljs = (await import('highlight.js')).default
   await import('highlight.js/styles/github-dark.css')
+  const { marked } = await import('marked')
 
   const codeBlocks = articleContentRef.value.querySelectorAll('pre code')
   codeBlocks.forEach((block) => {
-    hljs.highlightElement(block as HTMLElement)
-
     const pre = block.parentElement
     if (!pre) return
 
@@ -395,6 +394,46 @@ async function enhanceCodeBlocks() {
 
     const langClass = Array.from(block.classList).find(c => c.startsWith('language-'))
     const lang = langClass ? langClass.replace('language-', '') : ''
+
+    // markdown 语言代码块：用 Markdown 引擎渲染内容
+    if (lang === 'markdown' || lang === 'md') {
+      const rawText = block.textContent || ''
+
+      // 创建渲染后的内容容器
+      const renderedDiv = document.createElement('div')
+      renderedDiv.className = 'markdown-rendered-content tiptap ProseMirror'
+      renderedDiv.innerHTML = marked.parse(rawText) as string
+
+      // 替换 code 元素为渲染后的 div
+      pre.replaceChild(renderedDiv, block)
+      pre.classList.add('markdown-rendered-block')
+
+      // 添加语言标签
+      const langLabel = document.createElement('span')
+      langLabel.className = 'code-lang-label'
+      langLabel.textContent = 'markdown'
+      pre.appendChild(langLabel)
+
+      // 添加复制按钮（复制原始 markdown 文本）
+      const copyBtn = document.createElement('button')
+      copyBtn.className = 'code-copy-btn'
+      copyBtn.textContent = '复制'
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(rawText)
+          copyBtn.textContent = '已复制 ✓'
+          setTimeout(() => { copyBtn.textContent = '复制' }, 2000)
+        } catch {
+          copyBtn.textContent = '失败'
+          setTimeout(() => { copyBtn.textContent = '复制' }, 2000)
+        }
+      })
+      pre.appendChild(copyBtn)
+      return
+    }
+
+    // 其他语言：正常高亮
+    hljs.highlightElement(block as HTMLElement)
 
     if (lang) {
       const langLabel = document.createElement('span')
@@ -621,6 +660,103 @@ onBeforeUnmount(() => {
 pre {
   overflow-x: auto;
   border-radius: 0.5rem;
+}
+
+/* Markdown 渲染代码块：保留代码块容器样式但内容用 Markdown 渲染 */
+pre.markdown-rendered-block {
+  overflow-x: visible;
+  overflow-y: visible;
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  padding: 2rem 1.25rem 1.25rem;
+}
+
+.dark pre.markdown-rendered-block {
+  background: #1a1b26;
+  border-color: #2d2d3a;
+}
+
+.markdown-rendered-content {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.dark .markdown-rendered-content {
+  color: #d1d5db;
+}
+
+.markdown-rendered-content h1,
+.markdown-rendered-content h2,
+.markdown-rendered-content h3,
+.markdown-rendered-content h4 {
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  font-weight: 700;
+  color: #111827;
+}
+
+.dark .markdown-rendered-content h1,
+.dark .markdown-rendered-content h2,
+.dark .markdown-rendered-content h3,
+.dark .markdown-rendered-content h4 {
+  color: #f3f4f6;
+}
+
+.markdown-rendered-content p {
+  margin: 0.6em 0;
+}
+
+.markdown-rendered-content ul,
+.markdown-rendered-content ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.markdown-rendered-content li {
+  margin: 0.25em 0;
+}
+
+.markdown-rendered-content code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.88em;
+}
+
+.dark .markdown-rendered-content code {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.markdown-rendered-content blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 1em;
+  margin: 0.8em 0;
+  color: #6b7280;
+}
+
+.dark .markdown-rendered-content blockquote {
+  border-left-color: #4b5563;
+  color: #9ca3af;
+}
+
+.markdown-rendered-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.markdown-rendered-content strong {
+  font-weight: 700;
+}
+
+.markdown-rendered-content hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1em 0;
+}
+
+.dark .markdown-rendered-content hr {
+  border-top-color: #374151;
 }
 
 .code-lang-label {

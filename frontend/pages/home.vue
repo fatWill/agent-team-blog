@@ -929,12 +929,12 @@ useSeoMeta({
   ogTitle: 'fatwill - 个人博客',
   ogDescription: '全栈开发者 fatwill 的个人博客，分享技术文章与生活记录。',
   ogType: 'website',
-  ogUrl: 'https://fatwill.cloud/home',
+  ogUrl: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`,
   ogSiteName: 'fatwill',
   twitterCard: 'summary',
 })
 useHead({
-  link: [{ rel: 'canonical', href: 'https://fatwill.cloud/home' }],
+  link: [{ rel: 'canonical', href: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}` }],
 })
 
 const { isDark, toggleTheme } = useTheme()
@@ -1220,17 +1220,31 @@ const tabs: TabItem[] = [
   { key: 'guestbook', label: '💬 留言板' },
   { key: 'changelog', label: '📋 更新日志' },
 ]
-// Tab 路由化：activeTab 由 URL query 参数 ?tab=xxx 驱动
-const validTabKeys = tabs.map(t => t.key)
+
+// Tab 路由化：activeTab 由 URL 路径驱动（如 /articles、/life、/tools 等）
+const pathToTab: Record<string, string> = {
+  '/articles': 'articles',
+  '/life': 'life',
+  '/tools': 'tools',
+  '/agent-team': 'agent-team',
+  '/guestbook': 'guestbook',
+  '/changelog': 'changelog',
+  '/home': 'articles', // 兼容旧路径
+}
+const tabToPath: Record<string, string> = {
+  'articles': '/articles',
+  'life': '/life',
+  'tools': '/tools',
+  'agent-team': '/agent-team',
+  'guestbook': '/guestbook',
+  'changelog': '/changelog',
+}
 const activeTab = computed(() => {
-  const tab = route.query.tab as string | undefined
-  return tab && validTabKeys.includes(tab) ? tab : 'articles'
+  return pathToTab[route.path] || 'articles'
 })
 
 function selectTab(key: string) {
-  // 默认 Tab（articles）不带 query 参数，保持 URL 干净
-  const query = key === 'articles' ? {} : { tab: key }
-  router.push({ path: '/home', query })
+  router.push(tabToPath[key] || '/articles')
   drawerOpen.value = false
 }
 

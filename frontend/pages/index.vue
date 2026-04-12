@@ -372,7 +372,7 @@ function onPointerDown(e: MouseEvent | TouchEvent) {
   const onUp = () => {
     if (!hasDragged) {
       // 没有拖动 → 视为点击跳转
-      navigateTo('/home')
+      navigateTo('/articles')
     }
     isDragging.value = false
     document.removeEventListener('mousemove', onMove)
