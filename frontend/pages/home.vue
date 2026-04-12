@@ -585,6 +585,60 @@
         </div>
       </div>
 
+      <!-- ========== 玩具 Tab ========== -->
+      <div v-else-if="activeTab === 'tools'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">🎮 玩具</h2>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">一些好玩的小玩意儿</p>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <!-- SBTI 人格测试 -->
+          <NuxtLink
+            to="/toys/sbti"
+            class="group overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+          >
+            <div class="relative aspect-video overflow-hidden bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-400/20 dark:from-purple-500/10 dark:via-pink-500/10 dark:to-orange-400/10">
+              <div class="flex h-full items-center justify-center">
+                <span class="text-5xl font-black tracking-tight">
+                  <span class="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 bg-clip-text text-transparent">SBTI</span>
+                </span>
+              </div>
+              <div class="absolute bottom-2 right-2 rounded-full bg-purple-500/90 px-2 py-0.5 text-[10px] font-bold text-white">
+                🔥 HOT
+              </div>
+            </div>
+            <div class="p-4">
+              <h3 class="mb-1 text-base font-bold text-gray-900 transition-colors group-hover:text-purple-600 dark:text-gray-100 dark:group-hover:text-purple-400">
+                SBTI 人格测试
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                31 题 · 27 种人格 · 3 分钟
+              </p>
+            </div>
+          </NuxtLink>
+
+          <!-- Starfling 太空游戏 -->
+          <NuxtLink
+            to="/toys/starfling"
+            class="group overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+          >
+            <div class="relative aspect-video overflow-hidden bg-gradient-to-br from-slate-900 to-indigo-900">
+              <div class="flex h-full items-center justify-center">
+                <span class="text-4xl">🚀</span>
+              </div>
+            </div>
+            <div class="p-4">
+              <h3 class="mb-1 text-base font-bold text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-gray-100 dark:group-hover:text-indigo-400">
+                太空游戏
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                太空弹弓 · 轨道飞行
+              </p>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
+
       <!-- 其他 Tab（敬请期待） -->
       <div v-else class="py-20 text-center">
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
