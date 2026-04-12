@@ -696,6 +696,22 @@ pre.markdown-rendered-block {
   color: #111827;
 }
 
+.markdown-rendered-content h1 {
+  font-size: 1.15rem;
+}
+
+.markdown-rendered-content h2 {
+  font-size: 1.05rem;
+}
+
+.markdown-rendered-content h3 {
+  font-size: 0.95rem;
+}
+
+.markdown-rendered-content h4 {
+  font-size: 0.9rem;
+}
+
 .dark .markdown-rendered-content h1,
 .dark .markdown-rendered-content h2,
 .dark .markdown-rendered-content h3,
