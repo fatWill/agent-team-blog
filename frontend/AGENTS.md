@@ -219,11 +219,11 @@ frontend/
 |------|------|------|----------|------|
 | 酷炫首页 | `/` | `pages/index.vue`（17KB） | @chenglou/pretext | Canvas 代码滚动背景 + 拖拽按钮 |
 | 📝 文章 | `/articles` | `pages/home.vue`（84KB） | useTheme, useDevice, api, types, vue-virtual-scroller, antd | 默认 Tab，文章列表 |
-| 📷 生活 | `/life` | `pages/home.vue`（alias） | 同上 | 生活相册 Tab |
-| 🎮 玩具 | `/tools` | `pages/home.vue`（alias） | 同上 | 玩具 Tab |
-| 🤖 Agent Team | `/agent-team` | `pages/home.vue`（alias） | 同上 | Agent Team Tab |
-| 💬 留言板 | `/guestbook` | `pages/home.vue`（alias） | 同上 | 留言板 Tab |
-| 📋 更新日志 | `/changelog` | `pages/home.vue`（alias） | 同上 | 更新日志 Tab |
+| 📷 生活 | `/life` | `pages/home.vue`（独立路由） | 同上 | 生活相册 Tab |
+| 🎮 玩具 | `/tools` | `pages/home.vue`（独立路由） | 同上 | 玩具 Tab |
+| 🤖 Agent Team | `/agent-team` | `pages/home.vue`（独立路由） | 同上 | Agent Team Tab |
+| 💬 留言板 | `/guestbook` | `pages/home.vue`（独立路由） | 同上 | 留言板 Tab |
+| 📋 更新日志 | `/changelog` | `pages/home.vue`（独立路由） | 同上 | 更新日志 Tab |
 | 旧主页重定向 | `/home` | `middleware/tab-redirect.global.ts` | — | 301 重定向到 `/articles`，兼容 `?tab=xxx` |
 | 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（25KB） | useTheme, api, Tiptap | Tiptap 只读渲染 + 点赞 + 代码高亮 |
 | 太空游戏 | `/toys/starfling` | `pages/toys/starfling.vue` | — | 全屏 iframe 嵌入 |
@@ -362,6 +362,7 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-13: 修复 PC 端 Tab 切换失败，nuxt.config.ts 中 alias 改为独立路由注册（pages:extend push 独立路由条目）
 - 2026-04-13: 移除 Markdown 代码块的 marked 引擎渲染，改回普通代码高亮展示，卸载 marked 依赖
 - 2026-04-13: Tab 路由改为独立路径（/articles /life /tools /agent-team /guestbook /changelog），/home 301 重定向兼容
 - 2026-04-13: 文章详情页 Markdown 代码块用 marked 引擎渲染（保留容器样式/语言标签/复制按钮）
