@@ -1920,12 +1920,12 @@ function onWheel(e: WheelEvent) {
   }
 }
 
-// 生活 Tab 切换时加载相册
+// 生活 Tab 切换时加载相册（immediate: true 确保直接访问 /life 时也能触发）
 watch(activeTab, (val) => {
   if (val === 'life' && !albumsLoaded.value) {
     fetchAlbums()
   }
-})
+}, { immediate: true })
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr)
@@ -1968,12 +1968,12 @@ function relativeTime(dateStr: string): string {
   return `${days}天前`
 }
 
-// 留言板 Tab 切换时加载留言
+// 留言板 Tab 切换时加载留言（immediate: true 确保直接访问 /guestbook 时也能触发）
 watch(activeTab, (val) => {
   if (val === 'guestbook' && !guestbookLoaded.value) {
     fetchGuestbookMessages()
   }
-})
+}, { immediate: true })
 
 // 页面挂载
 onMounted(() => {
