@@ -147,7 +147,7 @@
     </div>
 
     <!-- 个人信息区域 -->
-    <section class="mx-auto w-full max-w-3xl px-4 pt-8 pb-6 md:pt-10">
+    <section class="mx-auto w-full max-w-5xl px-4 pt-8 pb-6 md:px-8 md:pt-10">
       <div class="flex items-center gap-5">
         <img
           v-if="profile.avatar"
@@ -176,7 +176,7 @@
     </section>
 
     <!-- PC端 Tab 导航（仅 >= md 显示） -->
-    <nav class="mx-auto hidden w-full max-w-3xl px-4 md:block">
+    <nav class="mx-auto hidden w-full max-w-5xl px-4 md:block md:px-8">
       <div class="flex gap-1 border-b border-gray-200/60 dark:border-gray-700/60">
         <button
           v-for="tab in tabs"
@@ -197,7 +197,7 @@
     </nav>
 
     <!-- 内容区域 -->
-    <main class="mx-auto w-full max-w-3xl flex-1 px-4 pt-3 pb-8">
+    <main class="mx-auto w-full max-w-5xl flex-1 px-4 pt-3 pb-8 md:px-8">
       <!-- 文章 Tab -->
       <div v-if="activeTab === 'articles'">
         <div class="mb-6 flex items-center justify-between">
@@ -1239,13 +1239,7 @@ const tabToPath: Record<string, string> = {
   'guestbook': '/guestbook',
   'changelog': '/changelog',
 }
-const activeTab = ref(pathToTab[route.path] || 'articles')
-
-// 监听路由变化（alias 切换时 route.path 会变，但组件不重新 mount）
-watch(() => route.path, (newPath) => {
-  const tab = pathToTab[newPath]
-  if (tab) activeTab.value = tab
-}, { immediate: true })
+const activeTab = computed(() => pathToTab[route.path] || 'articles')
 
 function selectTab(key: string) {
   router.push(tabToPath[key] || '/articles')
@@ -1265,12 +1259,15 @@ const [
 ] = await Promise.all([
   useAsyncData('articles', () => apiFetchArticles(), {
     default: () => ({ list: [] as ArticleListItem[] }),
+    getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   }),
   useAsyncData('changelog', () => $fetch<ChangelogResponse>('/api/changelog'), {
     default: () => ({ changelog: [] as ChangelogItem[] }),
+    getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   }),
   useAsyncData('profile', () => apiGetProfile(), {
     default: () => ({ avatar: '', bio: '' }),
+    getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   }),
 ])
 
