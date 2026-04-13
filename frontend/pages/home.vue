@@ -221,7 +221,7 @@
           <p class="text-red-600 dark:text-red-400">加载文章失败，请稍后重试</p>
           <button class="mt-3 text-sm text-primary-500 hover:text-primary-600" @click="fetchArticles">重新加载</button>
         </div>
-        <div v-else-if="articles.length > 0" class="space-y-4">
+        <div v-else-if="articles.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <NuxtLink
             v-for="article in articles"
             :key="article.id"
@@ -1239,9 +1239,13 @@ const tabToPath: Record<string, string> = {
   'guestbook': '/guestbook',
   'changelog': '/changelog',
 }
-const activeTab = computed(() => {
-  return pathToTab[route.path] || 'articles'
-})
+const activeTab = ref(pathToTab[route.path] || 'articles')
+
+// 监听路由变化（alias 切换时 route.path 会变，但组件不重新 mount）
+watch(() => route.path, (newPath) => {
+  const tab = pathToTab[newPath]
+  if (tab) activeTab.value = tab
+}, { immediate: true })
 
 function selectTab(key: string) {
   router.push(tabToPath[key] || '/articles')

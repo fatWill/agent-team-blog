@@ -13,22 +13,10 @@ export default defineNuxtConfig({
 
   hooks: {
     'pages:extend'(pages) {
-      const { resolve } = require('path')
-      // 为每个 Tab 路径添加独立路由（非 alias），都指向 home.vue
-      const tabPaths = [
-        { name: 'tab-articles', path: '/articles' },
-        { name: 'tab-life', path: '/life' },
-        { name: 'tab-tools', path: '/tools' },
-        { name: 'tab-agent-team', path: '/agent-team' },
-        { name: 'tab-guestbook', path: '/guestbook' },
-        { name: 'tab-changelog', path: '/changelog' },
-      ]
-      for (const tab of tabPaths) {
-        pages.push({
-          name: tab.name,
-          path: tab.path,
-          file: resolve(__dirname, 'pages/home.vue'),
-        })
+      // 为 home 页面添加 Tab 路径别名（alias 不会触发组件重新 mount，切换更流畅）
+      const homePage = pages.find(p => p.path === '/home')
+      if (homePage) {
+        homePage.alias = ['/articles', '/life', '/tools', '/agent-team', '/guestbook', '/changelog']
       }
     },
   },
