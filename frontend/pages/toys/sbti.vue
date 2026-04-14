@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-50 text-gray-800 transition-colors duration-300 dark:bg-gray-900 dark:text-gray-200">
     <!-- 返回按钮 -->
     <NuxtLink
-      to="/toys"
+      to="/tools"
       class="fixed left-4 top-4 z-50 flex h-9 items-center gap-1.5 rounded-full bg-white/80 px-3 text-sm text-gray-500 shadow-sm backdrop-blur-lg transition-colors hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800/80 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
     >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

@@ -1,6 +1,6 @@
 <template>
   <div class="toy-wrapper">
-    <a href="/toys" class="back-btn">← 返回博客</a>
+    <a href="/tools" class="back-btn">← 返回博客</a>
     <iframe
       src="https://playstarfling.com"
       frameborder="0"
