@@ -1252,10 +1252,13 @@ const error = ref(false)
 const changelogLoading = ref(false)
 
 // 使用 Promise.all 并行 await，既保证 SSR 预取，又不串行阻塞
+// 基础预取（文章 + 更新日志 + 个人资料）始终执行
+// 相册和留言板按当前路由按需预取，避免不必要的 SSR 请求
 const [
   { data: articlesData, refresh: refreshArticles, status: articlesStatus },
   { data: changelogData },
   { data: profileData },
+  ...conditionalResults
 ] = await Promise.all([
   useAsyncData('articles', () => apiFetchArticles(), {
     default: () => ({ list: [] as ArticleListItem[] }),
@@ -1269,6 +1272,20 @@ const [
     default: () => ({ avatar: '', bio: '' }),
     getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   }),
+  // 仅在 /life 路由下 SSR 预取相册
+  ...(route.path === '/life' ? [
+    useAsyncData('albums', () => apiGetAlbums(), {
+      default: () => ({ list: [] as AlbumItem[] }),
+      getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
+    }),
+  ] : []),
+  // 仅在 /guestbook 路由下 SSR 预取留言板（deviceId 在 SSR 阶段不可用，传 undefined）
+  ...(route.path === '/guestbook' ? [
+    useAsyncData('guestbook-messages', () => apiGetMessages(undefined), {
+      default: () => ({ list: [] as MessageItem[] }),
+      getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
+    }),
+  ] : []),
 ])
 
 const articles = computed(() => articlesData.value?.list ?? [])
@@ -1277,6 +1294,14 @@ const profile = computed<Profile>(() => ({
   avatar: profileData.value?.avatar || '',
   bio: profileData.value?.bio || '',
 }))
+
+// SSR 条件预取结果：按路由将预取的相册/留言板数据同步到对应 ref
+// conditionalResults 的内容取决于当前路由：
+//   /life     → conditionalResults[0] = albums useAsyncData 结果
+//   /guestbook → conditionalResults[0] = guestbook-messages useAsyncData 结果
+//   其他路由   → conditionalResults 为空数组
+const _ssrAlbumsData = route.path === '/life' ? conditionalResults[0]?.data : null
+const _ssrGuestbookData = route.path === '/guestbook' ? conditionalResults[0]?.data : null
 
 async function fetchProfile() {
   // 保留此函数供管理后台修改后刷新使用
@@ -1399,9 +1424,9 @@ async function handleArticleLike(articleId: string, e?: Event) {
 }
 
 // ====== 相册功能 ======
-const albums = ref<AlbumItem[]>([])
+const albums = ref<AlbumItem[]>(_ssrAlbumsData?.value?.list ?? [])
 const albumsLoading = ref(false)
-const albumsLoaded = ref(false)
+const albumsLoaded = ref(!!_ssrAlbumsData?.value?.list?.length)
 
 const selectedAlbum = ref<AlbumItem | null>(null)
 const albumPhotos = ref<PhotoItem[]>([])
@@ -1937,9 +1962,9 @@ function formatDate(dateStr: string): string {
 }
 
 // ====== 留言板 Tab ======
-const guestbookMessages = ref<MessageItem[]>([])
+const guestbookMessages = ref<MessageItem[]>(_ssrGuestbookData?.value?.list ?? [])
 const guestbookLoading = ref(false)
-const guestbookLoaded = ref(false)
+const guestbookLoaded = ref(!!_ssrGuestbookData?.value?.list?.length)
 
 async function fetchGuestbookMessages() {
   guestbookLoading.value = true
