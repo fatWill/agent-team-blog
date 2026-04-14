@@ -10,6 +10,7 @@ import (
 
 	"github.com/fatWill/agent-team-blog/backend/models"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
+	"github.com/fatWill/agent-team-blog/backend/pkg/nginx"
 	"github.com/fatWill/agent-team-blog/backend/pkg/rds"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -120,6 +121,9 @@ func CreateArticle(c *gin.Context) {
 		return
 	}
 
+	// 异步清除 Nginx 首页缓存
+	nginx.PurgeCache([]string{"/"})
+
 	c.JSON(http.StatusOK, gin.H{
 		"id":         a.ID,
 		"title":      a.Title,
@@ -194,6 +198,9 @@ func UpdateArticle(c *gin.Context) {
 	var a models.Article
 	db.DB.Where("id = ?", id).First(&a)
 
+	// 异步清除 Nginx 缓存：文章详情页 + 首页
+	nginx.PurgeCache([]string{"/", "/articles/" + id})
+
 	c.JSON(http.StatusOK, gin.H{
 		"id":         a.ID,
 		"title":      a.Title,
@@ -224,6 +231,9 @@ func DeleteArticle(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": true, "statusCode": 404, "statusMessage": "文章不存在"})
 		return
 	}
+
+	// 异步清除 Nginx 缓存：文章详情页 + 首页
+	nginx.PurgeCache([]string{"/", "/articles/" + id})
 
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
