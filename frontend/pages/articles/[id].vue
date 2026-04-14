@@ -236,6 +236,7 @@ import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
 import type { ArticleDetail } from '~/types'
 import { apiFetchArticle, apiToggleArticleLike, apiGetArticleLikeStatus, apiRecordArticleView } from '~/utils/api'
+import { toWebpUrl } from '~/utils/imageUrl'
 
 const route = useRoute()
 const { isDark, toggleTheme } = useTheme()
@@ -421,6 +422,23 @@ async function enhanceCodeBlocks() {
   })
 }
 
+// ====== Tiptap 图片 WebP 优化 ======
+function enhanceImages() {
+  if (!articleContentRef.value) return
+  const images = articleContentRef.value.querySelectorAll('img')
+  images.forEach((img) => {
+    const src = img.getAttribute('src')
+    if (src) {
+      const webpSrc = toWebpUrl(src)
+      if (webpSrc !== src) {
+        img.setAttribute('src', webpSrc)
+      }
+    }
+    // 文章内图片统一懒加载
+    img.setAttribute('loading', 'lazy')
+  })
+}
+
 // SEO meta（SSR 阶段即生效）
 useSeoMeta({
   title: () => articleData.value ? `${articleData.value.title} - fatwill` : 'fatwill - 个人博客',
@@ -564,6 +582,7 @@ async function loadArticle() {
       fetchLikeStatus()
       recordView()
       enhanceCodeBlocks()
+      enhanceImages()
       nextTick(() => {
         buildToc()
         nextTick(() => setupTocObserver())
@@ -600,6 +619,7 @@ onMounted(() => {
       fetchLikeStatus()
       recordView()
       enhanceCodeBlocks()
+      enhanceImages()
       nextTick(() => {
         buildToc()
         nextTick(() => setupTocObserver())

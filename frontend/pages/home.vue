@@ -151,7 +151,7 @@
       <div class="flex items-center gap-5">
         <img
           v-if="profile.avatar"
-          :src="toCdnUrl(profile.avatar)"
+          :src="toThumbUrl(profile.avatar, 200)"
           alt="fatwill 头像"
           class="h-20 w-20 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700"
         />
@@ -223,13 +223,19 @@
         </div>
         <div v-else-if="articles.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <NuxtLink
-            v-for="article in articles"
+            v-for="(article, index) in articles"
             :key="article.id"
             :to="`/articles/${article.id}`"
             class="block overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
           >
             <div v-if="article.coverImage" class="w-full overflow-hidden aspect-video">
-              <img :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-full w-full object-cover object-center" />
+              <img
+                :src="toThumbUrl(article.coverImage)"
+                :alt="article.title"
+                class="h-full w-full object-cover object-center"
+                :fetchpriority="index < 2 ? 'high' : undefined"
+                :loading="index < 2 ? 'eager' : 'lazy'"
+              />
             </div>
             <div v-else class="flex w-full aspect-video items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
               <svg class="h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
@@ -383,7 +389,7 @@
                   <template v-else>
                     <!-- 视频卡片 -->
                     <template v-if="isVideoMedia(photo)">
-                      <img v-if="photo.thumbnailUrl" :src="toCdnUrl(photo.thumbnailUrl)" :alt="photo.caption || '视频'" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      <img v-if="photo.thumbnailUrl" :src="toThumbUrl(photo.thumbnailUrl)" :alt="photo.caption || '视频'" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                       <div v-else class="flex h-full w-full items-center justify-center bg-gray-900">
                         <svg class="h-10 w-10 text-white/60" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                       </div>
@@ -759,7 +765,7 @@
                   v-if="isVideoMedia(photo) && Math.abs(idx - lightbox.index) <= 1"
                   :ref="(el) => { if (el) videoRefs[idx] = el as HTMLVideoElement }"
                   :src="toCdnUrl(photo.url)"
-                  :poster="photo.thumbnailUrl ? toCdnUrl(photo.thumbnailUrl) : undefined"
+                  :poster="photo.thumbnailUrl ? toThumbUrl(photo.thumbnailUrl) : undefined"
                   controls
                   :autoplay="idx === lightbox.index"
                   playsinline
@@ -774,7 +780,7 @@
                 <!-- 图片展示 -->
                 <img
                   v-else-if="!isVideoMedia(photo) && Math.abs(idx - lightbox.index) <= 1"
-                  :src="toCdnUrl(photo.url)"
+                  :src="toWebpUrl(photo.url)"
                   :alt="photo.caption || '照片'"
                   class="max-h-[85vh] max-w-[90vw] object-contain"
                   :style="idx === lightbox.index ? {
@@ -907,7 +913,7 @@ import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profil
 import type { MessageItem } from '~/features/guestbook'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle } from '~/utils/api'
 import { apiGetMessages } from '~/features/guestbook'
-import { toCdnUrl, toThumbUrl } from '~/utils/imageUrl'
+import { toCdnUrl, toThumbUrl, toWebpUrl } from '~/utils/imageUrl'
 
 /** 判断是否为视频媒体（兼容历史数据 null → 视为图片） */
 function isVideoMedia(photo: PhotoItem): boolean {

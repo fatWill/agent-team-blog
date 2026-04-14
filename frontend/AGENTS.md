@@ -185,7 +185,7 @@ frontend/
 |------|---------|------------------|------|
 | 通用 API | `shared/utils/api.ts` | `utils/api.ts` | profile、upload 等跨领域 API |
 | 分片上传 | `shared/utils/chunkedUpload.ts` | `utils/chunkedUpload.ts` | ≤1.5MB 直传，>1.5MB 分片上传 |
-| CDN URL | `shared/utils/imageUrl.ts` | `utils/imageUrl.ts` | `toCdnUrl()` |
+| CDN URL | `shared/utils/imageUrl.ts` | `utils/imageUrl.ts` | `toCdnUrl()` / `toThumbUrl()` / `toWebpUrl()` |
 | 统一 UI | `shared/utils/ui.ts` | `utils/ui.ts` | `showSuccess/Error/Info/Confirm` |
 | 移动端 UI | `shared/utils/mobileUI.ts` | `utils/mobileUI.ts` | `MobileToast/MobileDialog` |
 
@@ -362,6 +362,7 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-15: 首屏性能优化（CDN preconnect + 封面图 fetchpriority/lazy + COS 图片 WebP 自动压缩）
 - 2026-04-13: 修复 PC 端 Tab 切换失败，nuxt.config.ts 中 alias 改为独立路由注册（pages:extend push 独立路由条目）
 - 2026-04-13: 移除 Markdown 代码块的 marked 引擎渲染，改回普通代码高亮展示，卸载 marked 依赖
 - 2026-04-13: Tab 路由改为独立路径（/articles /life /tools /agent-team /guestbook /changelog），/home 301 重定向兼容

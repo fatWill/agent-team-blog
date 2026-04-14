@@ -1,9 +1,26 @@
 /**
  * 图片 CDN URL 转换工具
  * 支持新 COS URL（upload/xxx）和旧本地路径（/uploads/xxx）
+ * 集成腾讯云数据万象 WebP 自动压缩
  */
 
 const ASSETS_HOST = 'https://assets.fatwill.cloud'
+
+/** 不应追加数据万象参数的文件扩展名 */
+const SKIP_EXTENSIONS = ['.svg', '.gif']
+
+/**
+ * 判断 URL 是否可以追加数据万象参数
+ * - 必须是 assets.fatwill.cloud 域名
+ * - 不能已带 imageMogr2 参数
+ * - 不能是 SVG / GIF 格式
+ */
+function canApplyImageMogr(cdnUrl: string): boolean {
+  if (!cdnUrl.includes('assets.fatwill.cloud')) return false
+  if (cdnUrl.includes('imageMogr2')) return false
+  const lower = cdnUrl.toLowerCase()
+  return !SKIP_EXTENSIONS.some(ext => lower.includes(ext))
+}
 
 /**
  * 将图片路径转换为完整的 CDN URL
@@ -27,16 +44,26 @@ export function toCdnUrl(url: string | null | undefined): string {
 }
 
 /**
- * 将图片路径转换为数据万象缩略图 URL
- * 仅对 assets.fatwill.cloud 域名的图片追加缩略图参数
- * 旧格式本地路径（/uploads/xxx）不做处理，直接走原图
+ * 将图片路径转换为数据万象缩略图 URL（列表页封面图）
+ * 参数：800px 宽度限制 + WebP + 80% 质量 + 去 EXIF
  * @param url 原始图片路径
- * @param size 缩略图最大边长，默认 400
+ * @param width 缩略图最大宽度，默认 800
  */
-export function toThumbUrl(url: string | null | undefined, size = 400): string {
+export function toThumbUrl(url: string | null | undefined, width = 800): string {
   const cdnUrl = toCdnUrl(url)
   if (!cdnUrl) return ''
-  // 只对 COS/CDN 域名的图片追加缩略图参数，旧本地路径不处理
-  if (!cdnUrl.includes('assets.fatwill.cloud')) return cdnUrl
-  return `${cdnUrl}?imageMogr2/thumbnail/${size}x${size}>/format/webp/rquality/75/strip`
+  if (!canApplyImageMogr(cdnUrl)) return cdnUrl
+  return `${cdnUrl}?imageMogr2/thumbnail/${width}x>/format/webp/rquality/80/strip`
+}
+
+/**
+ * 将图片路径转换为 WebP 大图 URL（文章详情页内图片）
+ * 保持原始尺寸，仅转 WebP + 85% 质量 + 去 EXIF
+ * @param url 原始图片路径
+ */
+export function toWebpUrl(url: string | null | undefined): string {
+  const cdnUrl = toCdnUrl(url)
+  if (!cdnUrl) return ''
+  if (!canApplyImageMogr(cdnUrl)) return cdnUrl
+  return `${cdnUrl}?imageMogr2/format/webp/rquality/85/strip`
 }
