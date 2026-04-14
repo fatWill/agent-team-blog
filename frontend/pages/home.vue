@@ -1221,11 +1221,11 @@ const tabs: TabItem[] = [
   { key: 'changelog', label: '📋 更新日志' },
 ]
 
-// Tab 路由化：activeTab 由 URL 路径驱动（如 /articles、/life、/tools 等）
+// Tab 路由化：activeTab 由 URL 路径驱动（如 /articles、/life、/toys 等）
 const pathToTab: Record<string, string> = {
   '/articles': 'articles',
   '/life': 'life',
-  '/tools': 'tools',
+  '/toys': 'tools',
   '/agent-team': 'agent-team',
   '/guestbook': 'guestbook',
   '/changelog': 'changelog',
@@ -1234,7 +1234,7 @@ const pathToTab: Record<string, string> = {
 const tabToPath: Record<string, string> = {
   'articles': '/articles',
   'life': '/life',
-  'tools': '/tools',
+  'tools': '/toys',
   'agent-team': '/agent-team',
   'guestbook': '/guestbook',
   'changelog': '/changelog',
