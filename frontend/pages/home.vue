@@ -922,21 +922,6 @@ function formatDuration(seconds: number | null | undefined): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-// SEO meta
-useSeoMeta({
-  title: 'fatwill - 个人博客',
-  description: '全栈开发者 fatwill 的个人博客，分享技术文章与生活记录。',
-  ogTitle: 'fatwill - 个人博客',
-  ogDescription: '全栈开发者 fatwill 的个人博客，分享技术文章与生活记录。',
-  ogType: 'website',
-  ogUrl: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`,
-  ogSiteName: 'fatwill',
-  twitterCard: 'summary',
-})
-useHead({
-  link: [{ rel: 'canonical', href: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}` }],
-})
-
 const { isDark, toggleTheme } = useTheme()
 
 // 移动端抽屉状态
@@ -1240,6 +1225,21 @@ const tabToPath: Record<string, string> = {
   'changelog': '/changelog',
 }
 const activeTab = computed(() => pathToTab[route.path] || 'articles')
+
+// SEO meta（必须在 tabToPath 和 activeTab 定义之后，避免 TDZ）
+useSeoMeta({
+  title: 'fatwill - 个人博客',
+  description: '全栈开发者 fatwill 的个人博客，分享技术文章与生活记录。',
+  ogTitle: 'fatwill - 个人博客',
+  ogDescription: '全栈开发者 fatwill 的个人博客，分享技术文章与生活记录。',
+  ogType: 'website',
+  ogUrl: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`,
+  ogSiteName: 'fatwill',
+  twitterCard: 'summary',
+})
+useHead({
+  link: [{ rel: 'canonical', href: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}` }],
+})
 
 function selectTab(key: string) {
   router.push(tabToPath[key] || '/articles')
