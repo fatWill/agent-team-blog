@@ -1920,12 +1920,12 @@ function onWheel(e: WheelEvent) {
   }
 }
 
-// 生活 Tab 切换时加载相册（immediate: true 确保直接访问 /life 时也能触发）
+// 生活 Tab 切换时加载相册（初始加载在 onMounted 中处理，避免 SSR TDZ 错误）
 watch(activeTab, (val) => {
   if (val === 'life' && !albumsLoaded.value) {
     fetchAlbums()
   }
-}, { immediate: true })
+})
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr)
@@ -1968,12 +1968,12 @@ function relativeTime(dateStr: string): string {
   return `${days}天前`
 }
 
-// 留言板 Tab 切换时加载留言（immediate: true 确保直接访问 /guestbook 时也能触发）
+// 留言板 Tab 切换时加载留言（初始加载在 onMounted 中处理，避免 SSR TDZ 错误）
 watch(activeTab, (val) => {
   if (val === 'guestbook' && !guestbookLoaded.value) {
     fetchGuestbookMessages()
   }
-}, { immediate: true })
+})
 
 // 页面挂载
 onMounted(() => {
@@ -1990,6 +1990,13 @@ onMounted(() => {
       fetchGuestbookMessages()
     }
   })
+  // 补充：直接访问 /life 或 /guestbook 时触发初始数据加载（替代 watch immediate）
+  if (activeTab.value === 'life' && !albumsLoaded.value) {
+    fetchAlbums()
+  }
+  if (activeTab.value === 'guestbook' && !guestbookLoaded.value) {
+    fetchGuestbookMessages()
+  }
 })
 
 onUnmounted(() => {
