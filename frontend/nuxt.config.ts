@@ -18,6 +18,7 @@ export default defineNuxtConfig({
       const tabPaths = [
         { name: 'tab-articles', path: '/articles' },
         { name: 'tab-life', path: '/life' },
+        { name: 'tab-renovation', path: '/renovation' },
         { name: 'tab-toys', path: '/toys' },
         { name: 'tab-agent-team', path: '/agent-team' },
         { name: 'tab-guestbook', path: '/guestbook' },

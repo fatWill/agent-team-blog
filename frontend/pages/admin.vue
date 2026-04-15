@@ -33,26 +33,56 @@
       </div>
     </header>
 
-    <!-- Tab 切换 -->
+    <!-- 导航区域：一级 Tab + 面包屑 -->
     <nav class="shrink-0 border-b border-gray-200/60 bg-white/80 backdrop-blur-lg dark:border-gray-700/60 dark:bg-gray-900/80">
-      <div class="mx-auto flex max-w-4xl gap-0 overflow-x-auto px-4">
-        <button
-          v-for="tab in adminTabs"
-          :key="tab.key"
-          class="relative shrink-0 px-5 py-3 text-sm font-medium transition-colors"
-          :class="activeTab === tab.key
-            ? 'text-gray-900 dark:text-gray-100'
-            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'"
-          @click="activeTab = tab.key"
-        >
-          {{ tab.label }}
-          <span
-            v-if="activeTab === tab.key"
-            class="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary-500"
-          />
-        </button>
+      <div class="mx-auto max-w-4xl px-4">
+        <!-- 一级导航 -->
+        <div class="flex gap-0 overflow-x-auto border-b border-gray-100 dark:border-gray-700/40">
+          <button
+            v-for="group in adminNavGroups"
+            :key="group.key"
+            class="relative shrink-0 px-5 py-2.5 text-sm font-medium transition-colors"
+            :class="activeGroup.key === group.key
+              ? 'text-gray-900 dark:text-gray-100'
+              : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'"
+            @click="activeTab = group.children[0].key"
+          >
+            {{ group.label }}
+            <span
+              v-if="activeGroup.key === group.key"
+              class="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary-500"
+            />
+          </button>
+        </div>
+        <!-- 二级导航 -->
+        <div class="flex gap-0 overflow-x-auto">
+          <button
+            v-for="child in activeGroup.children"
+            :key="child.key"
+            class="relative shrink-0 px-4 py-2 text-[13px] transition-colors"
+            :class="activeTab === child.key
+              ? 'font-semibold text-primary-600 dark:text-primary-400'
+              : 'font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'"
+            @click="activeTab = child.key"
+          >
+            {{ child.label }}
+            <span
+              v-if="activeTab === child.key"
+              class="absolute bottom-0 left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-primary-400"
+            />
+          </button>
+        </div>
       </div>
     </nav>
+
+    <!-- 面包屑 -->
+    <div class="shrink-0 bg-gray-50/50 dark:bg-gray-900/50">
+      <div class="mx-auto flex max-w-4xl items-center gap-1.5 px-4 py-2 text-xs text-gray-400 dark:text-gray-500">
+        <span>{{ activeGroup.label }}</span>
+        <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+        <span class="font-medium text-gray-600 dark:text-gray-300">{{ activeTabLabel }}</span>
+      </div>
+    </div>
 
     <!-- 内容区域 -->
     <main class="flex-1 overflow-y-auto">
@@ -162,7 +192,15 @@
 
       <!-- ========== Tab 2: 文章管理 ========== -->
       <div v-if="activeTab === 'manage'">
-        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">文章管理</h2>
+        <div class="mb-6 flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">文章管理</h2>
+          <button
+            class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-600"
+            @click="resetForm(); editingArticleId = null; activeTab = 'write'"
+          >
+            + 写文章
+          </button>
+        </div>
         <div class="mb-6">
           <input v-model="searchKeyword" type="text" placeholder="按标题搜索文章..." class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-primary-400" />
         </div>
@@ -1220,6 +1258,48 @@
         </div>
       </div>
 
+      <!-- ========== 装修 - 文章管理 ========== -->
+      <div v-if="activeTab === 'reno-articles'">
+        <div class="mb-6 flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">装修文章管理</h2>
+        </div>
+        <div class="py-16 text-center">
+          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/20">
+            <span class="text-3xl">🏠</span>
+          </div>
+          <p class="text-lg font-medium text-gray-600 dark:text-gray-400">敬请期待</p>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">装修类文章管理功能正在开发中...</p>
+        </div>
+      </div>
+
+      <!-- ========== 装修 - 材料清单 ========== -->
+      <div v-if="activeTab === 'reno-materials'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">材料清单</h2>
+        </div>
+        <div class="py-16 text-center">
+          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20">
+            <span class="text-3xl">🧱</span>
+          </div>
+          <p class="text-lg font-medium text-gray-600 dark:text-gray-400">敬请期待</p>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">材料清单管理功能正在开发中...</p>
+        </div>
+      </div>
+
+      <!-- ========== 装修 - 成本预算 ========== -->
+      <div v-if="activeTab === 'reno-budget'">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">成本预算</h2>
+        </div>
+        <div class="py-16 text-center">
+          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/20">
+            <span class="text-3xl">💰</span>
+          </div>
+          <p class="text-lg font-medium text-gray-600 dark:text-gray-400">敬请期待</p>
+          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">成本预算管理功能正在开发中...</p>
+        </div>
+      </div>
+
       </div>
     </main>
 
@@ -1404,17 +1484,53 @@ function formatDuration(seconds: number | null | undefined): string {
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
 
-// ====== Tab 管理 ======
-const adminTabs = [
-  { key: 'write', label: '写文章' },
-  { key: 'manage', label: '文章管理' },
-  { key: 'profile', label: '个人资料' },
-  { key: 'albums', label: '相册管理' },
-  { key: 'messages', label: '留言管理' },
-  { key: 'analytics', label: '数据统计' },
-  { key: 'perf', label: '📊 性能' },
+// ====== 二级导航管理 ======
+interface AdminNavGroup {
+  key: string
+  label: string
+  children: { key: string; label: string }[]
+}
+const adminNavGroups: AdminNavGroup[] = [
+  {
+    key: 'content',
+    label: '内容管理',
+    children: [
+      { key: 'manage', label: '文章管理' },
+      { key: 'albums', label: '相册管理' },
+      { key: 'messages', label: '留言管理' },
+      { key: 'profile', label: '个人资料' },
+    ],
+  },
+  {
+    key: 'stats',
+    label: '统计',
+    children: [
+      { key: 'analytics', label: '数据' },
+      { key: 'perf', label: '性能' },
+    ],
+  },
+  {
+    key: 'renovation',
+    label: '装修',
+    children: [
+      { key: 'reno-articles', label: '文章管理' },
+      { key: 'reno-materials', label: '材料清单' },
+      { key: 'reno-budget', label: '成本预算' },
+    ],
+  },
 ]
-const activeTab = ref('write')
+// 向后兼容：扁平化所有 Tab（用于 v-if 切换内容区域）
+const adminTabs = adminNavGroups.flatMap(g => g.children)
+const activeTab = ref('manage')
+const activeGroup = computed(() => {
+  // write Tab 属于内容管理组（虽然不在导航中显示）
+  if (activeTab.value === 'write') return adminNavGroups[0]
+  return adminNavGroups.find(g => g.children.some(c => c.key === activeTab.value)) || adminNavGroups[0]
+})
+const activeTabLabel = computed(() => {
+  if (activeTab.value === 'write') return editingArticleId.value ? '编辑文章' : '写文章'
+  return adminTabs.find(t => t.key === activeTab.value)?.label || ''
+})
 
 // ====== 写文章 / 编辑文章 ======
 const editingArticleId = ref<string | null>(null)
@@ -1489,7 +1605,7 @@ function resetForm() {
   editor.value?.commands.setContent('<p>开始写作...</p>')
 }
 
-function cancelEdit() { resetForm() }
+function cancelEdit() { resetForm(); activeTab.value = 'manage' }
 
 async function handlePublish() {
   if (!editor.value || !form.title.trim()) return

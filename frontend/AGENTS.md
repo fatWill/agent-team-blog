@@ -73,6 +73,10 @@ frontend/
 │   ├── changelog/                     # 更新日志领域
 │   │   ├── types.ts                   #   类型定义（ChangelogItem、ChangelogResponse）
 │   │   └── index.ts                   #   模块公共导出入口
+│   ├── renovation/                    # 装修领域
+│   │   ├── types.ts                   #   类型定义（RenovationArticle）
+│   │   ├── api.ts                     #   API 服务层（假数据，TODO 对接后端）
+│   │   └── index.ts                   #   模块公共导出入口
 │   └── admin/                         # 管理后台领域（预留）
 │
 ├── shared/                            # 🔗 跨领域共享层
@@ -116,11 +120,17 @@ frontend/
 │   └── auth.ts                        # 鉴权路由守卫（保护 /admin）
 ├── pages/
 │   ├── index.vue                      # 酷炫首页（/ — Canvas + pretext 代码滚动）
-│   ├── home.vue                       # 博客主页（/home — 文章/相册/留言板等 Tab）
+│   ├── home.vue                       # 博客主页（/home — 文章/生活/装修/玩具/留言板等 Tab）
 │   ├── login.vue                      # 登录页（/login）
-│   ├── admin.vue                      # 管理后台（/admin）
-│   └── articles/
-│       └── [id].vue                   # 文章详情页（/articles/:id）
+│   ├── admin.vue                      # 管理后台（/admin — 面包屑二级导航）
+│   ├── articles/
+│   │   └── [id].vue                   # 文章详情页（/articles/:id）
+│   └── renovation/                    # 装修子页面
+│       ├── budget.vue                 # 成本预算（/renovation/budget）
+│       ├── progress.vue               # 装修进度（/renovation/progress）
+│       ├── materials.vue              # 材料清单（/renovation/materials）
+│       └── articles/
+│           └── [id].vue               # 装修文章详情（/renovation/articles/:id）
 ├── plugins/
 │   ├── antd.client.ts                 # Ant Design Vue 客户端插件
 │   ├── nprogress.client.ts            # NProgress 路由进度条
@@ -160,7 +170,8 @@ frontend/
 | 鉴权 | `features/auth/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/login.vue`、`stores/auth.ts`、`middleware/auth.ts` |
 | 留言板 | `features/guestbook/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（留言板 Tab） |
 | 更新日志 | `features/changelog/` | types.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（更新日志 Tab） |
-| 管理后台 | `features/admin/` | （预留） | 🚧 待拆分 | `pages/admin.vue`（57KB，后续拆分组件） |
+| 管理后台 | `features/admin/` | （预留） | 🚧 待拆分 | `pages/admin.vue`（130KB，后续拆分组件） |
+| 装修 | `features/renovation/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（装修 Tab）、`pages/renovation/*` |
 | 酷炫首页 | — | — | ⏸️ 不拆分 | `pages/index.vue`（独立页面，无需 feature 模块） |
 | Agent Team | — | — | ⏸️ 不拆分 | `pages/home.vue`（Agent Team Tab，数据写死在前端） |
 
@@ -220,6 +231,7 @@ frontend/
 | 酷炫首页 | `/` | `pages/index.vue`（17KB） | @chenglou/pretext | Canvas 代码滚动背景 + 拖拽按钮 |
 | 📝 文章 | `/articles` | `pages/home.vue`（84KB） | useTheme, useDevice, api, types, vue-virtual-scroller, antd | 默认 Tab，文章列表 |
 | 📷 生活 | `/life` | `pages/home.vue`（独立路由） | 同上 | 生活相册 Tab |
+| 🏠 装修 | `/renovation` | `pages/home.vue`（独立路由） | 同上 | 装修 Tab（功能按钮 + 知识文章列表） |
 | 🎮 玩具 | `/tools` | `pages/home.vue`（独立路由） | 同上 | 玩具 Tab |
 | 🤖 Agent Team | `/agent-team` | `pages/home.vue`（独立路由） | 同上 | Agent Team Tab |
 | 💬 留言板 | `/guestbook` | `pages/home.vue`（独立路由） | 同上 | 留言板 Tab |
@@ -229,7 +241,11 @@ frontend/
 | 太空游戏 | `/toys/starfling` | `pages/toys/starfling.vue` | — | 全屏 iframe 嵌入 |
 | SBTI 测试 | `/toys/sbti` | `pages/toys/sbti.vue` | — | SBTI 人格测试 |
 | 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /articles |
-| 管理后台 | `/admin` | `pages/admin.vue`（125KB） | auth store, api, Tiptap, antd, chunkedUpload | 6 个管理 Tab：文章/相册/个人资料/留言管理/数据统计 |
+| 管理后台 | `/admin` | `pages/admin.vue`（130KB） | auth store, api, Tiptap, antd, chunkedUpload | 面包屑二级导航：内容管理/统计/装修 |
+| 装修-成本预算 | `/renovation/budget` | `pages/renovation/budget.vue` | — | 敬请期待占位页 |
+| 装修-装修进度 | `/renovation/progress` | `pages/renovation/progress.vue` | — | 敬请期待占位页 |
+| 装修-材料清单 | `/renovation/materials` | `pages/renovation/materials.vue` | — | 敬请期待占位页 |
+| 装修-文章详情 | `/renovation/articles/:id` | `pages/renovation/articles/[id].vue` | markdown-it | Markdown 渲染装修知识文章 |
 
 ## 后端 API（透传代理 → Go 后端 `http://127.0.0.1:8080`）
 
@@ -362,6 +378,7 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-16: 新增「装修」Tab 页（功能按钮 + Markdown 知识文章列表）+ 后台管理导航重构（面包屑二级导航）+ 新增装修 feature 模块
 - 2026-04-15: 首屏性能优化（CDN preconnect + 封面图 fetchpriority/lazy + COS 图片 WebP 自动压缩）
 - 2026-04-13: 修复 PC 端 Tab 切换失败，nuxt.config.ts 中 alias 改为独立路由注册（pages:extend push 独立路由条目）
 - 2026-04-13: 移除 Markdown 代码块的 marked 引擎渲染，改回普通代码高亮展示，卸载 marked 依赖

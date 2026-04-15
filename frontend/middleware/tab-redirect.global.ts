@@ -6,6 +6,7 @@
 const tabToPath: Record<string, string> = {
   articles: '/articles',
   life: '/life',
+  renovation: '/renovation',
   tools: '/tools',
   'agent-team': '/agent-team',
   guestbook: '/guestbook',
