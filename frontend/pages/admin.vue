@@ -1303,12 +1303,149 @@
         <div class="mb-6">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">材料清单</h2>
         </div>
-        <div class="py-16 text-center">
-          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20">
-            <span class="text-3xl">🧱</span>
+
+        <!-- 内部 Tab 切换 -->
+        <div class="mb-5 flex gap-2 border-b border-gray-200 dark:border-gray-700">
+          <button
+            class="px-4 py-2 text-sm font-medium transition-colors"
+            :class="materialActiveTab === 'edit'
+              ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-400'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+            @click="materialActiveTab = 'edit'"
+          >
+            {{ materialForm.editingId ? '编辑条目' : '新建条目' }}
+          </button>
+          <button
+            class="px-4 py-2 text-sm font-medium transition-colors"
+            :class="materialActiveTab === 'manage'
+              ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-400'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+            @click="materialActiveTab = 'manage'; fetchMaterials()"
+          >
+            管理
+          </button>
+        </div>
+
+        <!-- 编辑 Tab -->
+        <div v-if="materialActiveTab === 'edit'" class="space-y-5">
+          <!-- 标题 -->
+          <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">标题</label>
+            <input
+              v-model="materialForm.title"
+              type="text"
+              placeholder="输入材料名称"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+            />
           </div>
-          <p class="text-lg font-medium text-gray-600 dark:text-gray-400">敬请期待</p>
-          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">材料清单管理功能正在开发中...</p>
+
+          <!-- 标签 -->
+          <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">标签</label>
+            <div class="flex flex-wrap gap-2 mb-2">
+              <span
+                v-for="(tag, i) in materialForm.tags"
+                :key="i"
+                class="inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/20 dark:text-primary-400"
+              >
+                {{ tag }}
+                <button class="ml-0.5 text-primary-400 hover:text-primary-600" @click="removeTag(i)">&times;</button>
+              </span>
+            </div>
+            <input
+              v-model="materialForm.tagInput"
+              type="text"
+              placeholder="输入标签后回车添加"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              @keydown.enter.prevent="addTag"
+            />
+          </div>
+
+          <!-- 附件上传 -->
+          <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">附件</label>
+            <!-- 已上传附件列表 -->
+            <div v-if="materialForm.attachments.length > 0" class="mb-3 space-y-2">
+              <div
+                v-for="(att, i) in materialForm.attachments"
+                :key="att.id"
+                class="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-700/50"
+              >
+                <!-- PDF 图标 -->
+                <svg v-if="att.type === 'pdf'" class="h-6 w-6 shrink-0 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h5v7h7v9H6z"/><path d="M8 13h3v1H8zm0 2h6v1H8zm0 2h6v1H8z"/></svg>
+                <!-- 图片缩略图 -->
+                <img v-else-if="att.type === 'image'" :src="att.url" class="h-8 w-8 shrink-0 rounded object-cover" />
+                <!-- 视频图标 -->
+                <span v-else class="shrink-0 text-lg">🎬</span>
+                <span class="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-300">{{ att.name }}</span>
+                <button class="shrink-0 text-gray-400 hover:text-red-500" @click="removeAttachment(i)">&times;</button>
+              </div>
+            </div>
+            <!-- 上传按钮 -->
+            <label class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 bg-white px-4 py-6 text-sm text-gray-500 transition-colors hover:border-primary-300 hover:bg-primary-50/50 dark:border-gray-600 dark:bg-gray-700/50 dark:hover:border-primary-500/50">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+              <span>{{ materialForm.uploading ? '上传中...' : '点击上传附件（支持图片/视频/PDF）' }}</span>
+              <input
+                type="file"
+                class="hidden"
+                multiple
+                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v,application/pdf"
+                :disabled="materialForm.uploading"
+                @change="handleMaterialFileSelect"
+              />
+            </label>
+          </div>
+
+          <!-- 提交按钮 -->
+          <div class="flex gap-3">
+            <button
+              class="rounded-lg bg-primary-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
+              :disabled="materialForm.uploading"
+              @click="saveMaterial"
+            >
+              {{ materialForm.editingId ? '更新' : '保存' }}
+            </button>
+            <button
+              v-if="materialForm.editingId"
+              class="rounded-lg bg-gray-100 px-6 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              @click="resetMaterialForm"
+            >
+              取消编辑
+            </button>
+          </div>
+        </div>
+
+        <!-- 管理 Tab -->
+        <div v-if="materialActiveTab === 'manage'">
+          <div v-if="materialLoading" class="py-10 text-center text-sm text-gray-400">加载中...</div>
+          <div v-else-if="materialItems.length === 0" class="py-10 text-center text-sm text-gray-400 dark:text-gray-500">暂无材料条目</div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="item in materialItems"
+              :key="item.id"
+              class="rounded-lg border border-gray-100 bg-white p-4 transition-colors dark:border-gray-700 dark:bg-gray-800"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ item.title }}</h4>
+                  <div class="mt-1.5 flex flex-wrap gap-1.5">
+                    <span v-for="tag in item.tags" :key="tag" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400">{{ tag }}</span>
+                  </div>
+                  <p class="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+                    附件：
+                    <template v-if="item.attachments.filter(a => a.type === 'pdf').length">PDF {{ item.attachments.filter(a => a.type === 'pdf').length }}件 </template>
+                    <template v-if="item.attachments.filter(a => a.type === 'image').length">图片 {{ item.attachments.filter(a => a.type === 'image').length }}张 </template>
+                    <template v-if="item.attachments.filter(a => a.type === 'video').length">视频 {{ item.attachments.filter(a => a.type === 'video').length }}条</template>
+                    <template v-if="item.attachments.length === 0">无</template>
+                  </p>
+                </div>
+                <div class="flex shrink-0 gap-2">
+                  <button class="rounded-lg px-3 py-1.5 text-xs font-medium text-primary-500 transition-colors hover:bg-primary-50 dark:hover:bg-primary-900/20" @click="startEditMaterial(item)">编辑</button>
+                  <button class="rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20" @click="deleteMaterial(item.id)">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1457,6 +1594,9 @@ import { showSuccess, showError, showConfirm } from '~/utils/ui'
 import type { ArticleListItem, AlbumItem, PhotoItem, MessageItem } from '~/types'
 import { useAuthStore } from '~/stores/auth'
 import { chunkedUpload } from '~/utils/chunkedUpload'
+import { apiFetchMaterials, apiCreateMaterial, apiUpdateMaterial, apiDeleteMaterial } from '~/features/material'
+import type { MaterialItem, MaterialAttachment } from '~/features/material'
+import { v4 as uuidv4 } from 'uuid'
 import {
   apiCreateArticle,
   apiUpdateArticle,
@@ -2840,6 +2980,139 @@ watch(perfTrendDays, () => {
   fetchPerfPages()
   fetchPerfLogs(1)
 })
+
+// ====== 材料清单 ======
+const materialItems = ref<MaterialItem[]>([])
+const materialLoading = ref(false)
+const materialActiveTab = ref<'edit' | 'manage'>('manage')
+
+const materialForm = reactive({
+  editingId: null as number | null,
+  title: '',
+  tags: [] as string[],
+  tagInput: '',
+  attachments: [] as MaterialAttachment[],
+  uploading: false,
+})
+
+async function fetchMaterials() {
+  materialLoading.value = true
+  try {
+    materialItems.value = await apiFetchMaterials()
+  } catch {
+    // 静默
+  } finally {
+    materialLoading.value = false
+  }
+}
+
+function resetMaterialForm() {
+  materialForm.editingId = null
+  materialForm.title = ''
+  materialForm.tags = []
+  materialForm.tagInput = ''
+  materialForm.attachments = []
+}
+
+function startEditMaterial(item: MaterialItem) {
+  materialForm.editingId = item.id
+  materialForm.title = item.title
+  materialForm.tags = [...item.tags]
+  materialForm.attachments = [...item.attachments]
+  materialForm.tagInput = ''
+  materialActiveTab.value = 'edit'
+}
+
+function addTag() {
+  const tag = materialForm.tagInput.trim()
+  if (tag && !materialForm.tags.includes(tag)) {
+    materialForm.tags.push(tag)
+  }
+  materialForm.tagInput = ''
+}
+
+function removeTag(i: number) {
+  materialForm.tags.splice(i, 1)
+}
+
+function removeAttachment(i: number) {
+  materialForm.attachments.splice(i, 1)
+}
+
+async function handleMaterialFileSelect(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = input.files
+  if (!files || files.length === 0) return
+
+  materialForm.uploading = true
+  try {
+    for (const file of Array.from(files)) {
+      const result = await chunkedUpload(file, undefined, { folder: 'materials' })
+      // 根据文件类型判断附件类型
+      let attType: 'pdf' | 'image' | 'video' = 'image'
+      if (file.type === 'application/pdf') attType = 'pdf'
+      else if (file.type.startsWith('video/')) attType = 'video'
+
+      const attachment: MaterialAttachment = {
+        id: uuidv4(),
+        type: attType,
+        url: result.url,
+        name: file.name,
+        size: file.size,
+      }
+      materialForm.attachments.push(attachment)
+    }
+  } catch {
+    showError('上传失败')
+  } finally {
+    materialForm.uploading = false
+  }
+  input.value = ''
+}
+
+async function saveMaterial() {
+  if (!materialForm.title.trim()) {
+    showError('请输入标题')
+    return
+  }
+  const data = {
+    title: materialForm.title.trim(),
+    tags: materialForm.tags,
+    attachments: materialForm.attachments,
+    sortOrder: 0,
+  }
+  try {
+    if (materialForm.editingId) {
+      await apiUpdateMaterial(materialForm.editingId, data)
+      showSuccess('更新成功')
+    } else {
+      await apiCreateMaterial(data)
+      showSuccess('创建成功')
+    }
+    resetMaterialForm()
+    materialActiveTab.value = 'manage'
+    await fetchMaterials()
+  } catch {
+    showError('保存失败')
+  }
+}
+
+async function deleteMaterial(id: number) {
+  showConfirm({
+    title: '确认删除',
+    content: '删除后无法恢复，是否继续？',
+    danger: true,
+    onOk: async () => {
+      try {
+        await apiDeleteMaterial(id)
+        showSuccess('删除成功')
+        await fetchMaterials()
+      } catch {
+        showError('删除失败')
+      }
+    },
+  })
+}
 
 onUnmounted(() => {
   editor.value?.destroy()

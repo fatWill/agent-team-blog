@@ -20,11 +20,13 @@ export interface UploadResult {
 async function uploadSmallFile(
   file: File,
   onProgress?: (progress: UploadProgress) => void,
+  options?: { folder?: string },
 ): Promise<UploadResult> {
   onProgress?.({ loaded: 0, total: file.size, percent: 0 })
 
   const formData = new FormData()
   formData.append('file', file)
+  if (options?.folder) formData.append('folder', options.folder)
 
   const res = await fetch('/api/upload', {
     method: 'POST',
@@ -63,6 +65,7 @@ async function cleanupChunks(uploadId: string): Promise<void> {
 async function uploadLargeFile(
   file: File,
   onProgress?: (progress: UploadProgress) => void,
+  options?: { folder?: string },
 ): Promise<UploadResult> {
   const uploadId = Date.now().toString(36) + Math.random().toString(36).slice(2)
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
@@ -80,6 +83,7 @@ async function uploadLargeFile(
       formData.append('chunkIndex', String(i))
       formData.append('totalChunks', String(totalChunks))
       formData.append('filename', file.name)
+      if (options?.folder) formData.append('folder', options.folder)
 
       const res = await fetch('/api/upload/chunk', {
         method: 'POST',
@@ -107,7 +111,7 @@ async function uploadLargeFile(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ uploadId, totalChunks, filename: file.name }),
+      body: JSON.stringify({ uploadId, totalChunks, filename: file.name, ...(options?.folder ? { folder: options.folder } : {}) }),
     })
 
     if (!mergeRes.ok) {
@@ -134,11 +138,12 @@ async function uploadLargeFile(
 export async function chunkedUpload(
   file: File,
   onProgress?: (progress: UploadProgress) => void,
+  options?: { folder?: string },
 ): Promise<UploadResult> {
   // 视频文件统一走分片上传，无论大小
   const isVideo = file.type.startsWith('video/')
   if (!isVideo && file.size <= CHUNK_SIZE) {
-    return uploadSmallFile(file, onProgress)
+    return uploadSmallFile(file, onProgress, options)
   }
-  return uploadLargeFile(file, onProgress)
+  return uploadLargeFile(file, onProgress, options)
 }
