@@ -975,7 +975,7 @@ import type { MessageItem } from '~/features/guestbook'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle } from '~/utils/api'
 import { apiGetMessages } from '~/features/guestbook'
 import { apiFetchRenovationArticles } from '~/features/renovation'
-import type { RenovationArticle } from '~/features/renovation'
+import type { RenovationArticleListItem } from '~/features/renovation'
 import { toCdnUrl, toThumbUrl, toWebpUrl } from '~/utils/imageUrl'
 
 /** 判断是否为视频媒体（兼容历史数据 null → 视为图片） */
@@ -1168,7 +1168,7 @@ async function fetchDislikesForPhotos(photos: PhotoItem[]) {
 }
 
 // ====== 装修知识文章数据 ======
-const renovationArticles = ref<RenovationArticle[]>([])
+const renovationArticles = ref<RenovationArticleListItem[]>([])
 const renovationLoading = ref(false)
 async function fetchRenovationArticles() {
   if (renovationArticles.value.length > 0) return // 已加载过则跳过

@@ -59,7 +59,7 @@ const articleId = route.params.id as string
 
 const loading = ref(true)
 const error = ref(false)
-const article = ref<{ id: string; title: string; content: string } | null>(null)
+const article = ref<{ id: number; title: string; content: string } | null>(null)
 
 // 初始化 markdown-it
 const md = new MarkdownIt({
