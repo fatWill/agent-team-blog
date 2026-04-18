@@ -84,18 +84,20 @@ function goBack() {
   router.back()
 }
 
-// 从 localStorage 读取 PDF 信息
-const cacheKey = `pdf_cache_${attachmentId}`
-const cached = localStorage.getItem(cacheKey)
+// 在客户端挂载后读取 localStorage 并加载 PDF
+onMounted(() => {
+  const cacheKey = `pdf_cache_${attachmentId}`
+  const cached = localStorage.getItem(cacheKey)
 
-if (!cached) {
-  loading.value = false
-  error.value = 'PDF 信息未找到，请从材料清单页面打开'
-} else {
-  const pdfInfo = JSON.parse(cached) as { id: string; url: string; name: string }
-  pdfName.value = pdfInfo.name
-  loadPdf(pdfInfo.url)
-}
+  if (!cached) {
+    loading.value = false
+    error.value = 'PDF 信息未找到，请从材料清单页面打开'
+  } else {
+    const pdfInfo = JSON.parse(cached) as { id: string; url: string; name: string }
+    pdfName.value = pdfInfo.name
+    loadPdf(pdfInfo.url)
+  }
+})
 
 async function loadPdf(url: string) {
   try {
