@@ -10,6 +10,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/auth"
 	"github.com/fatWill/agent-team-blog/backend/internal/changelog"
 	"github.com/fatWill/agent-team-blog/backend/internal/guestbook"
+	"github.com/fatWill/agent-team-blog/backend/internal/material"
 	"github.com/fatWill/agent-team-blog/backend/internal/perf"
 	"github.com/fatWill/agent-team-blog/backend/internal/photo"
 	"github.com/fatWill/agent-team-blog/backend/internal/profile"
@@ -194,6 +195,20 @@ func registerRoutes(api *gin.RouterGroup) {
 		renoGroup.POST("", authMW, renovation.CreateArticle)
 		renoGroup.PUT("/:id", authMW, renovation.UpdateArticle)
 		renoGroup.DELETE("/:id", authMW, renovation.DeleteArticle)
+	}
+
+	// ========== 材料清单 ==========
+	materialGroup := api.Group("/materials")
+	{
+		// 公开接口
+		materialGroup.GET("", material.GetMaterials)
+		materialGroup.GET("/:id", material.GetMaterial)
+
+		// 需鉴权接口
+		materialGroup.POST("", authMW, material.CreateMaterial)
+		materialGroup.PUT("/:id", authMW, material.UpdateMaterial)
+		materialGroup.DELETE("/:id", authMW, material.DeleteMaterial)
+		materialGroup.PUT("/:id/sort", authMW, material.UpdateMaterialSort)
 	}
 
 	// ========== 更新日志 ==========

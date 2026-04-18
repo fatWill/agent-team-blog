@@ -29,11 +29,17 @@ var (
 	allowedVideoExtensions = map[string]bool{
 		".mp4": true, ".mov": true, ".webm": true, ".m4v": true,
 	}
+	allowedPdfExtensions = map[string]bool{
+		".pdf": true,
+	}
 	allowedImageMIMEs = map[string]bool{
 		"image/jpeg": true, "image/png": true, "image/gif": true, "image/webp": true,
 	}
 	allowedVideoMIMEs = map[string]bool{
 		"video/mp4": true, "video/quicktime": true, "video/webm": true, "video/x-m4v": true,
+	}
+	allowedPdfMIMEs = map[string]bool{
+		"application/pdf": true,
 	}
 	uploadIDRegex = regexp.MustCompile(`^[\w-]+$`)
 )
@@ -73,14 +79,14 @@ func RandomString(n int) string {
 	return hex.EncodeToString(b)[:n]
 }
 
-// isAllowedExtension 检查扩展名是否允许（图片或视频）
+// isAllowedExtension 检查扩展名是否允许（图片、视频或 PDF）
 func isAllowedExtension(ext string) bool {
-	return allowedImageExtensions[ext] || allowedVideoExtensions[ext]
+	return allowedImageExtensions[ext] || allowedVideoExtensions[ext] || allowedPdfExtensions[ext]
 }
 
-// isAllowedMIME 检查 MIME 类型是否允许（图片或视频）
+// isAllowedMIME 检查 MIME 类型是否允许（图片、视频或 PDF）
 func isAllowedMIME(mime string) bool {
-	return allowedImageMIMEs[mime] || allowedVideoMIMEs[mime]
+	return allowedImageMIMEs[mime] || allowedVideoMIMEs[mime] || allowedPdfMIMEs[mime]
 }
 
 // IsVideoExtension 判断扩展名是否为视频类型（导出供其他模块使用）
@@ -88,19 +94,27 @@ func IsVideoExtension(ext string) bool {
 	return allowedVideoExtensions[ext]
 }
 
-// MediaTypeByExt 根据扩展名返回 media_type（"image" 或 "video"）
+// MediaTypeByExt 根据扩展名返回 media_type（"image"、"video" 或 "pdf"）
 func MediaTypeByExt(ext string) string {
 	if allowedVideoExtensions[ext] {
 		return "video"
 	}
+	if allowedPdfExtensions[ext] {
+		return "pdf"
+	}
 	return "image"
 }
 
-// cosKey 生成 COS 存储路径：upload/时间戳-随机串.ext
-func cosKey(ext string) string {
+// cosKey 生成 COS 存储路径：{prefix}/时间戳-随机串.ext
+// folder 为空时默认使用 "upload" 前缀
+func cosKey(ext string, folder string) string {
+	prefix := "upload"
+	if folder == "materials" {
+		prefix = "materials"
+	}
 	now := time.Now()
 	filename := fmt.Sprintf("%d-%s%s", now.UnixMilli(), RandomString(8), ext)
-	return fmt.Sprintf("upload/%s", filename)
+	return fmt.Sprintf("%s/%s", prefix, filename)
 }
 
 // uploadToCOS 将数据通过 PutObject 上传到 COS，返回公开访问 URL（适用于 ≤2MB 小文件）
@@ -239,13 +253,13 @@ func Upload(c *gin.Context) {
 
 	contentType := header.Header.Get("Content-Type")
 	if contentType != "" && !isAllowedMIME(contentType) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp/mp4/mov/webm/m4v"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp/mp4/mov/webm/m4v/pdf"})
 		return
 	}
 
 	ext := strings.ToLower(filepath.Ext(header.Filename))
 	if !isAllowedExtension(ext) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp/mp4/mov/webm/m4v"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp/mp4/mov/webm/m4v/pdf"})
 		return
 	}
 
@@ -255,7 +269,9 @@ func Upload(c *gin.Context) {
 		return
 	}
 
-	key := cosKey(ext)
+	// 通过 folder 表单字段决定 COS 路径前缀
+	folder := strings.TrimSpace(c.PostForm("folder"))
+	key := cosKey(ext, folder)
 	fileURL, err := smartUploadToCOS(data, key)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": err.Error()})
@@ -325,6 +341,7 @@ func MergeChunks(c *gin.Context) {
 		UploadID    string `json:"uploadId"`
 		TotalChunks int    `json:"totalChunks"`
 		Filename    string `json:"filename"`
+		Folder      string `json:"folder,omitempty"` // 可选，"materials" 则上传到 materials/ 目录
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil || body.UploadID == "" || body.TotalChunks <= 0 || body.Filename == "" {
@@ -339,7 +356,7 @@ func MergeChunks(c *gin.Context) {
 
 	ext := strings.ToLower(filepath.Ext(body.Filename))
 	if !isAllowedExtension(ext) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp/mp4/mov/webm/m4v"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "不支持的文件格式，仅支持 jpg/jpeg/png/gif/webp/mp4/mov/webm/m4v/pdf"})
 		return
 	}
 
@@ -362,7 +379,7 @@ func MergeChunks(c *gin.Context) {
 	}
 
 	// 上传到 COS（根据大小智能选择直传或分片上传）
-	key := cosKey(ext)
+	key := cosKey(ext, strings.TrimSpace(body.Folder))
 	fileURL, err := smartUploadToCOS(merged, key)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": true, "statusCode": 500, "statusMessage": err.Error()})

@@ -199,6 +199,18 @@ func autoMigrate() error {
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 
+		// 材料清单表
+		`CREATE TABLE IF NOT EXISTS material_items (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT NOT NULL DEFAULT '',
+			tags TEXT,
+			attachments TEXT,
+			sort_order INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_material_items_sort ON material_items (sort_order)`,
+
 		// 兼容已有数据库：为 articles 表新增 views 字段（如果不存在）
 		// SQLite 不支持 IF NOT EXISTS 语法，用 SELECT 检测
 	}
