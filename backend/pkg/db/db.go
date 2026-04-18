@@ -190,6 +190,15 @@ func autoMigrate() error {
 		`CREATE INDEX IF NOT EXISTS idx_perf_page ON perf_metrics (page)`,
 		`CREATE INDEX IF NOT EXISTS idx_perf_created ON perf_metrics (created_at)`,
 
+		// 装修文章表
+		`CREATE TABLE IF NOT EXISTS renovation_articles (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT NOT NULL DEFAULT '',
+			content TEXT NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+
 		// 兼容已有数据库：为 articles 表新增 views 字段（如果不存在）
 		// SQLite 不支持 IF NOT EXISTS 语法，用 SELECT 检测
 	}
@@ -216,6 +225,14 @@ func autoMigrate() error {
 		DB.Exec(`ALTER TABLE photos ADD COLUMN media_type TEXT NOT NULL DEFAULT 'image'`)
 		DB.Exec(`ALTER TABLE photos ADD COLUMN thumbnail_url TEXT`)
 		DB.Exec(`ALTER TABLE photos ADD COLUMN duration INTEGER`)
+	}
+
+	// 初始化装修文章数据（仅当表为空时插入）
+	var renoCount int64
+	DB.Raw(`SELECT COUNT(*) FROM renovation_articles`).Scan(&renoCount)
+	if renoCount == 0 {
+		DB.Exec(`INSERT INTO renovation_articles (title, content) VALUES (?, ?)`,
+			renovationSeedTitle, renovationSeedContent)
 	}
 
 	return nil

@@ -14,6 +14,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/photo"
 	"github.com/fatWill/agent-team-blog/backend/internal/profile"
 	"github.com/fatWill/agent-team-blog/backend/internal/pv"
+	"github.com/fatWill/agent-team-blog/backend/internal/renovation"
 	"github.com/fatWill/agent-team-blog/backend/internal/theme"
 	"github.com/fatWill/agent-team-blog/backend/internal/upload"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
@@ -180,6 +181,19 @@ func registerRoutes(api *gin.RouterGroup) {
 		perfGroup.GET("/pages", authMW, perf.GetPages)
 		perfGroup.GET("/trend", authMW, perf.GetTrend)
 		perfGroup.GET("/logs", authMW, perf.GetLogs)
+	}
+
+	// ========== 装修文章 ==========
+	renoGroup := api.Group("/renovation/articles")
+	{
+		// 公开接口
+		renoGroup.GET("", renovation.GetArticles)
+		renoGroup.GET("/:id", renovation.GetArticle)
+
+		// 需鉴权接口
+		renoGroup.POST("", authMW, renovation.CreateArticle)
+		renoGroup.PUT("/:id", authMW, renovation.UpdateArticle)
+		renoGroup.DELETE("/:id", authMW, renovation.DeleteArticle)
 	}
 
 	// ========== 更新日志 ==========
