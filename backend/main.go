@@ -200,11 +200,9 @@ func registerRoutes(api *gin.RouterGroup) {
 	// ========== 材料清单 ==========
 	materialGroup := api.Group("/materials")
 	{
-		// 公开接口
-		materialGroup.GET("", material.GetMaterials)
-		materialGroup.GET("/:id", material.GetMaterial)
-
-		// 需鉴权接口
+		// 需鉴权接口（查看也需要登录）
+		materialGroup.GET("", authMW, material.GetMaterials)
+		materialGroup.GET("/:id", authMW, material.GetMaterial)
 		materialGroup.POST("", authMW, material.CreateMaterial)
 		materialGroup.PUT("/:id", authMW, material.UpdateMaterial)
 		materialGroup.DELETE("/:id", authMW, material.DeleteMaterial)
