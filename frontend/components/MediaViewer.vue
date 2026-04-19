@@ -308,7 +308,7 @@ function onTouchMove(e: TouchEvent) {
   if (isPinching.value && e.touches.length === 2) {
     const dist = getTouchDist(e.touches)
     const ratio = dist / touchStartDist
-    const newScale = Math.min(4, Math.max(1, touchStartScale * ratio))
+    const newScale = Math.min(4, Math.max(0.2, touchStartScale * ratio))
     const scaleDelta = newScale - touchStartScale
     imgScale.value = newScale
 
