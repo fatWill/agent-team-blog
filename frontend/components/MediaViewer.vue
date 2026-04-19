@@ -12,7 +12,11 @@
         <div class="absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-4 py-3">
           <span v-if="items.length > 1" class="text-sm font-medium text-white/80">{{ currentIndex + 1 }}/{{ items.length }}</span>
           <span v-else />
-          <button class="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur" @click="close">
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur"
+            @touchstart.stop
+            @click="close"
+          >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -72,31 +76,31 @@
           </Transition>
         </div>
 
-        <!-- 右下角操作按钮（图片：旋转 + 下载；视频：下载） -->
-        <div class="absolute bottom-8 right-4 z-20 flex flex-col items-center gap-3">
+        <!-- 右下角操作按钮（横向排列，小尺寸） -->
+        <div class="absolute bottom-8 right-4 z-20 flex flex-row items-center gap-2">
           <!-- 旋转按钮（仅图片显示） -->
           <button
             v-if="currentItem?.type === 'image'"
-            class="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-opacity active:opacity-70"
+            class="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm active:opacity-70"
+            @touchstart.stop
             @click.stop="rotateImage"
           >
-            <!-- 顺时针旋转图标 -->
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
           </button>
           <!-- 下载按钮 -->
           <button
-            class="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-opacity active:opacity-70"
+            class="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm active:opacity-70"
             :class="downloading ? 'opacity-50' : ''"
             :disabled="downloading"
+            @touchstart.stop
             @click.stop="handleDownload"
           >
-            <svg v-if="!downloading" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg v-if="!downloading" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-            <!-- 下载中 loading -->
-            <svg v-else class="h-5 w-5 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg v-else class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
           </button>
@@ -127,10 +131,11 @@ const currentIndex = ref(props.initialIndex)
 const imageRef = ref<HTMLImageElement | null>(null)
 const videoRef = ref<HTMLVideoElement | null>(null)
 
-// 图片变换状态
+// 图片变换状态（ref 值仅用于 touch 结束后同步，实时变换直接操作 DOM）
 const scale = ref(1)
 const translateX = ref(0)
 const translateY = ref(0)
+// rotation 不取模，一直累加，避免 CSS transition 反转
 const rotation = ref(0)
 
 // 下载状态
@@ -150,6 +155,11 @@ let touchStartY = 0
 let isPinching = false
 let initialPinchDistance = 0
 let initialScale = 1
+// 实时变换的临时值（不走响应式，直接操作 DOM）
+let liveScale = 1
+let liveTranslateX = 0
+let liveTranslateY = 0
+let rafPending = false
 let isSwiping = false
 let isDragging = false
 
@@ -161,10 +171,37 @@ let lastTapY = 0
 
 const currentItem = computed(() => props.items[currentIndex.value])
 
+// 静态 computed，只在 touch 结束后或旋转时使用
+// pinch/drag 期间直接操作 imageRef.style，不走这里
 const imageTransformStyle = computed(() => ({
   transform: `scale(${scale.value}) translate(${translateX.value}px, ${translateY.value}px) rotate(${rotation.value}deg)`,
-  transition: isPinching || isDragging ? 'none' : 'transform 0.2s ease',
+  transition: 'transform 0.2s ease',
 }))
+
+// 直接操作 DOM 实现流畅变换（绕过 Vue 响应式）
+function applyTransformDirect() {
+  if (!imageRef.value) return
+  if (rafPending) return
+  rafPending = true
+  requestAnimationFrame(() => {
+    rafPending = false
+    if (!imageRef.value) return
+    imageRef.value.style.transform = `scale(${liveScale}) translate(${liveTranslateX}px, ${liveTranslateY}px) rotate(${rotation.value}deg)`
+    imageRef.value.style.transition = 'none'
+  })
+}
+
+// touch 结束后，将实时值同步回 ref，恢复 computed 接管
+function syncTransformToRef() {
+  scale.value = liveScale
+  translateX.value = liveTranslateX
+  translateY.value = liveTranslateY
+  if (imageRef.value) {
+    // 清除 inline style，让 computed imageTransformStyle 接管
+    imageRef.value.style.transform = ''
+    imageRef.value.style.transition = ''
+  }
+}
 
 watch(() => props.visible, (v) => {
   if (v) {
@@ -187,6 +224,13 @@ function resetImageState() {
   translateX.value = 0
   translateY.value = 0
   rotation.value = 0
+  liveScale = 1
+  liveTranslateX = 0
+  liveTranslateY = 0
+  if (imageRef.value) {
+    imageRef.value.style.transform = ''
+    imageRef.value.style.transition = ''
+  }
 }
 
 function resetVideoState() {
@@ -203,8 +247,13 @@ function close() {
   emit('close')
 }
 
+// 旋转：不取模，一直累加，CSS transition 始终走正方向
 function rotateImage() {
-  rotation.value = (rotation.value + 90) % 360
+  rotation.value += 90
+  liveTranslateX = 0
+  liveTranslateY = 0
+  translateX.value = 0
+  translateY.value = 0
 }
 
 // ====== 触摸事件 ======
@@ -214,8 +263,7 @@ function onTouchStart(e: TouchEvent) {
   if (e.touches.length === 2) {
     isPinching = true
     initialPinchDistance = getPinchDistance(e.touches)
-    initialScale = scale.value
-    // 双指时清除单击计时
+    initialScale = liveScale
     if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; tapCount = 0 }
     return
   }
@@ -233,8 +281,8 @@ function onTouchStart(e: TouchEvent) {
 function onTouchMove(e: TouchEvent) {
   if (e.touches.length === 2 && isPinching) {
     const dist = getPinchDistance(e.touches)
-    const newScale = Math.max(0.5, Math.min(5, initialScale * (dist / initialPinchDistance)))
-    scale.value = newScale
+    liveScale = Math.max(0.5, Math.min(5, initialScale * (dist / initialPinchDistance)))
+    applyTransformDirect()
     return
   }
 
@@ -242,12 +290,13 @@ function onTouchMove(e: TouchEvent) {
     const dx = e.touches[0].clientX - touchStartX
     const dy = e.touches[0].clientY - touchStartY
 
-    if (scale.value > 1) {
+    if (liveScale > 1) {
       isDragging = true
-      translateX.value += dx / scale.value
-      translateY.value += dy / scale.value
+      liveTranslateX += dx / liveScale
+      liveTranslateY += dy / liveScale
       touchStartX = e.touches[0].clientX
       touchStartY = e.touches[0].clientY
+      applyTransformDirect()
     } else if (Math.abs(dx) > 8) {
       isSwiping = true
     }
@@ -255,12 +304,18 @@ function onTouchMove(e: TouchEvent) {
 }
 
 function onTouchEnd(e: TouchEvent) {
+  const wasPinching = isPinching
   isPinching = false
+
+  // pinch/drag 结束，同步回 ref
+  if (wasPinching || isDragging) {
+    syncTransformToRef()
+  }
 
   const elapsed = Date.now() - touchStartTime
 
-  // 滑动切换图片/视频
-  if (isSwiping && scale.value <= 1 && e.changedTouches.length > 0) {
+  // 滑动切换
+  if (isSwiping && liveScale <= 1 && e.changedTouches.length > 0) {
     const totalDx = e.changedTouches[0].clientX - lastTapX
     if (Math.abs(totalDx) > 60) {
       if (totalDx < 0 && currentIndex.value < props.items.length - 1) {
@@ -284,8 +339,8 @@ function onTouchEnd(e: TouchEvent) {
   tapCount++
   if (tapCount === 1) {
     tapTimer = setTimeout(() => {
-      // 单击：关闭
-      if (currentItem.value?.type === 'image' && scale.value <= 1) {
+      // 单击：图片关闭，视频切换控制栏
+      if (currentItem.value?.type === 'image' && liveScale <= 1) {
         close()
       } else if (currentItem.value?.type === 'video') {
         toggleControls()
@@ -302,13 +357,14 @@ function onTouchEnd(e: TouchEvent) {
 
 function handleDoubleTap() {
   if (currentItem.value?.type !== 'image') return
-  if (scale.value > 1) {
-    scale.value = 1
-    translateX.value = 0
-    translateY.value = 0
+  if (liveScale > 1) {
+    liveScale = 1
+    liveTranslateX = 0
+    liveTranslateY = 0
   } else {
-    scale.value = 2.5
+    liveScale = 2.5
   }
+  syncTransformToRef()
 }
 
 function getPinchDistance(touches: TouchList) {
@@ -366,30 +422,25 @@ function formatTime(s: number): string {
 async function enterLandscape() {
   try {
     await (screen.orientation as any).lock('landscape')
-  } catch {
-    // fallback 静默
-  }
+  } catch { /* fallback 静默 */ }
 }
 
-// ====== 下载（fetch blob 方式，避免跨域直接打开） ======
+// ====== 下载（通过后端代理，避免 CORS 问题） ======
 async function handleDownload() {
   if (!currentItem.value || downloading.value) return
   downloading.value = true
   try {
-    const response = await fetch(currentItem.value.url)
-    if (!response.ok) throw new Error('Download failed')
-    const blob = await response.blob()
-    const blobUrl = URL.createObjectURL(blob)
+    const url = `/api/download?url=${encodeURIComponent(currentItem.value.url)}&name=${encodeURIComponent(currentItem.value.name || 'download')}`
     const a = document.createElement('a')
-    a.href = blobUrl
+    a.href = url
     a.download = currentItem.value.name || 'download'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    // 给足够时间让浏览器开始下载
+    await new Promise(resolve => setTimeout(resolve, 1500))
   } catch {
-    // 降级：直接打开新标签页
-    window.open(currentItem.value.url, '_blank')
+    window.open(currentItem.value?.url, '_blank')
   } finally {
     downloading.value = false
   }
