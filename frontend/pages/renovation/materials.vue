@@ -163,7 +163,7 @@ onMounted(async () => {
     // 未登录（401/403）则跳转登录页
     const status = err?.response?.status ?? err?.statusCode ?? err?.status
     if (status === 401 || status === 403) {
-      await navigateTo('/login?redirect=' + encodeURIComponent('/renovation/materials'))
+      await navigateTo('/login?redirect=' + encodeURIComponent('/renovation/materials'), { replace: true })
       return
     }
   } finally {

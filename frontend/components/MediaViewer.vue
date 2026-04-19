@@ -18,7 +18,7 @@
         </div>
 
         <!-- 图片预览 -->
-        <div v-if="currentItem?.type === 'image'" class="flex h-full w-full items-center justify-center" @click="handleSingleTap">
+        <div v-if="currentItem?.type === 'image'" class="flex h-full w-full items-center justify-center">
           <img
             ref="imageRef"
             :src="currentItem.url"
@@ -72,28 +72,35 @@
           </Transition>
         </div>
 
-        <!-- 长按操作栏 -->
-        <Transition name="action-sheet">
-          <div v-if="showActionSheet" class="absolute bottom-0 left-0 right-0 z-20" @click.self="showActionSheet = false">
-            <div class="mx-3 mb-2">
-              <div class="overflow-hidden rounded-xl bg-white dark:bg-gray-800">
-                <button class="w-full px-4 py-3.5 text-center text-base font-medium text-gray-900 active:bg-gray-100 dark:text-gray-100 dark:active:bg-gray-700" @click="handleSave">
-                  💾 保存{{ currentItem?.type === 'video' ? '视频' : '图片' }}
-                </button>
-              </div>
-            </div>
-            <div class="mx-3 mb-6">
-              <button class="w-full rounded-xl bg-white px-4 py-3.5 text-center text-base font-medium text-gray-900 active:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:active:bg-gray-700" @click="showActionSheet = false">
-                取消
-              </button>
-            </div>
-          </div>
-        </Transition>
-
-        <!-- 长按操作栏遮罩 -->
-        <Transition name="fade">
-          <div v-if="showActionSheet" class="absolute inset-0 z-[19] bg-black/40" @click="showActionSheet = false" />
-        </Transition>
+        <!-- 右下角操作按钮（图片：旋转 + 下载；视频：下载） -->
+        <div class="absolute bottom-8 right-4 z-20 flex flex-col items-center gap-3">
+          <!-- 旋转按钮（仅图片显示） -->
+          <button
+            v-if="currentItem?.type === 'image'"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-opacity active:opacity-70"
+            @click.stop="rotateImage"
+          >
+            <!-- 顺时针旋转图标 -->
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+          </button>
+          <!-- 下载按钮 -->
+          <button
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-opacity active:opacity-70"
+            :class="downloading ? 'opacity-50' : ''"
+            :disabled="downloading"
+            @click.stop="handleDownload"
+          >
+            <svg v-if="!downloading" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            <!-- 下载中 loading -->
+            <svg v-else class="h-5 w-5 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+          </button>
+        </div>
       </div>
     </Transition>
   </Teleport>
@@ -120,10 +127,14 @@ const currentIndex = ref(props.initialIndex)
 const imageRef = ref<HTMLImageElement | null>(null)
 const videoRef = ref<HTMLVideoElement | null>(null)
 
-// 图片缩放 & 移动
+// 图片变换状态
 const scale = ref(1)
 const translateX = ref(0)
 const translateY = ref(0)
+const rotation = ref(0)
+
+// 下载状态
+const downloading = ref(false)
 
 // 视频控制
 const videoPaused = ref(true)
@@ -132,25 +143,26 @@ const videoDuration = ref(0)
 const showVideoControls = ref(true)
 let controlsTimer: ReturnType<typeof setTimeout> | null = null
 
-// 操作栏
-const showActionSheet = ref(false)
-
 // 触摸状态
 let touchStartTime = 0
 let touchStartX = 0
 let touchStartY = 0
-let lastTapTime = 0
-let longPressTimer: ReturnType<typeof setTimeout> | null = null
 let isPinching = false
 let initialPinchDistance = 0
 let initialScale = 1
 let isSwiping = false
 let isDragging = false
 
+// 双击检测
+let tapCount = 0
+let tapTimer: ReturnType<typeof setTimeout> | null = null
+let lastTapX = 0
+let lastTapY = 0
+
 const currentItem = computed(() => props.items[currentIndex.value])
 
 const imageTransformStyle = computed(() => ({
-  transform: `scale(${scale.value}) translate(${translateX.value}px, ${translateY.value}px)`,
+  transform: `scale(${scale.value}) translate(${translateX.value}px, ${translateY.value}px) rotate(${rotation.value}deg)`,
   transition: isPinching || isDragging ? 'none' : 'transform 0.2s ease',
 }))
 
@@ -174,6 +186,7 @@ function resetImageState() {
   scale.value = 1
   translateX.value = 0
   translateY.value = 0
+  rotation.value = 0
 }
 
 function resetVideoState() {
@@ -187,41 +200,37 @@ function resetVideoState() {
 }
 
 function close() {
-  showActionSheet.value = false
   emit('close')
+}
+
+function rotateImage() {
+  rotation.value = (rotation.value + 90) % 360
 }
 
 // ====== 触摸事件 ======
 function onTouchStart(e: TouchEvent) {
-  if (showActionSheet.value) return
   touchStartTime = Date.now()
-  clearLongPress()
 
   if (e.touches.length === 2) {
-    // 双指缩放开始
     isPinching = true
     initialPinchDistance = getPinchDistance(e.touches)
     initialScale = scale.value
+    // 双指时清除单击计时
+    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; tapCount = 0 }
     return
   }
 
   if (e.touches.length === 1) {
     touchStartX = e.touches[0].clientX
     touchStartY = e.touches[0].clientY
+    lastTapX = touchStartX
+    lastTapY = touchStartY
     isSwiping = false
     isDragging = false
-
-    // 长按计时
-    longPressTimer = setTimeout(() => {
-      showActionSheet.value = true
-    }, 600)
   }
 }
 
 function onTouchMove(e: TouchEvent) {
-  if (showActionSheet.value) return
-  clearLongPress()
-
   if (e.touches.length === 2 && isPinching) {
     const dist = getPinchDistance(e.touches)
     const newScale = Math.max(0.5, Math.min(5, initialScale * (dist / initialPinchDistance)))
@@ -234,69 +243,64 @@ function onTouchMove(e: TouchEvent) {
     const dy = e.touches[0].clientY - touchStartY
 
     if (scale.value > 1) {
-      // 缩放状态下拖动
       isDragging = true
       translateX.value += dx / scale.value
       translateY.value += dy / scale.value
       touchStartX = e.touches[0].clientX
       touchStartY = e.touches[0].clientY
-    } else if (Math.abs(dx) > 10) {
+    } else if (Math.abs(dx) > 8) {
       isSwiping = true
     }
   }
 }
 
 function onTouchEnd(e: TouchEvent) {
-  if (showActionSheet.value) return
-  clearLongPress()
   isPinching = false
 
   const elapsed = Date.now() - touchStartTime
-  if (elapsed < 300 && !isSwiping && !isDragging) {
-    const now = Date.now()
-    if (now - lastTapTime < 300) {
-      // 双击
-      handleDoubleTap(e)
-      lastTapTime = 0
-    } else {
-      lastTapTime = now
-      // 延迟判断是否为单击
-      setTimeout(() => {
-        if (lastTapTime !== 0 && Date.now() - lastTapTime >= 280) {
-          if (currentItem.value?.type === 'image') {
-            close()
-          }
-          lastTapTime = 0
-        }
-      }, 300)
-    }
-    return
-  }
 
-  // 滑动切换
+  // 滑动切换图片/视频
   if (isSwiping && scale.value <= 1 && e.changedTouches.length > 0) {
-    const dx = e.changedTouches[0].clientX - touchStartX
-    if (Math.abs(dx) > 60) {
-      if (dx < 0 && currentIndex.value < props.items.length - 1) {
+    const totalDx = e.changedTouches[0].clientX - lastTapX
+    if (Math.abs(totalDx) > 60) {
+      if (totalDx < 0 && currentIndex.value < props.items.length - 1) {
         currentIndex.value++
-      } else if (dx > 0 && currentIndex.value > 0) {
+      } else if (totalDx > 0 && currentIndex.value > 0) {
         currentIndex.value--
       }
     }
+    isSwiping = false
+    isDragging = false
+    return
   }
 
   isSwiping = false
   isDragging = false
-}
 
-function handleSingleTap() {
-  // PC 端单击关闭（移动端由 touch 事件处理）
-  if (currentItem.value?.type === 'image' && scale.value <= 1) {
-    close()
+  // 只处理短促点击（非拖动）
+  if (elapsed > 300) return
+
+  // 双击检测
+  tapCount++
+  if (tapCount === 1) {
+    tapTimer = setTimeout(() => {
+      // 单击：关闭
+      if (currentItem.value?.type === 'image' && scale.value <= 1) {
+        close()
+      } else if (currentItem.value?.type === 'video') {
+        toggleControls()
+      }
+      tapCount = 0
+      tapTimer = null
+    }, 250)
+  } else if (tapCount === 2) {
+    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null }
+    tapCount = 0
+    handleDoubleTap()
   }
 }
 
-function handleDoubleTap(_e: TouchEvent) {
+function handleDoubleTap() {
   if (currentItem.value?.type !== 'image') return
   if (scale.value > 1) {
     scale.value = 1
@@ -304,13 +308,6 @@ function handleDoubleTap(_e: TouchEvent) {
     translateY.value = 0
   } else {
     scale.value = 2.5
-  }
-}
-
-function clearLongPress() {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer)
-    longPressTimer = null
   }
 }
 
@@ -374,28 +371,38 @@ async function enterLandscape() {
   }
 }
 
-// ====== 保存 ======
-function handleSave() {
-  if (!currentItem.value) return
-  const a = document.createElement('a')
-  a.href = currentItem.value.url
-  a.download = currentItem.value.name
-  a.target = '_blank'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  showActionSheet.value = false
+// ====== 下载（fetch blob 方式，避免跨域直接打开） ======
+async function handleDownload() {
+  if (!currentItem.value || downloading.value) return
+  downloading.value = true
+  try {
+    const response = await fetch(currentItem.value.url)
+    if (!response.ok) throw new Error('Download failed')
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = currentItem.value.name || 'download'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+  } catch {
+    // 降级：直接打开新标签页
+    window.open(currentItem.value.url, '_blank')
+  } finally {
+    downloading.value = false
+  }
 }
 
 onBeforeUnmount(() => {
-  clearLongPress()
+  if (tapTimer) clearTimeout(tapTimer)
   if (controlsTimer) clearTimeout(controlsTimer)
   document.body.style.overflow = ''
 })
 </script>
 
 <style scoped>
-/* 进入/离开过渡 */
 .media-viewer-fade-enter-active,
 .media-viewer-fade-leave-active { transition: opacity 0.25s ease; }
 .media-viewer-fade-enter-from,
@@ -406,13 +413,6 @@ onBeforeUnmount(() => {
 .fade-enter-from,
 .fade-leave-to { opacity: 0; }
 
-/* 操作栏从底部滑入 */
-.action-sheet-enter-active { transition: transform 0.3s ease; }
-.action-sheet-leave-active { transition: transform 0.2s ease; }
-.action-sheet-enter-from,
-.action-sheet-leave-to { transform: translateY(100%); }
-
-/* 视频进度条样式 */
 .video-progress {
   -webkit-appearance: none;
   appearance: none;
