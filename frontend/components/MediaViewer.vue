@@ -3,10 +3,8 @@
     <Transition name="media-viewer-fade">
       <div
         v-if="visible"
-        class="fixed inset-0 z-[9999] bg-black"
-        @touchstart.passive="onTouchStart"
-        @touchmove.passive="onTouchMove"
-        @touchend="onTouchEnd"
+        ref="containerRef"
+        class="fixed inset-0 z-[9999] bg-black touch-none"
       >
         <!-- 顶部栏 -->
         <div class="absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-4 py-3">
@@ -124,6 +122,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const currentIndex = ref(props.initialIndex)
+const containerRef = ref<HTMLDivElement | null>(null)
 const imageRef = ref<HTMLImageElement | null>(null)
 const videoRef = ref<HTMLVideoElement | null>(null)
 
@@ -153,6 +152,10 @@ let initialPinchDistance = 0
 let initialScale = 1
 let isSwiping = false
 let isDragging = false
+
+// 双指缩放中心点
+let pinchCenterX = 0
+let pinchCenterY = 0
 
 // 双击检测
 let tapCount = 0
@@ -190,6 +193,21 @@ function resetImageState() {
   }
 }
 
+// ====== 手动绑定 touch 事件（passive: false，可 preventDefault） ======
+function bindTouchEvents() {
+  if (!containerRef.value) return
+  containerRef.value.addEventListener('touchstart', onTouchStart, { passive: false })
+  containerRef.value.addEventListener('touchmove', onTouchMove, { passive: false })
+  containerRef.value.addEventListener('touchend', onTouchEnd, { passive: true })
+}
+
+function unbindTouchEvents() {
+  if (!containerRef.value) return
+  containerRef.value.removeEventListener('touchstart', onTouchStart)
+  containerRef.value.removeEventListener('touchmove', onTouchMove)
+  containerRef.value.removeEventListener('touchend', onTouchEnd)
+}
+
 // ====== History API：浏览器返回关闭预览 ======
 let historyPushed = false
 
@@ -204,18 +222,20 @@ function onPopState() {
 }
 
 // ====== watch visible ======
-watch(() => props.visible, (v) => {
+watch(() => props.visible, async (v) => {
   if (v) {
     currentIndex.value = props.initialIndex
     resetImageState()
     document.body.style.overflow = 'hidden'
     pushHistoryState()
     window.addEventListener('popstate', onPopState)
+    await nextTick()
+    bindTouchEvents()
   } else {
+    unbindTouchEvents()
     window.removeEventListener('popstate', onPopState)
     document.body.style.overflow = ''
     resetVideoState()
-    // 如果是通过代码关闭（非浏览器返回），消掉我们压入的 history 记录
     if (historyPushed) {
       historyPushed = false
       history.back()
@@ -249,14 +269,18 @@ function rotateImage() {
   applyTransform(true)
 }
 
-// ====== 触摸事件 ======
+// ====== 触摸事件（手动绑定，passive: false） ======
 function onTouchStart(e: TouchEvent) {
   touchStartTime = Date.now()
 
   if (e.touches.length === 2) {
+    e.preventDefault() // 阻止浏览器默认双指缩放
     isPinching = true
     initialPinchDistance = getPinchDistance(e.touches)
     initialScale = liveScale
+    // 记录双指中心点
+    pinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+    pinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2
     if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; tapCount = 0 }
     return
   }
@@ -273,6 +297,7 @@ function onTouchStart(e: TouchEvent) {
 
 function onTouchMove(e: TouchEvent) {
   if (e.touches.length === 2 && isPinching) {
+    e.preventDefault() // 关键：阻止浏览器整页缩放！
     const dist = getPinchDistance(e.touches)
     liveScale = Math.max(0.5, Math.min(5, initialScale * (dist / initialPinchDistance)))
     applyTransformRaf()
@@ -284,6 +309,7 @@ function onTouchMove(e: TouchEvent) {
     const dy = e.touches[0].clientY - touchStartY
 
     if (liveScale > 1) {
+      e.preventDefault() // 放大状态下拖动也阻止默认滚动
       isDragging = true
       liveTranslateX += dx / liveScale
       liveTranslateY += dy / liveScale
@@ -434,6 +460,7 @@ async function handleDownload() {
 }
 
 onBeforeUnmount(() => {
+  unbindTouchEvents()
   window.removeEventListener('popstate', onPopState)
   if (tapTimer) clearTimeout(tapTimer)
   if (controlsTimer) clearTimeout(controlsTimer)
