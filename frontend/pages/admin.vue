@@ -1355,10 +1355,15 @@
             <input
               v-model="materialForm.tagInput"
               type="text"
-              placeholder="输入标签后回车添加"
+              list="existing-tags-list"
+              placeholder="输入标签后回车添加，或从已有标签选择"
               class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-              @keydown.enter.prevent="addTag"
+              @keyup.enter="addTag"
+              @change="addTag"
             />
+            <datalist id="existing-tags-list">
+              <option v-for="tag in allMaterialTags" :key="tag" :value="tag" />
+            </datalist>
           </div>
 
           <!-- 附件上传 -->
@@ -1849,6 +1854,7 @@ watch(activeTab, (val) => {
   if (val === 'messages') fetchAdminMessages()
   if (val === 'analytics') fetchAnalyticsData()
   if (val === 'perf') fetchPerfData()
+  if (val === 'reno-materials') fetchMaterials()
 })
 
 async function startEdit(article: ArticleListItem) {
@@ -3005,6 +3011,16 @@ async function fetchMaterials() {
     materialLoading.value = false
   }
 }
+
+// 所有已有的标签（从 materialItems 中提取唯一值，供 datalist 使用）
+const allMaterialTags = computed(() => {
+  const set = new Set<string>()
+  for (const item of materialItems.value) {
+    for (const tag of item.tags) set.add(tag)
+  }
+  for (const tag of materialForm.tags) set.add(tag)
+  return Array.from(set)
+})
 
 function resetMaterialForm() {
   materialForm.editingId = null

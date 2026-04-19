@@ -151,14 +151,16 @@ const viewerVisible = ref(false)
 const viewerItems = ref<Array<{ type: 'image' | 'video'; url: string; name: string; thumbnailUrl?: string; duration?: number }>>([])
 const viewerIndex = ref(0)
 
-// 加载数据
-try {
-  items.value = await apiFetchMaterials()
-} catch {
-  // 静默
-} finally {
-  loading.value = false
-}
+// 加载数据（客户端）
+onMounted(async () => {
+  try {
+    items.value = await apiFetchMaterials()
+  } catch {
+    // 静默
+  } finally {
+    loading.value = false
+  }
+})
 
 // 提取所有唯一标签
 const allTags = computed(() => {
