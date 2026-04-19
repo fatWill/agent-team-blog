@@ -27,8 +27,7 @@
             ref="imageRef"
             :src="currentItem.url"
             :alt="currentItem.name"
-            class="max-h-full max-w-full select-none"
-            :style="imageTransformStyle"
+            class="max-h-full max-w-full select-none media-img"
             draggable="false"
           />
         </div>
@@ -49,7 +48,6 @@
               @pause="videoPaused = true"
             />
           </div>
-          <!-- 视频控制栏 -->
           <Transition name="fade">
             <div v-show="showVideoControls" class="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/70 to-transparent px-4 pb-6 pt-10">
               <div class="flex items-center gap-3">
@@ -76,9 +74,8 @@
           </Transition>
         </div>
 
-        <!-- 右下角操作按钮（横向排列，小尺寸） -->
+        <!-- 右下角操作按钮 -->
         <div class="absolute bottom-8 right-4 z-20 flex flex-row items-center gap-2">
-          <!-- 旋转按钮（仅图片显示） -->
           <button
             v-if="currentItem?.type === 'image'"
             class="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm active:opacity-70"
@@ -89,7 +86,6 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
           </button>
-          <!-- 下载按钮 -->
           <button
             class="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm active:opacity-70"
             :class="downloading ? 'opacity-50' : ''"
@@ -131,13 +127,6 @@ const currentIndex = ref(props.initialIndex)
 const imageRef = ref<HTMLImageElement | null>(null)
 const videoRef = ref<HTMLVideoElement | null>(null)
 
-// 图片变换状态（ref 值仅用于 touch 结束后同步，实时变换直接操作 DOM）
-const scale = ref(1)
-const translateX = ref(0)
-const translateY = ref(0)
-// rotation 不取模，一直累加，避免 CSS transition 反转
-const rotation = ref(0)
-
 // 下载状态
 const downloading = ref(false)
 
@@ -148,6 +137,13 @@ const videoDuration = ref(0)
 const showVideoControls = ref(true)
 let controlsTimer: ReturnType<typeof setTimeout> | null = null
 
+// ====== 图片变换：全部用普通变量，完全脱离 Vue 响应式 ======
+let liveScale = 1
+let liveTranslateX = 0
+let liveTranslateY = 0
+let liveRotation = 0
+let rafPending = false
+
 // 触摸状态
 let touchStartTime = 0
 let touchStartX = 0
@@ -155,11 +151,6 @@ let touchStartY = 0
 let isPinching = false
 let initialPinchDistance = 0
 let initialScale = 1
-// 实时变换的临时值（不走响应式，直接操作 DOM）
-let liveScale = 1
-let liveTranslateX = 0
-let liveTranslateY = 0
-let rafPending = false
 let isSwiping = false
 let isDragging = false
 
@@ -171,46 +162,64 @@ let lastTapY = 0
 
 const currentItem = computed(() => props.items[currentIndex.value])
 
-// 静态 computed，只在 touch 结束后或旋转时使用
-// pinch/drag 期间直接操作 imageRef.style，不走这里
-const imageTransformStyle = computed(() => ({
-  transform: `scale(${scale.value}) translate(${translateX.value}px, ${translateY.value}px) rotate(${rotation.value}deg)`,
-  transition: 'transform 0.2s ease',
-}))
-
-// 直接操作 DOM 实现流畅变换（绕过 Vue 响应式）
-function applyTransformDirect() {
+// 直接写 DOM，animate=true 时加过渡动画（旋转、双击缩放用）
+function applyTransform(animate = false) {
   if (!imageRef.value) return
+  imageRef.value.style.transition = animate ? 'transform 0.25s ease' : 'none'
+  imageRef.value.style.transform = `scale(${liveScale}) translate(${liveTranslateX}px, ${liveTranslateY}px) rotate(${liveRotation}deg)`
+}
+
+// rAF 节流版本，用于 pinch/drag 过程中
+function applyTransformRaf() {
   if (rafPending) return
   rafPending = true
   requestAnimationFrame(() => {
     rafPending = false
-    if (!imageRef.value) return
-    imageRef.value.style.transform = `scale(${liveScale}) translate(${liveTranslateX}px, ${liveTranslateY}px) rotate(${rotation.value}deg)`
-    imageRef.value.style.transition = 'none'
+    applyTransform(false)
   })
 }
 
-// touch 结束后，将实时值同步回 ref，恢复 computed 接管
-function syncTransformToRef() {
-  scale.value = liveScale
-  translateX.value = liveTranslateX
-  translateY.value = liveTranslateY
+function resetImageState() {
+  liveScale = 1
+  liveTranslateX = 0
+  liveTranslateY = 0
+  liveRotation = 0
   if (imageRef.value) {
-    // 清除 inline style，让 computed imageTransformStyle 接管
-    imageRef.value.style.transform = ''
-    imageRef.value.style.transition = ''
+    imageRef.value.style.transition = 'none'
+    imageRef.value.style.transform = 'scale(1) translate(0px, 0px) rotate(0deg)'
   }
 }
 
+// ====== History API：浏览器返回关闭预览 ======
+let historyPushed = false
+
+function pushHistoryState() {
+  history.pushState({ mediaViewer: true }, '')
+  historyPushed = true
+}
+
+function onPopState() {
+  historyPushed = false
+  emit('close')
+}
+
+// ====== watch visible ======
 watch(() => props.visible, (v) => {
   if (v) {
     currentIndex.value = props.initialIndex
     resetImageState()
     document.body.style.overflow = 'hidden'
+    pushHistoryState()
+    window.addEventListener('popstate', onPopState)
   } else {
+    window.removeEventListener('popstate', onPopState)
     document.body.style.overflow = ''
     resetVideoState()
+    // 如果是通过代码关闭（非浏览器返回），消掉我们压入的 history 记录
+    if (historyPushed) {
+      historyPushed = false
+      history.back()
+    }
   }
 })
 
@@ -218,20 +227,6 @@ watch(currentIndex, () => {
   resetImageState()
   resetVideoState()
 })
-
-function resetImageState() {
-  scale.value = 1
-  translateX.value = 0
-  translateY.value = 0
-  rotation.value = 0
-  liveScale = 1
-  liveTranslateX = 0
-  liveTranslateY = 0
-  if (imageRef.value) {
-    imageRef.value.style.transform = ''
-    imageRef.value.style.transition = ''
-  }
-}
 
 function resetVideoState() {
   if (videoRef.value) {
@@ -247,13 +242,11 @@ function close() {
   emit('close')
 }
 
-// 旋转：不取模，一直累加，CSS transition 始终走正方向
 function rotateImage() {
-  rotation.value += 90
+  liveRotation += 90
   liveTranslateX = 0
   liveTranslateY = 0
-  translateX.value = 0
-  translateY.value = 0
+  applyTransform(true)
 }
 
 // ====== 触摸事件 ======
@@ -282,7 +275,7 @@ function onTouchMove(e: TouchEvent) {
   if (e.touches.length === 2 && isPinching) {
     const dist = getPinchDistance(e.touches)
     liveScale = Math.max(0.5, Math.min(5, initialScale * (dist / initialPinchDistance)))
-    applyTransformDirect()
+    applyTransformRaf()
     return
   }
 
@@ -296,7 +289,7 @@ function onTouchMove(e: TouchEvent) {
       liveTranslateY += dy / liveScale
       touchStartX = e.touches[0].clientX
       touchStartY = e.touches[0].clientY
-      applyTransformDirect()
+      applyTransformRaf()
     } else if (Math.abs(dx) > 8) {
       isSwiping = true
     }
@@ -307,14 +300,13 @@ function onTouchEnd(e: TouchEvent) {
   const wasPinching = isPinching
   isPinching = false
 
-  // pinch/drag 结束，同步回 ref
+  // pinch/drag 结束，应用最终状态（无动画，保持当前位置）
   if (wasPinching || isDragging) {
-    syncTransformToRef()
+    applyTransform(false)
   }
 
   const elapsed = Date.now() - touchStartTime
 
-  // 滑动切换
   if (isSwiping && liveScale <= 1 && e.changedTouches.length > 0) {
     const totalDx = e.changedTouches[0].clientX - lastTapX
     if (Math.abs(totalDx) > 60) {
@@ -332,14 +324,11 @@ function onTouchEnd(e: TouchEvent) {
   isSwiping = false
   isDragging = false
 
-  // 只处理短促点击（非拖动）
   if (elapsed > 300) return
 
-  // 双击检测
   tapCount++
   if (tapCount === 1) {
     tapTimer = setTimeout(() => {
-      // 单击：图片关闭，视频切换控制栏
       if (currentItem.value?.type === 'image' && liveScale <= 1) {
         close()
       } else if (currentItem.value?.type === 'video') {
@@ -364,7 +353,7 @@ function handleDoubleTap() {
   } else {
     liveScale = 2.5
   }
-  syncTransformToRef()
+  applyTransform(true)
 }
 
 function getPinchDistance(touches: TouchList) {
@@ -425,7 +414,6 @@ async function enterLandscape() {
   } catch { /* fallback 静默 */ }
 }
 
-// ====== 下载（通过后端代理，避免 CORS 问题） ======
 async function handleDownload() {
   if (!currentItem.value || downloading.value) return
   downloading.value = true
@@ -437,7 +425,6 @@ async function handleDownload() {
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    // 给足够时间让浏览器开始下载
     await new Promise(resolve => setTimeout(resolve, 1500))
   } catch {
     window.open(currentItem.value?.url, '_blank')
@@ -447,6 +434,7 @@ async function handleDownload() {
 }
 
 onBeforeUnmount(() => {
+  window.removeEventListener('popstate', onPopState)
   if (tapTimer) clearTimeout(tapTimer)
   if (controlsTimer) clearTimeout(controlsTimer)
   document.body.style.overflow = ''
@@ -463,6 +451,14 @@ onBeforeUnmount(() => {
 .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from,
 .fade-leave-to { opacity: 0; }
+
+/* GPU 加速，提升 transform 性能 */
+.media-img {
+  will-change: transform;
+  transform: scale(1) translate(0px, 0px) rotate(0deg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
 
 .video-progress {
   -webkit-appearance: none;
