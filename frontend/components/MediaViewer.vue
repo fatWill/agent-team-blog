@@ -41,12 +41,14 @@
                 v-if="Math.abs(idx - currentImageIdx) <= 1"
                 :src="item.url"
                 :alt="item.name"
-                class="max-h-full max-w-full select-none"
+                class="select-none"
                 :style="idx === currentImageIdx ? {
+                  maxWidth: isRotated90 ? '100vh' : '100vw',
+                  maxHeight: isRotated90 ? '100vw' : '100vh',
                   transform: `scale(${imgScale}) translate(${imgPanX / imgScale}px, ${imgPanY / imgScale}px) rotate(${imgRotation}deg)`,
                   transition: (isPanning || isPinching) ? 'none' : 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
                   willChange: 'transform',
-                } : {}"
+                } : { maxWidth: '100vw', maxHeight: '100vh' }"
                 draggable="false"
               />
             </div>
@@ -162,6 +164,11 @@ const imgScale = ref(1)
 const imgPanX = ref(0)
 const imgPanY = ref(0)
 const imgRotation = ref(0) // 累加，不取模
+// 判断当前是否旋转了 90°/270°（宽高需要对调）
+const isRotated90 = computed(() => {
+  const mod = ((imgRotation.value % 360) + 360) % 360
+  return mod === 90 || mod === 270
+})
 const swipeX = ref(0)      // Swiper 容器的水平拖动偏移
 const isPinching = ref(false)
 const isSwiping = ref(false)
