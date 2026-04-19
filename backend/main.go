@@ -9,6 +9,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/article"
 	"github.com/fatWill/agent-team-blog/backend/internal/auth"
 	"github.com/fatWill/agent-team-blog/backend/internal/changelog"
+	"github.com/fatWill/agent-team-blog/backend/internal/download"
 	"github.com/fatWill/agent-team-blog/backend/internal/guestbook"
 	"github.com/fatWill/agent-team-blog/backend/internal/material"
 	"github.com/fatWill/agent-team-blog/backend/internal/perf"
@@ -211,4 +212,7 @@ func registerRoutes(api *gin.RouterGroup) {
 
 	// ========== 更新日志 ==========
 	api.GET("/changelog", changelog.GetChangelog)
+
+	// ========== 文件下载代理 ==========
+	api.GET("/download", download.Proxy)
 }
