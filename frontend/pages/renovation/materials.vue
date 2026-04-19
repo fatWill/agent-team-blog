@@ -137,6 +137,10 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: 'auth',
+})
+
 import type { MaterialItem, MaterialAttachment } from '~/features/material'
 import { apiFetchMaterials } from '~/features/material'
 

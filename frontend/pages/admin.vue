@@ -1342,28 +1342,16 @@
           <!-- 标签 -->
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">标签</label>
-            <div class="flex flex-wrap gap-2 mb-2">
-              <span
-                v-for="(tag, i) in materialForm.tags"
-                :key="i"
-                class="inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/20 dark:text-primary-400"
-              >
-                {{ tag }}
-                <button class="ml-0.5 text-primary-400 hover:text-primary-600" @click="removeTag(i)">&times;</button>
-              </span>
-            </div>
-            <input
-              v-model="materialForm.tagInput"
-              type="text"
-              list="existing-tags-list"
-              placeholder="输入标签后回车添加，或从已有标签选择"
-              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-              @keyup.enter="addTag"
-              @change="addTag"
-            />
-            <datalist id="existing-tags-list">
-              <option v-for="tag in allMaterialTags" :key="tag" :value="tag" />
-            </datalist>
+            <ClientOnly>
+              <ASelect
+                v-model:value="materialForm.tags"
+                mode="tags"
+                :options="allMaterialTags.map(t => ({ value: t, label: t }))"
+                placeholder="输入后回车添加，或从已有标签选择"
+                style="width: 100%"
+                :token-separators="[',']"
+              />
+            </ClientOnly>
           </div>
 
           <!-- 附件上传 -->
@@ -1623,6 +1611,8 @@ import {
   apiDeleteMessage,
 } from '~/utils/api'
 import { toCdnUrl } from '~/utils/imageUrl'
+import { Select as ASelect } from 'ant-design-vue'
+import 'ant-design-vue/es/select/style'
 interface AdminPhotoItem {
   id: number           // 正式照片为正数 DB id；占位项为负数临时 id
   albumId: number
@@ -2996,7 +2986,6 @@ const materialForm = reactive({
   editingId: null as number | null,
   title: '',
   tags: [] as string[],
-  tagInput: '',
   attachments: [] as MaterialAttachment[],
   uploading: false,
 })
@@ -3026,7 +3015,6 @@ function resetMaterialForm() {
   materialForm.editingId = null
   materialForm.title = ''
   materialForm.tags = []
-  materialForm.tagInput = ''
   materialForm.attachments = []
 }
 
@@ -3035,21 +3023,10 @@ function startEditMaterial(item: MaterialItem) {
   materialForm.title = item.title
   materialForm.tags = [...item.tags]
   materialForm.attachments = [...item.attachments]
-  materialForm.tagInput = ''
   materialActiveTab.value = 'edit'
 }
 
-function addTag() {
-  const tag = materialForm.tagInput.trim()
-  if (tag && !materialForm.tags.includes(tag)) {
-    materialForm.tags.push(tag)
-  }
-  materialForm.tagInput = ''
-}
 
-function removeTag(i: number) {
-  materialForm.tags.splice(i, 1)
-}
 
 function removeAttachment(i: number) {
   materialForm.attachments.splice(i, 1)
