@@ -1342,46 +1342,59 @@
           <!-- 标签 -->
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">标签</label>
-            <!-- 已选标签胶囊 -->
-            <div v-if="materialForm.tags.length > 0" class="mb-2 flex flex-wrap gap-1.5">
+            <!-- 标签输入容器（点击任意位置聚焦输入框） -->
+            <div
+              ref="tagContainerRef"
+              class="flex min-h-[42px] w-full cursor-text flex-wrap items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 transition-colors dark:border-gray-600 dark:bg-gray-700"
+              :class="tagInputFocused ? 'border-primary-500 ring-2 ring-primary-500/20' : ''"
+              @click="focusTagInput"
+            >
+              <!-- 已选标签胶囊 -->
               <span
                 v-for="(tag, i) in materialForm.tags"
                 :key="i"
-                class="inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/20 dark:text-primary-400"
+                class="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
               >
                 {{ tag }}
                 <button
                   type="button"
                   class="flex h-3.5 w-3.5 items-center justify-center rounded-full text-primary-400 transition-colors hover:bg-primary-200 hover:text-primary-700 dark:hover:bg-primary-800 dark:hover:text-primary-200"
-                  @click="removeTag(i)"
+                  @mousedown.prevent
+                  @click.stop="removeTag(i)"
                 >
                   <svg class="h-2.5 w-2.5" viewBox="0 0 10 10" fill="currentColor">
                     <path d="M6.414 5l2.293-2.293a1 1 0 00-1.414-1.414L5 3.586 2.707 1.293A1 1 0 001.293 2.707L3.586 5 1.293 7.293a1 1 0 001.414 1.414L5 6.414l2.293 2.293a1 1 0 001.414-1.414L6.414 5z"/>
                   </svg>
                 </button>
               </span>
-            </div>
-            <!-- 输入框 + 下拉候选 -->
-            <div class="relative">
+              <!-- 实际输入框（自适应宽度） -->
               <input
+                ref="tagInputRef"
                 v-model="materialForm.tagInput"
                 type="text"
-                placeholder="输入后回车添加，或从下拉选择"
-                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                @keydown.enter.prevent="addTagFromInput"
-                @focus="showTagDropdown = true"
+                :placeholder="materialForm.tags.length === 0 ? '输入后回车添加，支持方向键选择' : ''"
+                class="min-w-[120px] flex-1 border-none bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-gray-100 dark:placeholder:text-gray-500"
+                @keydown="handleTagKeydown"
+                @focus="tagInputFocused = true; showTagDropdown = true"
                 @blur="handleTagInputBlur"
               />
-              <!-- 下拉候选列表 -->
+            </div>
+            <!-- 下拉候选列表 -->
+            <div class="relative">
               <ul
                 v-if="showTagDropdown && filteredTagOptions.length > 0"
-                class="absolute left-0 right-0 top-full z-20 mt-1 max-h-40 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800"
+                class="absolute left-0 right-0 top-0 z-20 mt-1 max-h-44 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800"
               >
                 <li
-                  v-for="opt in filteredTagOptions"
+                  v-for="(opt, idx) in filteredTagOptions"
                   :key="opt"
-                  class="cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 dark:text-gray-300 dark:hover:bg-primary-900/20 dark:hover:text-primary-400"
-                  @mousedown.prevent="selectTagOption(opt)"
+                  class="flex cursor-pointer items-center px-4 py-2 text-sm transition-colors"
+                  :class="idx === tagDropdownActive
+                    ? 'bg-primary-500 text-white'
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700 dark:text-gray-300 dark:hover:bg-primary-900/20 dark:hover:text-primary-300'"
+                  @mousedown.prevent
+                  @click="selectTagOption(opt)"
+                  @mouseover="tagDropdownActive = idx"
                 >
                   {{ opt }}
                 </li>
@@ -3017,6 +3030,10 @@ const materialLoading = ref(false)
 const materialActiveTab = ref<'edit' | 'manage'>('manage')
 
 const showTagDropdown = ref(false)
+const tagInputFocused = ref(false)
+const tagDropdownActive = ref(-1)
+const tagInputRef = ref<HTMLInputElement | null>(null)
+const tagContainerRef = ref<HTMLElement | null>(null)
 
 const materialForm = reactive({
   editingId: null as number | null,
@@ -3073,13 +3090,58 @@ function startEditMaterial(item: MaterialItem) {
   materialActiveTab.value = 'edit'
 }
 
+function focusTagInput() {
+  tagInputRef.value?.focus()
+}
+
+function handleTagKeydown(e: KeyboardEvent) {
+  const opts = filteredTagOptions.value
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    showTagDropdown.value = true
+    tagDropdownActive.value = Math.min(tagDropdownActive.value + 1, opts.length - 1)
+    return
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    tagDropdownActive.value = Math.max(tagDropdownActive.value - 1, -1)
+    return
+  }
+  if (e.key === 'Escape') {
+    showTagDropdown.value = false
+    tagDropdownActive.value = -1
+    return
+  }
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault()
+    // 如果有键盘高亮的候选项，优先选它
+    if (tagDropdownActive.value >= 0 && opts[tagDropdownActive.value]) {
+      selectTagOption(opts[tagDropdownActive.value])
+    } else {
+      addTagFromInput()
+    }
+    return
+  }
+  if (e.key === 'Backspace' && materialForm.tagInput === '') {
+    if (materialForm.tags.length > 0) {
+      materialForm.tags.pop()
+    }
+    return
+  }
+  // 其他按键：重置高亮，打开下拉
+  tagDropdownActive.value = -1
+  showTagDropdown.value = true
+}
+
 function addTagFromInput() {
-  const tag = materialForm.tagInput.trim()
+  const tag = materialForm.tagInput.trim().replace(/,$/, '')
   if (tag && !materialForm.tags.includes(tag)) {
     materialForm.tags.push(tag)
   }
   materialForm.tagInput = ''
-  showTagDropdown.value = false
+  tagDropdownActive.value = -1
+  showTagDropdown.value = true // 保持下拉以便继续添加
 }
 
 function selectTagOption(tag: string) {
@@ -3087,13 +3149,17 @@ function selectTagOption(tag: string) {
     materialForm.tags.push(tag)
   }
   materialForm.tagInput = ''
+  tagDropdownActive.value = -1
   showTagDropdown.value = false
+  // 选完继续聚焦
+  nextTick(() => tagInputRef.value?.focus())
 }
 
 function handleTagInputBlur() {
-  // 延迟关闭，让 mousedown 有时间触发
+  tagInputFocused.value = false
   setTimeout(() => {
     showTagDropdown.value = false
+    tagDropdownActive.value = -1
   }, 150)
 }
 
