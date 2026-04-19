@@ -3,8 +3,10 @@
     <Transition name="media-viewer-fade">
       <div
         v-if="visible"
-        ref="containerRef"
-        class="fixed inset-0 z-[9999] bg-black touch-none"
+        class="fixed inset-0 z-[9999] bg-black touch-none select-none"
+        @touchstart="onTouchStart"
+        @touchmove.prevent="onTouchMove"
+        @touchend="onTouchEnd"
       >
         <!-- 顶部栏 -->
         <div class="absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-4 py-3">
@@ -19,15 +21,36 @@
           </button>
         </div>
 
-        <!-- 图片预览 -->
-        <div v-if="currentItem?.type === 'image'" class="flex h-full w-full items-center justify-center">
-          <img
-            ref="imageRef"
-            :src="currentItem.url"
-            :alt="currentItem.name"
-            class="max-h-full max-w-full select-none media-img"
-            draggable="false"
-          />
+        <!-- 图片预览（Swiper 容器） -->
+        <div v-if="currentItem?.type === 'image'" class="absolute inset-0 overflow-hidden">
+          <div
+            class="flex h-full"
+            :style="{
+              width: `${imageItems.length * 100}%`,
+              transform: `translateX(calc(-${currentImageIdx * (100 / imageItems.length)}% + ${swipeX / imageItems.length}px))`,
+              transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+            }"
+          >
+            <div
+              v-for="(item, idx) in imageItems"
+              :key="item.url"
+              class="flex items-center justify-center flex-shrink-0"
+              :style="{ width: `${100 / imageItems.length}%`, height: '100vh' }"
+            >
+              <img
+                v-if="Math.abs(idx - currentImageIdx) <= 1"
+                :src="item.url"
+                :alt="item.name"
+                class="max-h-full max-w-full select-none"
+                :style="idx === currentImageIdx ? {
+                  transform: `scale(${imgScale}) translate(${imgPanX / imgScale}px, ${imgPanY / imgScale}px) rotate(${imgRotation}deg)`,
+                  transition: (isPanning || isPinching) ? 'none' : 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
+                  willChange: 'transform',
+                } : {}"
+                draggable="false"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- 视频预览 -->
@@ -122,8 +145,6 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const currentIndex = ref(props.initialIndex)
-const containerRef = ref<HTMLDivElement | null>(null)
-const imageRef = ref<HTMLImageElement | null>(null)
 const videoRef = ref<HTMLVideoElement | null>(null)
 
 // 下载状态
@@ -136,76 +157,52 @@ const videoDuration = ref(0)
 const showVideoControls = ref(true)
 let controlsTimer: ReturnType<typeof setTimeout> | null = null
 
-// ====== 图片变换：全部用普通变量，完全脱离 Vue 响应式 ======
-let liveScale = 1
-let liveTranslateX = 0
-let liveTranslateY = 0
-let liveRotation = 0
-let rafPending = false
+// ====== 图片变换状态（Vue 响应式 + :style 绑定，复用 home.vue 灯箱方案） ======
+const imgScale = ref(1)
+const imgPanX = ref(0)
+const imgPanY = ref(0)
+const imgRotation = ref(0) // 累加，不取模
+const swipeX = ref(0)      // Swiper 容器的水平拖动偏移
+const isPinching = ref(false)
+const isSwiping = ref(false)
+const isPanning = ref(false)
 
-// 触摸状态
-let touchStartTime = 0
+// 触摸状态（普通变量，不需要模板访问）
 let touchStartX = 0
 let touchStartY = 0
-let isPinching = false
-let initialPinchDistance = 0
-let initialScale = 1
-let isSwiping = false
-let isDragging = false
-
-// 双指缩放中心点
+let touchStartDist = 0
+let touchStartScale = 1
+let touchStartPanX = 0
+let touchStartPanY = 0
 let pinchCenterX = 0
 let pinchCenterY = 0
+let isTouchActive = false
 
 // 双击检测
+let touchStartTime = 0
 let tapCount = 0
 let tapTimer: ReturnType<typeof setTimeout> | null = null
-let lastTapX = 0
-let lastTapY = 0
+
+// 只取图片类型的 items（用于 Swiper 容器）
+const imageItems = computed(() => props.items.filter(i => i.type === 'image'))
+// 当前图片在 imageItems 中的索引
+const currentImageIdx = computed(() => {
+  const item = props.items[currentIndex.value]
+  if (!item || item.type !== 'image') return 0
+  return imageItems.value.findIndex(i => i.url === item.url)
+})
 
 const currentItem = computed(() => props.items[currentIndex.value])
 
-// 直接写 DOM，animate=true 时加过渡动画（旋转、双击缩放用）
-function applyTransform(animate = false) {
-  if (!imageRef.value) return
-  imageRef.value.style.transition = animate ? 'transform 0.25s ease' : 'none'
-  imageRef.value.style.transform = `scale(${liveScale}) translate(${liveTranslateX}px, ${liveTranslateY}px) rotate(${liveRotation}deg)`
-}
-
-// rAF 节流版本，用于 pinch/drag 过程中
-function applyTransformRaf() {
-  if (rafPending) return
-  rafPending = true
-  requestAnimationFrame(() => {
-    rafPending = false
-    applyTransform(false)
-  })
-}
-
 function resetImageState() {
-  liveScale = 1
-  liveTranslateX = 0
-  liveTranslateY = 0
-  liveRotation = 0
-  if (imageRef.value) {
-    imageRef.value.style.transition = 'none'
-    imageRef.value.style.transform = 'scale(1) translate(0px, 0px) rotate(0deg)'
-  }
-}
-
-// ====== 手动绑定 touch 事件（passive: false，可 preventDefault） ======
-function bindTouchEvents() {
-  if (!containerRef.value) return
-  containerRef.value.addEventListener('touchstart', onTouchStart, { passive: false })
-  containerRef.value.addEventListener('touchmove', onTouchMove, { passive: false })
-  containerRef.value.addEventListener('touchend', onTouchEnd, { passive: true })
-}
-
-function unbindTouchEvents() {
-  if (!containerRef.value) return
-  containerRef.value.removeEventListener('touchstart', onTouchStart)
-  containerRef.value.removeEventListener('touchmove', onTouchMove)
-  containerRef.value.removeEventListener('touchend', onTouchEnd)
+  imgScale.value = 1
+  imgPanX.value = 0
+  imgPanY.value = 0
+  imgRotation.value = 0
+  swipeX.value = 0
+  isPinching.value = false
+  isSwiping.value = false
+  isPanning.value = false
 }
 
 // ====== History API：浏览器返回关闭预览 ======
@@ -222,17 +219,14 @@ function onPopState() {
 }
 
 // ====== watch visible ======
-watch(() => props.visible, async (v) => {
+watch(() => props.visible, (v) => {
   if (v) {
     currentIndex.value = props.initialIndex
     resetImageState()
     document.body.style.overflow = 'hidden'
     pushHistoryState()
     window.addEventListener('popstate', onPopState)
-    await nextTick()
-    bindTouchEvents()
   } else {
-    unbindTouchEvents()
     window.removeEventListener('popstate', onPopState)
     document.body.style.overflow = ''
     resetVideoState()
@@ -263,129 +257,155 @@ function close() {
 }
 
 function rotateImage() {
-  liveRotation += 90
-  liveTranslateX = 0
-  liveTranslateY = 0
-  applyTransform(true)
+  imgRotation.value += 90
+  imgPanX.value = 0
+  imgPanY.value = 0
 }
 
-// ====== 触摸事件（手动绑定，passive: false） ======
+// ====== 触摸事件（完全复用 home.vue 灯箱逻辑） ======
+function getTouchDist(touches: TouchList): number {
+  if (touches.length < 2) return 0
+  const dx = touches[0].clientX - touches[1].clientX
+  const dy = touches[0].clientY - touches[1].clientY
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
 function onTouchStart(e: TouchEvent) {
+  isTouchActive = true
   touchStartTime = Date.now()
 
   if (e.touches.length === 2) {
-    e.preventDefault() // 阻止浏览器默认双指缩放
-    isPinching = true
-    initialPinchDistance = getPinchDistance(e.touches)
-    initialScale = liveScale
-    // 记录双指中心点
-    pinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2
-    pinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+    isPinching.value = true
+    isSwiping.value = false
+    isPanning.value = false
+    touchStartDist = getTouchDist(e.touches)
+    touchStartScale = imgScale.value
+    touchStartPanX = imgPanX.value
+    touchStartPanY = imgPanY.value
+    pinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - window.innerWidth / 2
+    pinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - window.innerHeight / 2
+    // 取消双击定时器
     if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; tapCount = 0 }
-    return
-  }
-
-  if (e.touches.length === 1) {
+  } else if (e.touches.length === 1) {
+    isPinching.value = false
     touchStartX = e.touches[0].clientX
     touchStartY = e.touches[0].clientY
-    lastTapX = touchStartX
-    lastTapY = touchStartY
-    isSwiping = false
-    isDragging = false
+    touchStartPanX = imgPanX.value
+    touchStartPanY = imgPanY.value
+    if (imgScale.value > 1) {
+      isPanning.value = true
+      isSwiping.value = false
+    } else if (imageItems.value.length > 1) {
+      isSwiping.value = true
+      isPanning.value = false
+    }
   }
 }
 
 function onTouchMove(e: TouchEvent) {
-  if (e.touches.length === 2 && isPinching) {
-    e.preventDefault() // 关键：阻止浏览器整页缩放！
-    const dist = getPinchDistance(e.touches)
-    liveScale = Math.max(0.5, Math.min(5, initialScale * (dist / initialPinchDistance)))
-    applyTransformRaf()
+  if (!isTouchActive) return
+
+  if (isPinching.value && e.touches.length === 2) {
+    const dist = getTouchDist(e.touches)
+    const ratio = dist / touchStartDist
+    const newScale = Math.min(4, Math.max(1, touchStartScale * ratio))
+    const scaleDelta = newScale - touchStartScale
+    imgScale.value = newScale
+
+    if (newScale > 1) {
+      const newPanX = touchStartPanX - pinchCenterX * scaleDelta / touchStartScale
+      const newPanY = touchStartPanY - pinchCenterY * scaleDelta / touchStartScale
+      const maxPan = (newScale - 1) * window.innerWidth * 0.5
+      const maxPanY = (newScale - 1) * window.innerHeight * 0.5
+      imgPanX.value = Math.max(-maxPan, Math.min(maxPan, newPanX))
+      imgPanY.value = Math.max(-maxPanY, Math.min(maxPanY, newPanY))
+    } else {
+      imgPanX.value = 0
+      imgPanY.value = 0
+    }
     return
   }
 
-  if (e.touches.length === 1) {
-    const dx = e.touches[0].clientX - touchStartX
-    const dy = e.touches[0].clientY - touchStartY
+  if (e.touches.length !== 1) return
+  const dx = e.touches[0].clientX - touchStartX
+  const dy = e.touches[0].clientY - touchStartY
 
-    if (liveScale > 1) {
-      e.preventDefault() // 放大状态下拖动也阻止默认滚动
-      isDragging = true
-      liveTranslateX += dx / liveScale
-      liveTranslateY += dy / liveScale
-      touchStartX = e.touches[0].clientX
-      touchStartY = e.touches[0].clientY
-      applyTransformRaf()
-    } else if (Math.abs(dx) > 8) {
-      isSwiping = true
-    }
+  if (imgScale.value > 1 && isPanning.value) {
+    const maxPan = (imgScale.value - 1) * window.innerWidth * 0.5
+    const maxPanY = (imgScale.value - 1) * window.innerHeight * 0.5
+    imgPanX.value = Math.max(-maxPan, Math.min(maxPan, touchStartPanX + dx))
+    imgPanY.value = Math.max(-maxPanY, Math.min(maxPanY, touchStartPanY + dy))
+  } else if (imgScale.value <= 1 && isSwiping.value) {
+    const resistance = Math.abs(dy) > Math.abs(dx) ? 0.3 : 1
+    swipeX.value = dx * resistance
   }
 }
 
 function onTouchEnd(e: TouchEvent) {
-  const wasPinching = isPinching
-  isPinching = false
+  if (!isTouchActive) return
+  isTouchActive = false
 
-  // pinch/drag 结束，应用最终状态（无动画，保持当前位置）
-  if (wasPinching || isDragging) {
-    applyTransform(false)
-  }
-
-  const elapsed = Date.now() - touchStartTime
-
-  if (isSwiping && liveScale <= 1 && e.changedTouches.length > 0) {
-    const totalDx = e.changedTouches[0].clientX - lastTapX
-    if (Math.abs(totalDx) > 60) {
-      if (totalDx < 0 && currentIndex.value < props.items.length - 1) {
-        currentIndex.value++
-      } else if (totalDx > 0 && currentIndex.value > 0) {
-        currentIndex.value--
-      }
+  if (isPinching.value) {
+    isPinching.value = false
+    if (imgScale.value <= 1) {
+      imgScale.value = 1
+      imgPanX.value = 0
+      imgPanY.value = 0
     }
-    isSwiping = false
-    isDragging = false
+    isPanning.value = false
     return
   }
 
-  isSwiping = false
-  isDragging = false
+  if (imgScale.value <= 1 && isSwiping.value) {
+    const threshold = window.innerWidth * 0.25
+    if (swipeX.value < -threshold && currentIndex.value < props.items.length - 1) {
+      currentIndex.value++
+    } else if (swipeX.value > threshold && currentIndex.value > 0) {
+      currentIndex.value--
+    }
+    swipeX.value = 0
+    isSwiping.value = false
+  }
 
-  if (elapsed > 300) return
+  isPanning.value = false
 
-  tapCount++
-  if (tapCount === 1) {
-    tapTimer = setTimeout(() => {
-      if (currentItem.value?.type === 'image' && liveScale <= 1) {
-        close()
-      } else if (currentItem.value?.type === 'video') {
-        toggleControls()
-      }
+  // 双击缩放检测
+  const elapsed = Date.now() - touchStartTime
+  if (elapsed < 300 && e.changedTouches.length === 1) {
+    const movedX = Math.abs(e.changedTouches[0].clientX - touchStartX)
+    const movedY = Math.abs(e.changedTouches[0].clientY - touchStartY)
+    // 手指移动过多不算点击
+    if (movedX > 10 || movedY > 10) return
+
+    tapCount++
+    if (tapCount === 1) {
+      tapTimer = setTimeout(() => {
+        tapCount = 0
+        tapTimer = null
+        // 单击：缩放为1时关闭
+        if (currentItem.value?.type === 'image' && imgScale.value <= 1) {
+          close()
+        } else if (currentItem.value?.type === 'video') {
+          toggleControls()
+        }
+      }, 250)
+    } else if (tapCount === 2) {
+      if (tapTimer) { clearTimeout(tapTimer); tapTimer = null }
       tapCount = 0
-      tapTimer = null
-    }, 250)
-  } else if (tapCount === 2) {
-    if (tapTimer) { clearTimeout(tapTimer); tapTimer = null }
-    tapCount = 0
-    handleDoubleTap()
+      handleDoubleTap()
+    }
   }
 }
 
 function handleDoubleTap() {
   if (currentItem.value?.type !== 'image') return
-  if (liveScale > 1) {
-    liveScale = 1
-    liveTranslateX = 0
-    liveTranslateY = 0
+  if (imgScale.value > 1) {
+    imgScale.value = 1
+    imgPanX.value = 0
+    imgPanY.value = 0
   } else {
-    liveScale = 2.5
+    imgScale.value = 2.5
   }
-  applyTransform(true)
-}
-
-function getPinchDistance(touches: TouchList) {
-  const dx = touches[0].clientX - touches[1].clientX
-  const dy = touches[0].clientY - touches[1].clientY
-  return Math.sqrt(dx * dx + dy * dy)
 }
 
 // ====== 视频控制 ======
@@ -460,7 +480,6 @@ async function handleDownload() {
 }
 
 onBeforeUnmount(() => {
-  unbindTouchEvents()
   window.removeEventListener('popstate', onPopState)
   if (tapTimer) clearTimeout(tapTimer)
   if (controlsTimer) clearTimeout(controlsTimer)
@@ -478,14 +497,6 @@ onBeforeUnmount(() => {
 .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from,
 .fade-leave-to { opacity: 0; }
-
-/* GPU 加速，提升 transform 性能 */
-.media-img {
-  will-change: transform;
-  transform: scale(1) translate(0px, 0px) rotate(0deg);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
 
 .video-progress {
   -webkit-appearance: none;
