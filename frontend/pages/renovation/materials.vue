@@ -159,8 +159,13 @@ const viewerIndex = ref(0)
 onMounted(async () => {
   try {
     items.value = await apiFetchMaterials()
-  } catch {
-    // 静默
+  } catch (err: any) {
+    // 未登录（401/403）则跳转登录页
+    const status = err?.response?.status ?? err?.statusCode ?? err?.status
+    if (status === 401 || status === 403) {
+      await navigateTo('/login?redirect=' + encodeURIComponent('/renovation/materials'))
+      return
+    }
   } finally {
     loading.value = false
   }
