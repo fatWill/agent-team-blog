@@ -1353,16 +1353,18 @@
               <span
                 v-for="(tag, i) in materialForm.tags"
                 :key="i"
-                class="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium"
+                :style="tagChipStyle(tag)"
               >
                 {{ tag }}
                 <button
                   type="button"
-                  class="flex h-3.5 w-3.5 items-center justify-center rounded-full text-primary-400 transition-colors hover:bg-primary-200 hover:text-primary-700 dark:hover:bg-primary-800 dark:hover:text-primary-200"
+                  class="flex h-4 w-4 items-center justify-center rounded-full opacity-60 transition-opacity hover:opacity-100"
+                  :style="{ color: 'inherit' }"
                   @mousedown.prevent
                   @click.stop="removeTag(i)"
                 >
-                  <svg class="h-2.5 w-2.5" viewBox="0 0 10 10" fill="currentColor">
+                  <svg class="h-3 w-3" viewBox="0 0 10 10" fill="currentColor">
                     <path d="M6.414 5l2.293-2.293a1 1 0 00-1.414-1.414L5 3.586 2.707 1.293A1 1 0 001.293 2.707L3.586 5 1.293 7.293a1 1 0 001.414 1.414L5 6.414l2.293 2.293a1 1 0 001.414-1.414L6.414 5z"/>
                   </svg>
                 </button>
@@ -3028,6 +3030,23 @@ watch(perfTrendDays, () => {
 const materialItems = ref<MaterialItem[]>([])
 const materialLoading = ref(false)
 const materialActiveTab = ref<'edit' | 'manage'>('manage')
+
+// ====== 标签颜色（与渲染侧保持一致的 hash 算法）======
+function hashColor(str: string, lightness: number): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = Math.abs(hash) % 360
+  return `hsl(${hue}, 70%, ${lightness}%)`
+}
+
+function tagChipStyle(tag: string) {
+  return {
+    backgroundColor: hashColor(tag, 93),
+    color: hashColor(tag, 40),
+  }
+}
 
 const showTagDropdown = ref(false)
 const tagInputFocused = ref(false)
