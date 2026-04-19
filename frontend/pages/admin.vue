@@ -1342,16 +1342,51 @@
           <!-- 标签 -->
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">标签</label>
-            <ClientOnly>
-              <ASelect
-                v-model:value="materialForm.tags"
-                mode="tags"
-                :options="allMaterialTags.map(t => ({ value: t, label: t }))"
-                placeholder="输入后回车添加，或从已有标签选择"
-                style="width: 100%"
-                :token-separators="[',']"
+            <!-- 已选标签胶囊 -->
+            <div v-if="materialForm.tags.length > 0" class="mb-2 flex flex-wrap gap-1.5">
+              <span
+                v-for="(tag, i) in materialForm.tags"
+                :key="i"
+                class="inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/20 dark:text-primary-400"
+              >
+                {{ tag }}
+                <button
+                  type="button"
+                  class="flex h-3.5 w-3.5 items-center justify-center rounded-full text-primary-400 transition-colors hover:bg-primary-200 hover:text-primary-700 dark:hover:bg-primary-800 dark:hover:text-primary-200"
+                  @click="removeTag(i)"
+                >
+                  <svg class="h-2.5 w-2.5" viewBox="0 0 10 10" fill="currentColor">
+                    <path d="M6.414 5l2.293-2.293a1 1 0 00-1.414-1.414L5 3.586 2.707 1.293A1 1 0 001.293 2.707L3.586 5 1.293 7.293a1 1 0 001.414 1.414L5 6.414l2.293 2.293a1 1 0 001.414-1.414L6.414 5z"/>
+                  </svg>
+                </button>
+              </span>
+            </div>
+            <!-- 输入框 + 下拉候选 -->
+            <div class="relative">
+              <input
+                v-model="materialForm.tagInput"
+                type="text"
+                placeholder="输入后回车添加，或从下拉选择"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                @keydown.enter.prevent="addTagFromInput"
+                @focus="showTagDropdown = true"
+                @blur="handleTagInputBlur"
               />
-            </ClientOnly>
+              <!-- 下拉候选列表 -->
+              <ul
+                v-if="showTagDropdown && filteredTagOptions.length > 0"
+                class="absolute left-0 right-0 top-full z-20 mt-1 max-h-40 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800"
+              >
+                <li
+                  v-for="opt in filteredTagOptions"
+                  :key="opt"
+                  class="cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 dark:text-gray-300 dark:hover:bg-primary-900/20 dark:hover:text-primary-400"
+                  @mousedown.prevent="selectTagOption(opt)"
+                >
+                  {{ opt }}
+                </li>
+              </ul>
+            </div>
           </div>
 
           <!-- 附件上传 -->
@@ -1611,8 +1646,7 @@ import {
   apiDeleteMessage,
 } from '~/utils/api'
 import { toCdnUrl } from '~/utils/imageUrl'
-import { Select as ASelect } from 'ant-design-vue'
-import 'ant-design-vue/es/select/style'
+
 interface AdminPhotoItem {
   id: number           // 正式照片为正数 DB id；占位项为负数临时 id
   albumId: number
@@ -2982,10 +3016,13 @@ const materialItems = ref<MaterialItem[]>([])
 const materialLoading = ref(false)
 const materialActiveTab = ref<'edit' | 'manage'>('manage')
 
+const showTagDropdown = ref(false)
+
 const materialForm = reactive({
   editingId: null as number | null,
   title: '',
   tags: [] as string[],
+  tagInput: '',
   attachments: [] as MaterialAttachment[],
   uploading: false,
 })
@@ -3001,7 +3038,7 @@ async function fetchMaterials() {
   }
 }
 
-// 所有已有的标签（从 materialItems 中提取唯一值，供 datalist 使用）
+// 所有已有的标签（从 materialItems 中提取唯一值，供下拉候选使用）
 const allMaterialTags = computed(() => {
   const set = new Set<string>()
   for (const item of materialItems.value) {
@@ -3011,10 +3048,19 @@ const allMaterialTags = computed(() => {
   return Array.from(set)
 })
 
+// 过滤已选和当前输入的候选标签
+const filteredTagOptions = computed(() => {
+  const input = materialForm.tagInput.trim().toLowerCase()
+  return allMaterialTags.value.filter(
+    t => !materialForm.tags.includes(t) && (input === '' || t.toLowerCase().includes(input))
+  )
+})
+
 function resetMaterialForm() {
   materialForm.editingId = null
   materialForm.title = ''
   materialForm.tags = []
+  materialForm.tagInput = ''
   materialForm.attachments = []
 }
 
@@ -3022,11 +3068,38 @@ function startEditMaterial(item: MaterialItem) {
   materialForm.editingId = item.id
   materialForm.title = item.title
   materialForm.tags = [...item.tags]
+  materialForm.tagInput = ''
   materialForm.attachments = [...item.attachments]
   materialActiveTab.value = 'edit'
 }
 
+function addTagFromInput() {
+  const tag = materialForm.tagInput.trim()
+  if (tag && !materialForm.tags.includes(tag)) {
+    materialForm.tags.push(tag)
+  }
+  materialForm.tagInput = ''
+  showTagDropdown.value = false
+}
 
+function selectTagOption(tag: string) {
+  if (!materialForm.tags.includes(tag)) {
+    materialForm.tags.push(tag)
+  }
+  materialForm.tagInput = ''
+  showTagDropdown.value = false
+}
+
+function handleTagInputBlur() {
+  // 延迟关闭，让 mousedown 有时间触发
+  setTimeout(() => {
+    showTagDropdown.value = false
+  }, 150)
+}
+
+function removeTag(i: number) {
+  materialForm.tags.splice(i, 1)
+}
 
 function removeAttachment(i: number) {
   materialForm.attachments.splice(i, 1)
