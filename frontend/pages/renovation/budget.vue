@@ -19,7 +19,7 @@
 
     <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
       <!-- 汇总统计卡片 -->
-      <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <div class="mb-6 grid grid-cols-2 gap-3 sm:gap-4">
         <!-- 总预算 -->
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div class="mb-1 text-xs text-gray-500 dark:text-gray-400">总预算</div>
@@ -28,23 +28,7 @@
         <!-- 已支出 -->
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div class="mb-1 text-xs text-gray-500 dark:text-gray-400">已支出</div>
-          <div class="text-lg font-bold text-orange-600 dark:text-orange-400 sm:text-xl">{{ formatMoney(summary.totalActual) }}</div>
-        </div>
-        <!-- 待支出 -->
-        <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div class="mb-1 text-xs text-gray-500 dark:text-gray-400">待支出</div>
-          <div class="text-lg font-bold text-blue-600 dark:text-blue-400 sm:text-xl">{{ formatMoney(summary.totalBudget - summary.totalActual) }}</div>
-        </div>
-        <!-- 完成率 -->
-        <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div class="mb-1 text-xs text-gray-500 dark:text-gray-400">完成率</div>
-          <div class="mb-2 text-lg font-bold text-emerald-600 dark:text-emerald-400 sm:text-xl">{{ summary.completionRate }}%</div>
-          <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
-            <div
-              class="h-full rounded-full bg-emerald-500 transition-all duration-500"
-              :style="{ width: summary.completionRate + '%' }"
-            />
-          </div>
+          <div class="text-lg font-bold text-gray-900 dark:text-gray-100 sm:text-xl">{{ formatMoney(summary.totalActual) }}</div>
         </div>
       </div>
 
@@ -95,7 +79,7 @@
                     <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono text-gray-700 dark:text-gray-300 sm:px-4">
                       {{ formatMoney(item.budget) }}
                     </td>
-                    <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono sm:px-4" :class="item.actual !== null ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600'">
+                    <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono sm:px-4" :class="actualClass(item)">
                       {{ item.actual !== null ? formatMoney(item.actual) : '—' }}
                     </td>
                     <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono sm:px-4" :class="diffClass(item)">
@@ -111,13 +95,13 @@
                     <td class="px-3 py-2.5 sm:px-4">
                       <span class="text-xs font-bold" :class="categorySubtotalTextClass(category.key)">小计</span>
                     </td>
-                    <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono font-bold sm:px-4" :class="categorySubtotalTextClass(category.key)">
+                    <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono font-bold text-gray-700 dark:text-gray-300 sm:px-4">
                       {{ formatMoney(categoryBudgetSum(category)) }}
                     </td>
-                    <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono font-bold sm:px-4" :class="categorySubtotalTextClass(category.key)">
+                    <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono font-bold sm:px-4" :class="categoryActualClass(category)">
                       {{ categoryActualSum(category) > 0 ? formatMoney(categoryActualSum(category)) : '—' }}
                     </td>
-                    <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono font-bold sm:px-4" :class="categorySubtotalTextClass(category.key)">
+                    <td class="whitespace-nowrap px-3 py-2.5 text-right font-mono font-bold sm:px-4" :class="categoryDiffClass(category)">
                       {{ categoryDiffText(category) }}
                     </td>
                     <td class="px-3 py-2.5 sm:px-4" />
@@ -139,7 +123,7 @@
                 <td class="whitespace-nowrap px-3 py-3 text-right font-mono font-bold text-gray-900 dark:text-gray-100 sm:px-4">
                   {{ formatMoney(summary.totalBudget) }}
                 </td>
-                <td class="whitespace-nowrap px-3 py-3 text-right font-mono font-bold text-orange-600 dark:text-orange-400 sm:px-4">
+                <td class="whitespace-nowrap px-3 py-3 text-right font-mono font-bold sm:px-4" :class="summary.totalActual > summary.totalBudget ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'">
                   {{ formatMoney(summary.totalActual) }}
                 </td>
                 <td class="whitespace-nowrap px-3 py-3 text-right font-mono font-bold sm:px-4" :class="summary.totalDiff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
@@ -257,7 +241,7 @@ function diffText(item: BudgetItem): string {
   if (item.actual === null) return '—'
   const diff = item.budget - item.actual
   if (diff === 0) return '¥0'
-  return diff > 0 ? '-' + formatMoney(diff) : '+' + formatMoney(Math.abs(diff))
+  return diff > 0 ? formatMoney(diff) : '-' + formatMoney(Math.abs(diff))
 }
 
 /** 差额颜色 class */
@@ -267,6 +251,13 @@ function diffClass(item: BudgetItem): string {
   if (diff > 0) return 'text-emerald-600 dark:text-emerald-400'
   if (diff < 0) return 'text-red-600 dark:text-red-400'
   return 'text-gray-500 dark:text-gray-400'
+}
+
+/** 实际支出颜色 class */
+function actualClass(item: BudgetItem): string {
+  if (item.actual === null) return 'text-gray-300 dark:text-gray-600'
+  if (item.actual > item.budget) return 'text-red-600 dark:text-red-400'
+  return 'text-emerald-600 dark:text-emerald-400'
 }
 
 // ====== 分类样式 ======
@@ -339,31 +330,44 @@ function categoryDiffText(cat: BudgetCategory): string {
   if (actualSum === 0) return '—'
   const diff = categoryBudgetSum(cat) - actualSum
   if (diff === 0) return '¥0'
-  return diff > 0 ? '-' + formatMoney(diff) : '+' + formatMoney(Math.abs(diff))
+  return diff > 0 ? formatMoney(diff) : '-' + formatMoney(Math.abs(diff))
+}
+
+/** 分类实际支出颜色 class */
+function categoryActualClass(cat: BudgetCategory): string {
+  const actualSum = categoryActualSum(cat)
+  if (actualSum === 0) return 'text-gray-300 dark:text-gray-600'
+  if (actualSum > categoryBudgetSum(cat)) return 'text-red-600 dark:text-red-400'
+  return 'text-emerald-600 dark:text-emerald-400'
+}
+
+/** 分类差额颜色 class */
+function categoryDiffClass(cat: BudgetCategory): string {
+  const actualSum = categoryActualSum(cat)
+  if (actualSum === 0) return 'text-gray-300 dark:text-gray-600'
+  const diff = categoryBudgetSum(cat) - actualSum
+  if (diff > 0) return 'text-emerald-600 dark:text-emerald-400'
+  if (diff < 0) return 'text-red-600 dark:text-red-400'
+  return 'text-gray-500 dark:text-gray-400'
 }
 
 // ====== 汇总统计 ======
 const summary = computed(() => {
   let totalBudget = 0
   let totalActual = 0
-  let itemsWithActual = 0
-  let totalItems = 0
 
   for (const cat of budgetData) {
     for (const item of cat.items) {
       totalBudget += item.budget
-      totalItems++
       if (item.actual !== null) {
         totalActual += item.actual
-        itemsWithActual++
       }
     }
   }
 
-  const completionRate = totalItems > 0 ? Math.round((itemsWithActual / totalItems) * 100) : 0
   const totalDiff = totalBudget - totalActual
 
-  return { totalBudget, totalActual, totalDiff, completionRate }
+  return { totalBudget, totalActual, totalDiff }
 })
 
 // ====== SEO ======
