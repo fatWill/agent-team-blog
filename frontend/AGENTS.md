@@ -242,7 +242,7 @@ frontend/
 | SBTI 测试 | `/toys/sbti` | `pages/toys/sbti.vue` | — | SBTI 人格测试 |
 | 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /articles |
 | 管理后台 | `/admin` | `pages/admin.vue`（130KB） | auth store, api, Tiptap, antd, chunkedUpload | 面包屑二级导航：内容管理/统计/装修 |
-| 装修-成本预算 | `/renovation/budget` | `pages/renovation/budget.vue` | — | 敬请期待占位页 |
+| 装修-成本预算 | `/renovation/budget` | `pages/renovation/budget.vue` | — | 会计报表风格预算表（5 大分类+汇总统计卡片） |
 | 装修-装修进度 | `/renovation/progress` | `pages/renovation/progress.vue` | — | 敬请期待占位页 |
 | 装修-材料清单 | `/renovation/materials` | `pages/renovation/materials.vue` | — | 敬请期待占位页 |
 | 装修-文章详情 | `/renovation/articles/:id` | `pages/renovation/articles/[id].vue` | markdown-it | Markdown 渲染装修知识文章 |
@@ -378,6 +378,7 @@ frontend/
 
 ## 变更日志（最近重要变更）
 
+- 2026-04-22: 实现装修成本预算页面（会计报表风格表格，5 大分类色块区分，汇总统计卡片+进度条，支持 Dark/Light 主题）
 - 2026-04-16: 新增「装修」Tab 页（功能按钮 + Markdown 知识文章列表）+ 后台管理导航重构（面包屑二级导航）+ 新增装修 feature 模块
 - 2026-04-15: 首屏性能优化（CDN preconnect + 封面图 fetchpriority/lazy + COS 图片 WebP 自动压缩）
 - 2026-04-13: 修复 PC 端 Tab 切换失败，nuxt.config.ts 中 alias 改为独立路由注册（pages:extend push 独立路由条目）
