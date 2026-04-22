@@ -441,9 +441,9 @@ function enhanceImages() {
 
 // SEO meta（SSR 阶段即生效）
 useSeoMeta({
-  title: () => articleData.value ? `${articleData.value.title} - fatwill` : 'fatwill - 个人博客',
-  description: () => articleData.value?.summary || articleData.value?.title || 'fatwill 的个人博客',
-  ogTitle: () => articleData.value?.title || 'fatwill - 个人博客',
+  title: () => articleData.value ? `${articleData.value.title} - fatwill` : 'fatwill 的小屋',
+  description: () => articleData.value?.summary || articleData.value?.title || 'fatwill 的小屋',
+  ogTitle: () => articleData.value?.title || 'fatwill 的小屋',
   ogDescription: () => articleData.value?.summary || articleData.value?.title || '',
   ogType: 'article',
   ogUrl: () => `https://fatwill.cloud/articles/${route.params.id}`,
@@ -454,7 +454,7 @@ useSeoMeta({
       : `https://cdn.fatwill.cloud${articleData.value.coverImage}`
     : 'https://fatwill.cloud/og-default.png',
   twitterCard: 'summary_large_image',
-  twitterTitle: () => articleData.value?.title || 'fatwill - 个人博客',
+  twitterTitle: () => articleData.value?.title || 'fatwill 的小屋',
   twitterDescription: () => articleData.value?.summary || '',
   twitterImage: () => articleData.value?.coverImage
     ? articleData.value.coverImage.startsWith('http')

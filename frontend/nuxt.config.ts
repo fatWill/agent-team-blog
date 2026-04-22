@@ -44,22 +44,26 @@ export default defineNuxtConfig({
   app: {
     cdnURL: 'https://cdn.fatwill.cloud',
     head: {
-      title: 'fatwill - 个人博客',
+      title: 'fatwill 的小屋',
       htmlAttrs: {
         lang: 'zh-CN',
       },
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: '全栈开发者 fatwill 的个人博客，分享技术与生活。' },
+        { name: 'description', content: 'fatwill 的小屋 — 分享技术与生活' },
         { name: 'author', content: 'fatwill' },
-        { property: 'og:site_name', content: 'fatwill' },
+        { property: 'og:site_name', content: 'fatwill 的小屋' },
         { property: 'og:type', content: 'website' },
         { name: 'twitter:card', content: 'summary' },
         { name: 'robots', content: 'index, follow' },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/site.webmanifest' },
         { rel: 'canonical', href: 'https://fatwill.cloud' },
         { rel: 'sitemap', type: 'application/xml', href: '/sitemap.xml' },
         { rel: 'preconnect', href: 'https://assets.fatwill.cloud', crossorigin: '' },

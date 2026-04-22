@@ -9,7 +9,7 @@
       @mousedown.prevent="onPointerDown"
       @touchstart.prevent="onPointerDown"
     >
-      <span class="enter-text">进入博客</span>
+      <span class="enter-text">🏠 fatwill 的小屋</span>
     </div>
   </div>
 </template>
@@ -24,8 +24,8 @@ import {
 } from '@chenglou/pretext'
 
 useHead({
-  title: 'fatwill.cloud',
-  meta: [{ name: 'description', content: '全栈开发者 fatwill 的个人博客' }],
+  title: '欢迎做客 fatwill 的秘密花园',
+  meta: [{ name: 'description', content: '欢迎做客 fatwill 的秘密花园 — 分享技术与生活' }],
 })
 
 // ====== 代码片段 ======

@@ -1315,10 +1315,10 @@ const activeTab = computed(() => pathToTab[route.path] || 'articles')
 
 // SEO meta（必须在 tabToPath 和 activeTab 定义之后，避免 TDZ）
 useSeoMeta({
-  title: 'fatwill - 个人博客',
-  description: '全栈开发者 fatwill 的个人博客，分享技术文章与生活记录。',
-  ogTitle: 'fatwill - 个人博客',
-  ogDescription: '全栈开发者 fatwill 的个人博客，分享技术文章与生活记录。',
+  title: 'fatwill 的小屋',
+  description: 'fatwill 的小屋 — 分享技术文章与生活记录。',
+  ogTitle: 'fatwill 的小屋',
+  ogDescription: 'fatwill 的小屋 — 分享技术文章与生活记录。',
   ogType: 'website',
   ogUrl: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`,
   ogSiteName: 'fatwill',
@@ -2130,9 +2130,9 @@ function handleSearchShortcut(e: KeyboardEvent) {
 }
 
 useHead({
-  title: 'fatwill - 个人博客',
+  title: 'fatwill 的小屋',
   meta: [
-    { name: 'description', content: '全栈开发者 fatwill 的个人博客，分享技术与生活。' },
+    { name: 'description', content: 'fatwill 的小屋 — 分享技术与生活。' },
   ],
 })
 </script>
