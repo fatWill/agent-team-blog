@@ -226,6 +226,8 @@ const budgetData: BudgetCategory[] = [
       { name: '空调伴侣', budget: 200, actual: null, remark: null },
       { name: '网关', budget: 800, actual: null, remark: null },
       { name: '路由器', budget: 800, actual: null, remark: null },
+      { name: '智能马桶', budget: 5000, actual: null, remark: null },
+      { name: '人在传感器', budget: 300, actual: null, remark: null },
     ],
   },
 ]
