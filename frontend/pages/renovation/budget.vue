@@ -258,6 +258,7 @@ const budgetData: BudgetCategory[] = [
     name: '其他',
     items: [
       { name: '抽拉式数显水龙头', budget: 700, actual: null, remark: null },
+      { name: '验房', budget: 230, actual: null, remark: null },
     ],
   },
 ]
