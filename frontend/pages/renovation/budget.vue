@@ -253,6 +253,13 @@ const budgetData: BudgetCategory[] = [
       { name: '人在传感器', budget: 300, actual: null, remark: null },
     ],
   },
+  {
+    key: 'other',
+    name: '其他',
+    items: [
+      { name: '抽拉式数显水龙头', budget: 700, actual: null, remark: null },
+    ],
+  },
 ]
 
 // ====== 工具函数 ======
@@ -293,6 +300,7 @@ function categoryBarClass(key: string): string {
     furniture: 'bg-emerald-500',
     appliance: 'bg-violet-500',
     smart: 'bg-rose-500',
+    other: 'bg-amber-500',
   }
   return map[key] || 'bg-gray-400'
 }
@@ -304,6 +312,7 @@ function categoryBadgeClass(key: string): string {
     furniture: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
     appliance: 'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
     smart: 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+    other: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
   }
   return map[key] || ''
 }
@@ -315,6 +324,7 @@ function categoryHeaderBgClass(key: string): string {
     furniture: 'bg-emerald-50/60 dark:bg-emerald-900/15',
     appliance: 'bg-violet-50/60 dark:bg-violet-900/15',
     smart: 'bg-rose-50/60 dark:bg-rose-900/15',
+    other: 'bg-amber-50/60 dark:bg-amber-900/15',
   }
   return map[key] || 'bg-gray-50 dark:bg-gray-800/80'
 }
@@ -326,6 +336,7 @@ function categorySubtotalBgClass(key: string): string {
     furniture: 'bg-emerald-50/50 dark:bg-emerald-900/10',
     appliance: 'bg-violet-50/50 dark:bg-violet-900/10',
     smart: 'bg-rose-50/50 dark:bg-rose-900/10',
+    other: 'bg-amber-50/50 dark:bg-amber-900/10',
   }
   return map[key] || ''
 }
@@ -337,6 +348,7 @@ function categorySubtotalTextClass(key: string): string {
     furniture: 'text-emerald-700 dark:text-emerald-300',
     appliance: 'text-violet-700 dark:text-violet-300',
     smart: 'text-rose-700 dark:text-rose-300',
+    other: 'text-amber-700 dark:text-amber-300',
   }
   return map[key] || ''
 }
@@ -398,6 +410,6 @@ const summary = computed(() => {
 // ====== SEO ======
 useSeoMeta({
   title: '成本预算 - 装修',
-  description: '装修成本预算明细表，包含局改、硬装、家私、家电、全屋智能五大分类',
+  description: '装修成本预算明细表，包含局改、硬装、家私、家电、全屋智能、其他六大分类',
 })
 </script>
