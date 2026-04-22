@@ -184,8 +184,10 @@ function measureLines() {
     }
 
     // 用 canvas measureText 测量实际像素宽度（比 layoutNextLine 更可靠）
-    ctx.font = line.font
-    line.measuredWidth = ctx.measureText(line.text).width + 80
+    if (ctx) {
+      ctx.font = line.font
+      line.measuredWidth = ctx.measureText(line.text).width + 80
+    }
   }
 }
 
@@ -416,41 +418,73 @@ function handleResize() {
 
 // ====== 生命周期 ======
 onMounted(() => {
-  const canvas = canvasRef.value
-  if (!canvas) return
-  const dpr = window.devicePixelRatio || 1
-  canvasW = window.innerWidth
-  canvasH = window.innerHeight
-  canvas.width = canvasW * dpr
-  canvas.height = canvasH * dpr
-  canvas.style.width = `${canvasW}px`
-  canvas.style.height = `${canvasH}px`
-  ctx = canvas.getContext('2d')
-  // 不在这里 scale！drawFrame 每帧用 setTransform 重置
-
-  // 先用估算值设置初始居中位置（此时按钮还是 opacity:0 不可见）
-  const { w, h } = estimateBtnSize()
-  btnLeft.value = (canvasW - w) / 2
-  btnTop.value = (canvasH - h) / 2
-
-  initLines()
-  measureLines()
-
-  // 初始化按钮位置（居中）+ 缓存 + 启动动画
-  nextTick(() => {
-    updateBtnCache()
-    animId = requestAnimationFrame(drawFrame)
-    // 下一帧再显示，避免左上角闪烁
-    requestAnimationFrame(() => {
+  // 兜底：无论如何 500ms 后强制显示按钮（防止任何异常导致永久黑屏）
+  const fallbackTimer = setTimeout(() => {
+    if (!btnVisible.value) {
       btnVisible.value = true
-    })
-    // 动画结束后（0.6s）用真实尺寸更新缓存
-    setTimeout(() => {
-      updateBtnCache()
-    }, 700)
-  })
+      // 如果按钮位置还在 -9999，尝试居中
+      if (btnLeft.value === -9999) {
+        btnLeft.value = (window.innerWidth - 243) / 2
+        btnTop.value = (window.innerHeight - 52) / 2
+      }
+    }
+  }, 500)
 
-  window.addEventListener('resize', handleResize)
+  try {
+    const canvas = canvasRef.value
+    if (!canvas) return
+
+    const dpr = window.devicePixelRatio || 1
+    // 微信 WebView 里 innerHeight 有时为 0，兜底用 document.documentElement.clientHeight
+    canvasW = window.innerWidth || document.documentElement.clientWidth || 375
+    canvasH = window.innerHeight || document.documentElement.clientHeight || 667
+    canvas.width = canvasW * dpr
+    canvas.height = canvasH * dpr
+    canvas.style.width = `${canvasW}px`
+    canvas.style.height = `${canvasH}px`
+    ctx = canvas.getContext('2d')
+
+    // ctx 获取失败：直接显示按钮，跳过 Canvas 动画
+    if (!ctx) {
+      const { w, h } = estimateBtnSize()
+      btnLeft.value = (canvasW - w) / 2
+      btnTop.value = (canvasH - h) / 2
+      btnVisible.value = true
+      clearTimeout(fallbackTimer)
+      return
+    }
+
+    // 先用估算值设置初始居中位置（此时按钮还是 opacity:0 不可见）
+    const { w, h } = estimateBtnSize()
+    btnLeft.value = (canvasW - w) / 2
+    btnTop.value = (canvasH - h) / 2
+
+    initLines()
+    measureLines()
+
+    // 初始化按钮位置（居中）+ 缓存 + 启动动画
+    nextTick(() => {
+      updateBtnCache()
+      animId = requestAnimationFrame(drawFrame)
+      // 下一帧再显示，避免左上角闪烁
+      requestAnimationFrame(() => {
+        btnVisible.value = true
+        clearTimeout(fallbackTimer)
+      })
+      // 动画结束后（0.6s）用真实尺寸更新缓存
+      setTimeout(() => {
+        updateBtnCache()
+      }, 700)
+    })
+
+    window.addEventListener('resize', handleResize)
+  } catch (e) {
+    // 任何异常：直接显示按钮
+    btnLeft.value = (window.innerWidth - 243) / 2
+    btnTop.value = (window.innerHeight - 52) / 2
+    btnVisible.value = true
+    clearTimeout(fallbackTimer)
+  }
 })
 
 onUnmounted(() => {
@@ -467,6 +501,7 @@ onUnmounted(() => {
   overflow: hidden;
   background: #0d1117;
   user-select: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bg-canvas {
