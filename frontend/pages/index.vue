@@ -113,12 +113,12 @@ function updateBtnCache() {
 function estimateBtnSize(): { w: number; h: number } {
   if (typeof window !== 'undefined' && window.innerWidth < 768) {
     // 移动端: padding 14px 32px, font-size 15px
-    // 宽度 ≈ 32 + text(~75px) + 32 ≈ 139, 高度 ≈ 14 + 15*1.2 + 14 ≈ 46
-    return { w: 139, h: 46 }
+    // 「🏠 fatwill 的小屋」宽度 ≈ 32 + text(~130px) + 32 ≈ 194, 高度 ≈ 46
+    return { w: 194, h: 46 }
   }
   // 桌面端: padding 16px 44px, font-size 17px
-  // 宽度 ≈ 44 + text(~85px) + 44 ≈ 173, 高度 ≈ 16 + 17*1.2 + 16 ≈ 52
-  return { w: 173, h: 52 }
+  // 「🏠 fatwill 的小屋」宽度 ≈ 44 + text(~155px) + 44 ≈ 243, 高度 ≈ 52
+  return { w: 243, h: 52 }
 }
 
 // 根据屏幕宽度判断是否为移动端，动态调整参数
