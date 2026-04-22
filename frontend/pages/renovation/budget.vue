@@ -73,6 +73,15 @@
             <span class="text-xs text-gray-400 dark:text-gray-500">
               （{{ category.items.length }} 项，预算 {{ formatMoney(categoryBudgetSum(category)) }}）
             </span>
+            <button
+              class="ml-auto flex h-6 w-6 items-center justify-center rounded-md text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-500 dark:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              title="下载该分类截图"
+              @click="downloadCategory(category)"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            </button>
           </div>
 
           <!-- 表格 -->
@@ -164,6 +173,27 @@
         差额 = 预算 − 实际支出 · 绿色为节省 · 红色为超支 · 数据更新于 2026 年 4 月
       </p>
     </main>
+
+    <!-- 右下角悬浮按钮 -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+      <button
+        class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-white shadow-lg transition-all hover:scale-110 hover:bg-gray-700 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300"
+        title="分享"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+        </svg>
+      </button>
+      <button
+        class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-white shadow-lg transition-all hover:scale-110 hover:bg-gray-700 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300"
+        title="下载预算图片"
+        @click="downloadAll"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        </svg>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -407,6 +437,396 @@ const summary = computed(() => {
 
   return { totalBudget, totalActual, totalDiff }
 })
+
+// ====== Canvas 绘制 & 下载 ======
+import QRCode from 'qrcode'
+
+const AVATAR_URL = 'https://assets.fatwill.cloud/uploads/1775045182650-e9d2upw9.jpeg'
+const QR_URL = 'https://fatwill.cloud/renovation/budget'
+const IMG_WIDTH = 900
+const DPR = 2 // 高清渲染
+
+// 分类颜色映射（用于 Canvas 绘制）
+const categoryColors: Record<string, { main: string; light: string; text: string }> = {
+  partial: { main: '#3b82f6', light: '#eff6ff', text: '#1e40af' },
+  hard: { main: '#f97316', light: '#fff7ed', text: '#9a3412' },
+  furniture: { main: '#10b981', light: '#ecfdf5', text: '#065f46' },
+  appliance: { main: '#8b5cf6', light: '#f5f3ff', text: '#5b21b6' },
+  smart: { main: '#f43f5e', light: '#fff1f2', text: '#9f1239' },
+  other: { main: '#f59e0b', light: '#fffbeb', text: '#92400e' },
+}
+
+/** 生成二维码 Canvas */
+async function generateQRCode(url: string, size: number): Promise<HTMLCanvasElement> {
+  const canvas = document.createElement('canvas')
+  await QRCode.toCanvas(canvas, url, {
+    width: size,
+    margin: 1,
+    color: { dark: '#333333', light: '#ffffff' },
+  })
+  return canvas
+}
+
+/** 加载图片（带跨域处理） */
+function loadImage(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = url
+  })
+}
+
+/** 绘制圆形图片 */
+function drawCircleImage(ctx: CanvasRenderingContext2D, img: HTMLImageElement | null, x: number, y: number, size: number) {
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2)
+  ctx.closePath()
+  ctx.clip()
+  if (img) {
+    ctx.drawImage(img, x, y, size, size)
+  } else {
+    // 兜底灰色圆形
+    ctx.fillStyle = '#d1d5db'
+    ctx.fillRect(x, y, size, size)
+  }
+  ctx.restore()
+}
+
+/** 绘制圆角矩形 */
+function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.arcTo(x + w, y, x + w, y + r, r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h)
+  ctx.arcTo(x, y + h, x, y + h - r, r)
+  ctx.lineTo(x, y + r)
+  ctx.arcTo(x, y, x + r, y, r)
+  ctx.closePath()
+}
+
+/** 纯金额数字（不含¥） */
+function moneyNum(value: number): string {
+  return value.toLocaleString('zh-CN')
+}
+
+/** 核心绘制函数 */
+async function generateBudgetImage(categories: BudgetCategory[], title: string, subtitle: string): Promise<void> {
+  // 预加载资源
+  const [avatarImg, qrCanvas] = await Promise.all([
+    loadImage(AVATAR_URL),
+    generateQRCode(QR_URL, 80 * DPR),
+  ])
+
+  // 计算画布高度
+  const headerH = 80
+  const catTitleH = 40
+  const tableHeaderH = 32
+  const rowH = 30
+  const catGap = 20
+  const footerH = 100
+  const padding = 32
+
+  let contentH = headerH + padding
+  for (const cat of categories) {
+    contentH += catTitleH + tableHeaderH + cat.items.length * rowH + rowH /* 小计 */ + catGap
+  }
+  contentH += footerH + padding
+
+  const canvas = document.createElement('canvas')
+  canvas.width = IMG_WIDTH * DPR
+  canvas.height = contentH * DPR
+  const ctx = canvas.getContext('2d')!
+  ctx.scale(DPR, DPR)
+
+  // 白色背景
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, IMG_WIDTH, contentH)
+
+  // ---- Header ----
+  ctx.fillStyle = '#f8f9fa'
+  ctx.fillRect(0, 0, IMG_WIDTH, headerH)
+  // 底部分割线
+  ctx.strokeStyle = '#e5e7eb'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, headerH)
+  ctx.lineTo(IMG_WIDTH, headerH)
+  ctx.stroke()
+
+  // 头像
+  const avatarSize = 48
+  const avatarX = padding
+  const avatarY = (headerH - avatarSize) / 2
+  drawCircleImage(ctx, avatarImg, avatarX, avatarY, avatarSize)
+
+  // 标题
+  ctx.fillStyle = '#111827'
+  ctx.font = 'bold 18px "PingFang SC", "Microsoft YaHei", sans-serif'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(title, avatarX + avatarSize + 14, headerH / 2 - 10)
+
+  // 副标题
+  ctx.fillStyle = '#9ca3af'
+  ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif'
+  ctx.fillText(subtitle, avatarX + avatarSize + 14, headerH / 2 + 12)
+
+  // 日期
+  const today = new Date().toISOString().slice(0, 10)
+  ctx.fillStyle = '#9ca3af'
+  ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif'
+  ctx.textAlign = 'right'
+  ctx.fillText(today, IMG_WIDTH - padding, headerH / 2)
+  ctx.textAlign = 'left'
+
+  // ---- 表格区域 ----
+  let curY = headerH + padding
+  const colWidths = [240, 130, 130, 130, 206] // 项目名称、预算、实际支出、差额、备注
+  const tableX = padding
+  const tableW = IMG_WIDTH - padding * 2
+
+  for (const cat of categories) {
+    const colors = categoryColors[cat.key] || categoryColors.other
+
+    // 分类标题行
+    drawRoundRect(ctx, tableX, curY, tableW, catTitleH, 8)
+    ctx.fillStyle = colors.light
+    ctx.fill()
+    // 左侧色条
+    ctx.fillStyle = colors.main
+    drawRoundRect(ctx, tableX, curY, 4, catTitleH, 2)
+    ctx.fill()
+    // 分类名
+    ctx.fillStyle = colors.text
+    ctx.font = 'bold 14px "PingFang SC", "Microsoft YaHei", sans-serif'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(cat.name, tableX + 16, curY + catTitleH / 2)
+    // 小计金额
+    const catBudget = categoryBudgetSum(cat)
+    ctx.fillStyle = '#6b7280'
+    ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif'
+    ctx.textAlign = 'right'
+    ctx.fillText(`${cat.items.length} 项 · 预算 ¥${moneyNum(catBudget)}`, tableX + tableW - 12, curY + catTitleH / 2)
+    ctx.textAlign = 'left'
+    curY += catTitleH
+
+    // 表头
+    ctx.fillStyle = '#f9fafb'
+    ctx.fillRect(tableX, curY, tableW, tableHeaderH)
+    ctx.strokeStyle = '#e5e7eb'
+    ctx.lineWidth = 0.5
+    ctx.beginPath()
+    ctx.moveTo(tableX, curY + tableHeaderH)
+    ctx.lineTo(tableX + tableW, curY + tableHeaderH)
+    ctx.stroke()
+
+    const headers = ['项目名称', '预算', '实际支出', '差额', '备注']
+    ctx.fillStyle = '#6b7280'
+    ctx.font = 'bold 11px "PingFang SC", "Microsoft YaHei", sans-serif'
+    ctx.textBaseline = 'middle'
+    let colX = tableX + 12
+    for (let i = 0; i < headers.length; i++) {
+      if (i >= 1 && i <= 3) {
+        ctx.textAlign = 'right'
+        ctx.fillText(headers[i], colX + colWidths[i] - 12, curY + tableHeaderH / 2)
+        ctx.textAlign = 'left'
+      } else {
+        ctx.fillText(headers[i], colX, curY + tableHeaderH / 2)
+      }
+      colX += colWidths[i]
+    }
+    curY += tableHeaderH
+
+    // 数据行
+    for (let ri = 0; ri < cat.items.length; ri++) {
+      const item = cat.items[ri]
+      // 斑马纹
+      if (ri % 2 === 1) {
+        ctx.fillStyle = '#f9fafb'
+        ctx.fillRect(tableX, curY, tableW, rowH)
+      }
+      // 底部线
+      ctx.strokeStyle = '#f3f4f6'
+      ctx.lineWidth = 0.5
+      ctx.beginPath()
+      ctx.moveTo(tableX, curY + rowH)
+      ctx.lineTo(tableX + tableW, curY + rowH)
+      ctx.stroke()
+
+      ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif'
+      ctx.textBaseline = 'middle'
+      const midY = curY + rowH / 2
+      colX = tableX + 12
+
+      // 项目名称
+      ctx.fillStyle = '#111827'
+      ctx.fillText(item.name, colX, midY)
+      colX += colWidths[0]
+
+      // 预算
+      ctx.fillStyle = '#374151'
+      ctx.textAlign = 'right'
+      ctx.fillText(`¥${moneyNum(item.budget)}`, colX + colWidths[1] - 12, midY)
+      colX += colWidths[1]
+
+      // 实际支出
+      if (item.actual !== null) {
+        ctx.fillStyle = item.actual > item.budget ? '#dc2626' : '#059669'
+        ctx.fillText(`¥${moneyNum(item.actual)}`, colX + colWidths[2] - 12, midY)
+      } else {
+        ctx.fillStyle = '#d1d5db'
+        ctx.fillText('—', colX + colWidths[2] - 12, midY)
+      }
+      colX += colWidths[2]
+
+      // 差额
+      if (item.actual !== null) {
+        const diff = item.budget - item.actual
+        if (diff > 0) {
+          ctx.fillStyle = '#059669'
+          ctx.fillText(`¥${moneyNum(diff)}`, colX + colWidths[3] - 12, midY)
+        } else if (diff < 0) {
+          ctx.fillStyle = '#dc2626'
+          ctx.fillText(`-¥${moneyNum(Math.abs(diff))}`, colX + colWidths[3] - 12, midY)
+        } else {
+          ctx.fillStyle = '#6b7280'
+          ctx.fillText('¥0', colX + colWidths[3] - 12, midY)
+        }
+      } else {
+        ctx.fillStyle = '#d1d5db'
+        ctx.fillText('—', colX + colWidths[3] - 12, midY)
+      }
+      colX += colWidths[3]
+
+      // 备注
+      ctx.textAlign = 'left'
+      ctx.fillStyle = '#9ca3af'
+      ctx.fillText(item.remark || '—', colX, midY)
+
+      curY += rowH
+    }
+
+    // 小计行
+    ctx.fillStyle = colors.light
+    ctx.fillRect(tableX, curY, tableW, rowH)
+    ctx.strokeStyle = '#e5e7eb'
+    ctx.lineWidth = 0.5
+    ctx.beginPath()
+    ctx.moveTo(tableX, curY)
+    ctx.lineTo(tableX + tableW, curY)
+    ctx.stroke()
+
+    ctx.font = 'bold 12px "PingFang SC", "Microsoft YaHei", sans-serif'
+    ctx.textBaseline = 'middle'
+    const subMidY = curY + rowH / 2
+    colX = tableX + 12
+
+    // 小计文字
+    ctx.fillStyle = colors.text
+    ctx.fillText('小计', colX, subMidY)
+    colX += colWidths[0]
+
+    // 预算小计
+    ctx.fillStyle = '#374151'
+    ctx.textAlign = 'right'
+    ctx.fillText(`¥${moneyNum(catBudget)}`, colX + colWidths[1] - 12, subMidY)
+    colX += colWidths[1]
+
+    // 实际支出小计
+    const catActual = categoryActualSum(cat)
+    if (catActual > 0) {
+      ctx.fillStyle = catActual > catBudget ? '#dc2626' : '#059669'
+      ctx.fillText(`¥${moneyNum(catActual)}`, colX + colWidths[2] - 12, subMidY)
+    } else {
+      ctx.fillStyle = '#d1d5db'
+      ctx.fillText('—', colX + colWidths[2] - 12, subMidY)
+    }
+    colX += colWidths[2]
+
+    // 差额小计
+    if (catActual > 0) {
+      const catDiff = catBudget - catActual
+      if (catDiff > 0) {
+        ctx.fillStyle = '#059669'
+        ctx.fillText(`¥${moneyNum(catDiff)}`, colX + colWidths[3] - 12, subMidY)
+      } else if (catDiff < 0) {
+        ctx.fillStyle = '#dc2626'
+        ctx.fillText(`-¥${moneyNum(Math.abs(catDiff))}`, colX + colWidths[3] - 12, subMidY)
+      } else {
+        ctx.fillStyle = '#6b7280'
+        ctx.fillText('¥0', colX + colWidths[3] - 12, subMidY)
+      }
+    } else {
+      ctx.fillStyle = '#d1d5db'
+      ctx.fillText('—', colX + colWidths[3] - 12, subMidY)
+    }
+    ctx.textAlign = 'left'
+
+    curY += rowH + catGap
+  }
+
+  // ---- Footer ----
+  const footerY = curY
+  ctx.fillStyle = '#f8f9fa'
+  ctx.fillRect(0, footerY, IMG_WIDTH, footerH)
+  ctx.strokeStyle = '#e5e7eb'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, footerY)
+  ctx.lineTo(IMG_WIDTH, footerY)
+  ctx.stroke()
+
+  // 总预算 / 已支出
+  let totalBudget = 0
+  let totalActual = 0
+  for (const cat of categories) {
+    totalBudget += categoryBudgetSum(cat)
+    totalActual += categoryActualSum(cat)
+  }
+
+  ctx.font = 'bold 14px "PingFang SC", "Microsoft YaHei", sans-serif'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#111827'
+  ctx.fillText(`总预算  ¥${moneyNum(totalBudget)}`, padding, footerY + footerH / 2 - 12)
+
+  ctx.fillStyle = totalActual > totalBudget ? '#dc2626' : '#059669'
+  ctx.font = 'bold 13px "PingFang SC", "Microsoft YaHei", sans-serif'
+  ctx.fillText(`已支出  ¥${moneyNum(totalActual)}`, padding, footerY + footerH / 2 + 12)
+
+  // 二维码
+  const qrSize = 70
+  const qrX = IMG_WIDTH - padding - qrSize
+  const qrY = footerY + (footerH - qrSize - 14) / 2
+  ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize)
+
+  // 二维码下方文字
+  ctx.fillStyle = '#9ca3af'
+  ctx.font = '9px "PingFang SC", "Microsoft YaHei", sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('扫码查看详情', qrX + qrSize / 2, qrY + qrSize + 11)
+  ctx.textAlign = 'left'
+
+  // 下载
+  const link = document.createElement('a')
+  link.download = `${title.replace(/\s/g, '_')}.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+}
+
+/** 下载全部 */
+async function downloadAll(): Promise<void> {
+  await generateBudgetImage(budgetData, 'fatwill 的预算', '装修成本预算清单')
+}
+
+/** 下载单个分类 */
+async function downloadCategory(cat: BudgetCategory): Promise<void> {
+  await generateBudgetImage([cat], `fatwill 的预算 · ${cat.name}`, `${cat.name}成本明细`)
+}
 
 // ====== SEO ======
 useSeoMeta({
