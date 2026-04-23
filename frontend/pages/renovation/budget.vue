@@ -314,6 +314,7 @@ const budgetData: BudgetCategory[] = [
       { name: '扫地机', budget: 5500, actual: null, remark: null },
       { name: '洗地机', budget: 3000, actual: null, remark: null },
       { name: '智能锁', budget: 2500, actual: null, remark: null },
+      { name: '电动晾衣架', budget: 1000, actual: null, remark: null },
     ],
   },
   {
