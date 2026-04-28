@@ -314,7 +314,6 @@ const budgetData: BudgetCategory[] = [
       { name: '智能锁', budget: 2500, actual: null, remark: null },
       { name: '电动晾衣架', budget: 1500, actual: null, remark: null },
       { name: '智能马桶', budget: 5000, actual: null, remark: null },
-      { name: '淋浴系统', budget: 2500, actual: null, remark: null },
     ],
   },
   {
@@ -336,6 +335,7 @@ const budgetData: BudgetCategory[] = [
     items: [
       { name: '抽拉式数显水龙头', budget: 700, actual: null, remark: null },
       { name: '验房', budget: 230, actual: null, remark: null },
+      { name: '淋浴系统', budget: 2500, actual: null, remark: null },
     ],
   },
 ]
