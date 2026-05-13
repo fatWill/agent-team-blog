@@ -19,6 +19,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/renovation"
 	"github.com/fatWill/agent-team-blog/backend/internal/theme"
 	"github.com/fatWill/agent-team-blog/backend/internal/upload"
+	"github.com/fatWill/agent-team-blog/backend/internal/wechat"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/fatWill/agent-team-blog/backend/pkg/ipgeo"
 	"github.com/fatWill/agent-team-blog/backend/pkg/middleware"
@@ -208,6 +209,12 @@ func registerRoutes(api *gin.RouterGroup) {
 		materialGroup.PUT("/:id", authMW, material.UpdateMaterial)
 		materialGroup.DELETE("/:id", authMW, material.DeleteMaterial)
 		materialGroup.PUT("/:id/sort", authMW, material.UpdateMaterialSort)
+	}
+
+	// ========== 微信 JS-SDK ==========
+	wechatGroup := api.Group("/wechat")
+	{
+		wechatGroup.GET("/jssdk-config", wechat.GetJSSDKConfig)
 	}
 
 	// ========== 更新日志 ==========
