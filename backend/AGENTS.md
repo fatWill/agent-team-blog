@@ -101,6 +101,7 @@ backend/
 | changelog | `internal/changelog/` | 更新日志查询 | — |
 | theme | `internal/theme/` | 主题偏好 | → `upload.RandomString` |
 | pv | `internal/pv/` | PV/UV 统计、访问日志 | → `pkg/middleware.GetClientIP`、`pkg/rds` |
+| wechat | `internal/wechat/` | 微信 JS-SDK 签名 | → `pkg/rds` |
 
 ## 路由注册表（完整 API 清单）
 
@@ -186,6 +187,12 @@ backend/
 |------|------|------|---------|------|
 | GET | `/api/changelog` | ❌ | `changelog.GetChangelog` | 更新日志列表（按 id DESC） |
 
+### 微信 JS-SDK (`/api/wechat`)
+
+| 方法 | 路径 | 鉴权 | Handler | 说明 |
+|------|------|------|---------|------|
+| GET | `/api/wechat/jssdk-config` | ❌ | `wechat.GetJSSDKConfig` | 获取 JS-SDK 签名配置（传入 url 参数） |
+
 ### PV/UV 统计 (`/api/pv`)
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
@@ -226,6 +233,8 @@ backend/
 | `auth_token:{token}` | 30 天（滚动续期） | Redis | 用户登录态 |
 | `theme:{uid}` | 30 天 | Redis | 用户主题偏好（light/dark） |
 | `pv:{device_id}:{path}` | 60 秒 | Redis | PV 上报防刷（同设备+同路径 60s 去重） |
+| `wechat:access_token` | 7000 秒 | Redis | 微信 access_token 缓存（微信有效期 7200s） |
+| `wechat:jsapi_ticket` | 7000 秒 | Redis | 微信 jsapi_ticket 缓存（微信有效期 7200s） |
 
 > IP 限频使用**内存 Map**（`pkg/middleware/middleware.go`），非 Redis。每 5 分钟清理过期条目。
 
@@ -249,6 +258,8 @@ backend/
 | `COS_REGION` | `ap-guangzhou` | COS 地域 |
 | `COS_BASE_URL` | `https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | COS 原始域名（SDK 内部使用） |
 | `COS_CUSTOM_DOMAIN` | `https://assets.fatwill.cloud` | 自定义域名（返回给前端的图片 URL） |
+| `WECHAT_APP_ID` | *(必填)* | 微信公众号 AppID |
+| `WECHAT_APP_SECRET` | *(必填)* | 微信公众号 AppSecret |
 
 ## 部署信息
 
@@ -288,6 +299,8 @@ refactor(backend agent): 简要描述
 - `logs`：JSON 数组，每条 ≤20 字，最多 5 条
 
 ## 变更日志
+
+- 2026-05-13: **新增微信 JS-SDK 签名接口** — `GET /api/wechat/jssdk-config`，Redis 缓存 access_token 和 jsapi_ticket（7000s TTL），SHA1 签名生成；服务器环境变量新增 `WECHAT_APP_ID` / `WECHAT_APP_SECRET`
 
 - 2026-04-06: **新增 PV/UV 统计功能** — 上报访问记录、趋势查询、Top5 页面、访问日志列表、统计概览；Redis 60s 防刷；UA 解析设备/浏览器/OS
 - 2026-04-05: **图片 URL 切换为自定义域名** — 新增 `COS_CUSTOM_DOMAIN` 环境变量，上传返回 URL 使用 `assets.fatwill.cloud`；`DeleteFromCOS` 兼容两种域名
