@@ -253,6 +253,23 @@ const loading = ref(!articleData.value)
 const error = ref(false)
 const articleContentRef = ref<HTMLElement | null>(null)
 
+// ====== OG Meta 标签（SSR 阶段即可输出，兜底微信分享卡片） ======
+const defaultOgImage = 'https://fatwill.cloud/og-default.png'
+const articleUrl = computed(() => `https://fatwill.cloud/articles/${route.params.id}`)
+
+useSeoMeta({
+  title: () => articleData.value?.title ? `${articleData.value.title} - fatwill 的小屋` : 'fatwill 的小屋',
+  ogTitle: () => articleData.value?.title || 'fatwill 的小屋',
+  ogDescription: () => articleData.value?.summary || '点击查看全文',
+  ogImage: () => articleData.value?.coverImage ? toWebpUrl(articleData.value.coverImage) : defaultOgImage,
+  ogUrl: articleUrl,
+  ogType: 'article',
+  twitterCard: 'summary_large_image',
+  twitterTitle: () => articleData.value?.title || 'fatwill 的小屋',
+  twitterDescription: () => articleData.value?.summary || '点击查看全文',
+  twitterImage: () => articleData.value?.coverImage ? toWebpUrl(articleData.value.coverImage) : defaultOgImage,
+})
+
 // ====== SSR 预渲染 HTML ======
 const editorReady = ref(false)
 
@@ -624,6 +641,15 @@ onMounted(() => {
         buildToc()
         nextTick(() => setupTocObserver())
       })
+    })
+
+    // 微信 JS-SDK 分享配置
+    const { initWechatShare } = useWechatShare()
+    initWechatShare({
+      title: article.value.title,
+      desc: article.value.summary || '点击查看全文',
+      link: window.location.href.split('#')[0],
+      imgUrl: article.value.coverImage ? toWebpUrl(article.value.coverImage) : defaultOgImage,
     })
   } else {
     loadArticle()

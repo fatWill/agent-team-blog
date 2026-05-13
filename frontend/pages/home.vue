@@ -1004,6 +1004,15 @@ const randomLoading = ref(false)
 const router = useRouter()
 const route = useRoute()
 
+// ====== 首页 OG Meta 标签（静态，兜底微信分享卡片） ======
+useSeoMeta({
+  ogTitle: 'fatwill 的小屋',
+  ogDescription: 'fatwill 的小屋 — 分享技术与生活',
+  ogImage: 'https://fatwill.cloud/og-default.png',
+  ogUrl: 'https://fatwill.cloud/articles',
+  ogType: 'website',
+})
+
 async function handleRandomArticle() {
   randomLoading.value = true
   try {
