@@ -354,6 +354,8 @@ const budgetData: BudgetCategory[] = [
       { name: 'NAS', budget: 0, actual: 2238.11, remark: null },
       { name: '硬盘4T', budget: 0, actual: 1262.80, remark: null },
       { name: '冰箱内嵌插座', budget: 0, actual: 21.60, remark: null },
+      { name: '洗手台保护性拆除', budget: 0, actual: 100, remark: null },
+      { name: '铝槽', budget: 0, actual: 70, remark: null },
     ],
   },
 ]
