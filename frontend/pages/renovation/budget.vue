@@ -339,6 +339,23 @@ const budgetData: BudgetCategory[] = [
       { name: '淋浴系统', budget: 2500, actual: 1082.24, remark: null },
     ],
   },
+  {
+    key: 'extra',
+    name: '额外支出',
+    items: [
+      { name: '公牛轨道插座', budget: 0, actual: 1008.72, remark: null },
+      { name: '洗衣液', budget: 0, actual: 100.20, remark: null },
+      { name: '灯带', budget: 0, actual: 168.30, remark: null },
+      { name: '小米室外摄像头4', budget: 0, actual: 190.33, remark: null },
+      { name: '小米摄像头4pro', budget: 0, actual: 247.07, remark: null },
+      { name: '洗碗粉三件套', budget: 0, actual: 207.29, remark: null },
+      { name: '纸巾', budget: 0, actual: 169.75, remark: null },
+      { name: 'UPS', budget: 0, actual: 385.23, remark: null },
+      { name: 'NAS', budget: 0, actual: 2238.11, remark: null },
+      { name: '硬盘4T', budget: 0, actual: 1262.80, remark: null },
+      { name: '冰箱内嵌插座', budget: 0, actual: 21.60, remark: null },
+    ],
+  },
 ]
 
 // ====== 工具函数 ======
@@ -380,6 +397,7 @@ function categoryBarClass(key: string): string {
     appliance: 'bg-violet-500',
     smart: 'bg-rose-500',
     other: 'bg-amber-500',
+    extra: 'bg-cyan-500',
   }
   return map[key] || 'bg-gray-400'
 }
@@ -392,6 +410,7 @@ function categoryBadgeClass(key: string): string {
     appliance: 'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
     smart: 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
     other: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+    extra: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
   }
   return map[key] || ''
 }
@@ -404,6 +423,7 @@ function categoryHeaderBgClass(key: string): string {
     appliance: 'bg-violet-50/60 dark:bg-violet-900/15',
     smart: 'bg-rose-50/60 dark:bg-rose-900/15',
     other: 'bg-amber-50/60 dark:bg-amber-900/15',
+    extra: 'bg-cyan-50/60 dark:bg-cyan-900/15',
   }
   return map[key] || 'bg-gray-50 dark:bg-gray-800/80'
 }
@@ -416,6 +436,7 @@ function categorySubtotalBgClass(key: string): string {
     appliance: 'bg-violet-50/50 dark:bg-violet-900/10',
     smart: 'bg-rose-50/50 dark:bg-rose-900/10',
     other: 'bg-amber-50/50 dark:bg-amber-900/10',
+    extra: 'bg-cyan-50/50 dark:bg-cyan-900/10',
   }
   return map[key] || ''
 }
@@ -428,6 +449,7 @@ function categorySubtotalTextClass(key: string): string {
     appliance: 'text-violet-700 dark:text-violet-300',
     smart: 'text-rose-700 dark:text-rose-300',
     other: 'text-amber-700 dark:text-amber-300',
+    extra: 'text-cyan-700 dark:text-cyan-300',
   }
   return map[key] || ''
 }
