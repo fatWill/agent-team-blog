@@ -170,7 +170,7 @@
 
       <!-- 底部说明 -->
       <p class="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
-        差额 = 预算 − 实际支出 · 绿色为节省 · 红色为超支 · 数据更新于 2026 年 4 月
+        差额 = 预算 − 实际支出 · 绿色为节省 · 红色为超支 · 数据更新于 2026 年 6 月
       </p>
     </main>
 
@@ -277,23 +277,23 @@ const budgetData: BudgetCategory[] = [
     name: '硬装',
     items: [
       { name: '艺术漆', budget: 6800, actual: 6800, remark: '光明京东家居（义峰）' },
-      { name: '美缝', budget: 2000, actual: null, remark: null },
+      { name: '美缝', budget: 2000, actual: 1700, remark: null },
       { name: '全屋定制', budget: 35000, actual: null, remark: null },
-      { name: '阳台柜+防护网+花台', budget: 5500, actual: null, remark: null },
-      { name: '完美系统三联轨', budget: 4000, actual: null, remark: null },
-      { name: '全屋纱窗', budget: 1500, actual: null, remark: null },
-      { name: '换门', budget: 800, actual: null, remark: null },
+{ name: '阳台柜+防护网+花台', budget: 5500, actual: 5800, remark: null },
+      { name: '完美系统三联轨', budget: 4000, actual: 3700, remark: null },
+      { name: '全屋纱窗', budget: 1500, actual: 1500, remark: null },
+      { name: '换门', budget: 800, actual: 0, remark: null },
     ],
   },
   {
     key: 'furniture',
     name: '家私',
     items: [
-      { name: '沙发', budget: 4000, actual: null, remark: null },
+      { name: '沙发', budget: 4000, actual: 3230.85, remark: null },
       { name: '床垫×3', budget: 5000, actual: null, remark: null },
-      { name: '次卧小桌子', budget: 1500, actual: null, remark: null },
-      { name: '主卧大桌子', budget: 2000, actual: null, remark: null },
-      { name: '电视地柜', budget: 2000, actual: null, remark: null },
+      { name: '次卧小桌子', budget: 1500, actual: 0, remark: null },
+      { name: '主卧大桌子', budget: 2000, actual: 0, remark: null },
+      { name: '电视地柜', budget: 2000, actual: 832.37, remark: null },
       { name: '餐厅桌椅', budget: 250, actual: null, remark: null },
       { name: '窗帘', budget: 2000, actual: null, remark: null },
       { name: '主卧椅子', budget: 1000, actual: null, remark: null },
@@ -309,24 +309,24 @@ const budgetData: BudgetCategory[] = [
       { name: '冰箱', budget: 6500, actual: null, remark: null },
       { name: '洗碗机', budget: 8000, actual: null, remark: null },
       { name: '直饮机', budget: 8000, actual: null, remark: null },
-      { name: '零冷水', budget: 1000, actual: null, remark: '回流泵' },
-      { name: '全屋净水', budget: 2000, actual: null, remark: '大白瓶' },
+      { name: '零冷水', budget: 1000, actual: 0, remark: '回流泵' },
+      { name: '全屋净水', budget: 2000, actual: 0, remark: '大白瓶' },
       { name: '扫地机', budget: 5500, actual: null, remark: null },
-      { name: '智能锁', budget: 2500, actual: null, remark: null },
-      { name: '电动晾衣架', budget: 1500, actual: null, remark: null },
-      { name: '智能马桶', budget: 5000, actual: null, remark: null },
+      { name: '智能锁', budget: 2500, actual: 1660.80, remark: null },
+      { name: '电动晾衣架', budget: 1500, actual: 1040.82, remark: null },
+      { name: '智能马桶', budget: 5000, actual: 2616.60, remark: null },
     ],
   },
   {
     key: 'smart',
     name: '全屋智能',
     items: [
-      { name: '智能灯', budget: 3000, actual: null, remark: null },
-      { name: '电动窗帘', budget: 2000, actual: null, remark: null },
-      { name: '智能开关', budget: 1000, actual: null, remark: null },
-      { name: '空调伴侣', budget: 200, actual: null, remark: null },
-      { name: '网关', budget: 800, actual: null, remark: null },
-      { name: '路由器', budget: 800, actual: null, remark: null },
+      { name: '智能灯', budget: 3000, actual: 3097.2, remark: null },
+      { name: '电动窗帘', budget: 2000, actual: 1460.30, remark: null },
+      { name: '智能开关', budget: 1000, actual: 462.80, remark: null },
+      { name: '空调伴侣', budget: 200, actual: 0, remark: null },
+      { name: '网关', budget: 800, actual: 0, remark: null },
+      { name: '路由器', budget: 800, actual: 738.99, remark: null },
       { name: '人在传感器', budget: 300, actual: null, remark: null },
     ],
   },
@@ -335,8 +335,8 @@ const budgetData: BudgetCategory[] = [
     name: '其他',
     items: [
       { name: '抽拉式数显水龙头', budget: 700, actual: null, remark: null },
-      { name: '验房', budget: 230, actual: null, remark: null },
-      { name: '淋浴系统', budget: 2500, actual: null, remark: null },
+{ name: '验房', budget: 230, actual: 210, remark: null },
+      { name: '淋浴系统', budget: 2500, actual: 1082.24, remark: null },
     ],
   },
 ]
