@@ -296,7 +296,7 @@ const budgetData: BudgetCategory[] = [
       { name: '电视地柜', budget: 2000, actual: 832.37, remark: null },
 { name: '餐厅桌椅', budget: 2500, actual: 3596, remark: null },
       { name: '窗帘', budget: 2000, actual: null, remark: null },
-      { name: '主卧椅子', budget: 1000, actual: null, remark: null },
+{ name: '主卧椅子', budget: 1000, actual: 1974.31, remark: null },
       { name: '次卧椅子', budget: 200, actual: null, remark: null },
     ],
   },
@@ -357,6 +357,7 @@ const budgetData: BudgetCategory[] = [
       { name: '洗手台保护性拆除', budget: 0, actual: 100, remark: null },
       { name: '铝槽', budget: 0, actual: 70, remark: null },
       { name: '箭牌安装', budget: 0, actual: 40, remark: null },
+      { name: '本高穿线盒', budget: 0, actual: 58.26, remark: null },
     ],
   },
 ]
