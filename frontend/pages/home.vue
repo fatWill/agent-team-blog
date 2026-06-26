@@ -548,11 +548,48 @@
 
       </div>
 
-      <!-- 留言板 Tab -->
+      <!-- 树洞 Tab -->
       <div v-else-if="activeTab === 'guestbook'">
-        <div class="mb-6">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">💬 留言板</h2>
-          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">欢迎留下你的足迹</p>
+        <div class="mb-6 flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">🕳️ 树洞</h2>
+            <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">丢点什么进来吧</p>
+          </div>
+          <button
+            class="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            @click="fetchGuestbookMessages"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+            刷新
+          </button>
+        </div>
+
+        <!-- 发布输入区 -->
+        <div class="mb-6 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <input
+            v-model="holeNickname"
+            type="text"
+            maxlength="20"
+            placeholder="昵称（选填）"
+            class="mb-3 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-primary-400 dark:focus:bg-gray-800"
+          />
+          <textarea
+            v-model="holeContent"
+            maxlength="200"
+            rows="3"
+            placeholder="在这里丢一条树洞..."
+            class="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-primary-400 dark:focus:bg-gray-800"
+          />
+          <div class="mt-2 flex items-center justify-between">
+            <span class="text-xs text-gray-400 dark:text-gray-500">{{ holeContent.length }}/200</span>
+            <button
+              :disabled="!holeContent.trim() || holeSubmitting"
+              class="rounded-lg bg-primary-500 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+              @click="handleHoleSubmit"
+            >
+              {{ holeSubmitting ? '发布中...' : '发布树洞' }}
+            </button>
+          </div>
         </div>
 
         <!-- 加载中 -->
@@ -562,12 +599,11 @@
 
         <!-- 空状态 -->
         <div v-else-if="guestbookMessages.length === 0" class="py-20 text-center">
-          <span class="mb-2 block text-3xl">💬</span>
-          <p class="text-sm text-gray-400 dark:text-gray-500">还没有留言，快来第一个～</p>
-          <p class="mt-1 text-xs text-gray-300 dark:text-gray-600">点击右下角气泡按钮留言</p>
+          <span class="mb-2 block text-3xl">🕳️</span>
+          <p class="text-sm text-gray-400 dark:text-gray-500">树洞还是空的，丢点什么进来吧～</p>
         </div>
 
-        <!-- 留言列表 -->
+        <!-- 树洞列表 -->
         <div v-else class="space-y-3">
           <div
             v-for="msg in guestbookMessages"
@@ -939,7 +975,7 @@
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
 import type { MessageItem } from '~/features/guestbook'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle } from '~/utils/api'
-import { apiGetMessages } from '~/features/guestbook'
+import { apiGetMessages, apiCreateMessage } from '~/features/guestbook'
 import { toCdnUrl, toThumbUrl, toWebpUrl } from '~/utils/imageUrl'
 
 /** 判断是否为视频媒体（兼容历史数据 null → 视为图片） */
@@ -1245,7 +1281,7 @@ const tabs: TabItem[] = [
   { key: 'renovation', label: '🏠 装修' },
   { key: 'tools', label: '🎮 玩具' },
   { key: 'agent-team', label: '🤖 Agent Team' },
-  { key: 'guestbook', label: '💬 留言板' },
+  { key: 'guestbook', label: '🕳️ 树洞' },
   { key: 'changelog', label: '📋 更新日志' },
 ]
 
@@ -2006,10 +2042,45 @@ function formatDate(dateStr: string): string {
   })
 }
 
-// ====== 留言板 Tab ======
+// ====== 树洞 Tab ======
 const guestbookMessages = ref<MessageItem[]>(_ssrGuestbookData?.value?.list ?? [])
 const guestbookLoading = ref(false)
 const guestbookLoaded = ref(!!_ssrGuestbookData?.value?.list?.length)
+
+// 树洞发布输入
+const holeNickname = ref('')
+const holeContent = ref('')
+const holeSubmitting = ref(false)
+
+async function handleHoleSubmit() {
+  const content = holeContent.value.trim()
+  if (!content) return
+  if (content.length > 200) return
+  if (!deviceId.value) return
+
+  holeSubmitting.value = true
+  try {
+    const payload: { deviceId: string; content: string; nickname?: string } = {
+      deviceId: deviceId.value,
+      content,
+    }
+    const nickname = holeNickname.value.trim()
+    if (nickname) payload.nickname = nickname
+
+    await apiCreateMessage(payload)
+    holeContent.value = ''
+    holeNickname.value = ''
+    await fetchGuestbookMessages()
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { statusMessage?: string }; statusMessage?: string }
+    const errMsg = fetchErr?.data?.statusMessage || fetchErr?.statusMessage || '发布失败，请稍后重试'
+    if (import.meta.client) {
+      alert(errMsg)
+    }
+  } finally {
+    holeSubmitting.value = false
+  }
+}
 
 async function fetchGuestbookMessages() {
   guestbookLoading.value = true
@@ -2054,12 +2125,6 @@ onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   // Cmd+K / Ctrl+K 搜索快捷键
   window.addEventListener('keydown', handleSearchShortcut)
-  // 监听气泡留言提交事件，刷新留言板列表
-  window.addEventListener('guestbook:new-message', () => {
-    if (guestbookLoaded.value) {
-      fetchGuestbookMessages()
-    }
-  })
   // 补充：直接访问 /life 或 /guestbook 时触发初始数据加载（替代 watch immediate）
   if (activeTab.value === 'life' && !albumsLoaded.value) {
     fetchAlbums()

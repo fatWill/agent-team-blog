@@ -9,7 +9,7 @@ export async function apiGetMessages(deviceId?: string): Promise<MessageListResp
 }
 
 /** 新增留言 */
-export async function apiCreateMessage(data: { deviceId: string; content: string }): Promise<MessageItem> {
+export async function apiCreateMessage(data: { deviceId: string; content: string; nickname?: string }): Promise<MessageItem> {
   const res = await $fetch<MessageItem>('/api/messages', {
     method: 'POST',
     body: data,

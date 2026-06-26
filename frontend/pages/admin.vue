@@ -591,9 +591,9 @@
         </div>
       </div>
 
-      <!-- ========== Tab 5: 留言管理 ========== -->
+      <!-- ========== Tab 5: 树洞管理 ========== -->
       <div v-if="activeTab === 'messages'">
-        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">留言管理</h2>
+        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">树洞管理</h2>
 
         <!-- 加载中 -->
         <div v-if="adminMsgLoading" class="flex items-center justify-center py-20">
@@ -628,9 +628,9 @@
         <!-- 空状态 -->
         <div v-else class="py-20 text-center">
           <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-            <span class="text-2xl">💬</span>
+            <span class="text-2xl">🕳️</span>
           </div>
-          <p class="text-lg font-medium text-gray-600 dark:text-gray-400">暂无留言</p>
+          <p class="text-lg font-medium text-gray-600 dark:text-gray-400">暂无树洞</p>
         </div>
       </div>
 
@@ -1449,7 +1449,13 @@ const adminNavGroups: AdminNavGroup[] = [
     label: '内容管理',
     children: [
       { key: 'albums', label: '相册管理', icon: 'M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M2.25 18.75h18a1.5 1.5 0 001.5-1.5V6.75a1.5 1.5 0 00-1.5-1.5h-18a1.5 1.5 0 00-1.5 1.5v10.5a1.5 1.5 0 001.5 1.5z' },
-      { key: 'messages', label: '留言管理', icon: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155' },
+      { key: 'messages', label: '树洞管理', icon: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155' },
+    ],
+  },
+  {
+    key: 'personal',
+    label: '个人',
+    children: [
       { key: 'profile', label: '个人资料', icon: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z' },
     ],
   },
@@ -2202,7 +2208,7 @@ async function fetchAdminMessages() {
     const res = await apiGetMessages()
     adminMessages.value = res.list
   } catch {
-    showError('获取留言列表失败')
+    showError('获取树洞列表失败')
   } finally {
     adminMsgLoading.value = false
   }
@@ -2210,8 +2216,8 @@ async function fetchAdminMessages() {
 
 function handleDeleteMessage(msg: MessageItem) {
   showConfirm({
-    title: '删除留言',
-    content: `确定要删除「${msg.nickname}」的这条留言吗？`,
+    title: '删除树洞',
+    content: `确定要删除「${msg.nickname}」的这条树洞吗？`,
     danger: true,
     okText: '删除',
     async onOk() {
@@ -2225,7 +2231,7 @@ function handleDeleteMessage(msg: MessageItem) {
           authStore.setLoggedIn(false)
           router.push('/login')
         } else if (err?.response?.status === 404) {
-          showError('留言不存在')
+          showError('树洞不存在')
           adminMessages.value = adminMessages.value.filter(m => m.id !== msg.id)
         } else {
           showError('删除失败，请重试')
