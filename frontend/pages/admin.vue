@@ -216,47 +216,6 @@
         </form>
       </div>
 
-      <!-- ========== Tab 2: 文章管理 ========== -->
-      <div v-if="activeTab === 'manage'">
-        <div class="mb-6 flex items-center justify-between">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">文章管理</h2>
-          <button
-            class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-600"
-            @click="resetForm(); editingArticleId = null; activeTab = 'write'"
-          >
-            + 写文章
-          </button>
-        </div>
-        <div class="mb-6">
-          <input v-model="searchKeyword" type="text" placeholder="按标题搜索文章..." class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-primary-400" />
-        </div>
-        <div v-if="manageLoading" class="flex items-center justify-center py-20">
-          <AppLoading tip="加载中..." />
-        </div>
-        <div v-else-if="manageArticles.length > 0" class="space-y-3">
-          <div v-for="article in manageArticles" :key="article.id" class="rounded-lg border border-gray-100 bg-white p-4 transition-colors dark:border-gray-700 dark:bg-gray-800">
-            <div class="flex items-start gap-4">
-              <img v-if="article.coverImage" :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-16 w-24 flex-shrink-0 rounded-md object-cover" />
-              <div v-else class="flex h-16 w-24 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
-                <svg class="h-6 w-6 text-gray-300 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v14.25a1.5 1.5 0 001.5 1.5z" /></svg>
-              </div>
-              <div class="min-w-0 flex-1">
-                <h3 class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h3>
-                <p v-if="article.summary" class="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">{{ article.summary }}</p>
-                <time class="mt-1 block text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
-              </div>
-              <div class="flex flex-shrink-0 items-center gap-2">
-                <button class="rounded-md px-3 py-1.5 text-xs font-medium text-primary-500 transition-colors hover:bg-primary-50 dark:hover:bg-primary-900/20" @click="startEdit(article)">编辑</button>
-                <button class="rounded-md px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20" :disabled="deletingId === article.id" @click="handleDelete(article)">{{ deletingId === article.id ? '删除中...' : '删除' }}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div v-else class="py-20 text-center">
-          <p class="text-gray-400 dark:text-gray-500">{{ searchKeyword ? '没有找到匹配的文章' : '暂无文章' }}</p>
-        </div>
-      </div>
-
       <!-- ========== Tab 3: 个人资料 ========== -->
       <div v-if="activeTab === 'profile'">
         <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">个人资料</h2>
@@ -1284,228 +1243,6 @@
         </div>
       </div>
 
-      <!-- ========== 装修 - 文章管理 ========== -->
-      <div v-if="activeTab === 'reno-articles'">
-        <div class="mb-6 flex items-center justify-between">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">装修文章管理</h2>
-        </div>
-        <div class="py-16 text-center">
-          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/20">
-            <span class="text-3xl">🏠</span>
-          </div>
-          <p class="text-lg font-medium text-gray-600 dark:text-gray-400">敬请期待</p>
-          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">装修类文章管理功能正在开发中...</p>
-        </div>
-      </div>
-
-      <!-- ========== 装修 - 材料清单 ========== -->
-      <div v-if="activeTab === 'reno-materials'">
-        <div class="mb-6">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">材料清单</h2>
-        </div>
-
-        <!-- 内部 Tab 切换 -->
-        <div class="mb-5 flex gap-2 border-b border-gray-200 dark:border-gray-700">
-          <button
-            class="px-4 py-2 text-sm font-medium transition-colors"
-            :class="materialActiveTab === 'edit'
-              ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
-            @click="materialActiveTab = 'edit'"
-          >
-            {{ materialForm.editingId ? '编辑条目' : '新建条目' }}
-          </button>
-          <button
-            class="px-4 py-2 text-sm font-medium transition-colors"
-            :class="materialActiveTab === 'manage'
-              ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
-            @click="materialActiveTab = 'manage'; fetchMaterials()"
-          >
-            管理
-          </button>
-        </div>
-
-        <!-- 编辑 Tab -->
-        <div v-if="materialActiveTab === 'edit'" class="space-y-5">
-          <!-- 标题 -->
-          <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">标题</label>
-            <input
-              v-model="materialForm.title"
-              type="text"
-              placeholder="输入材料名称"
-              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-            />
-          </div>
-
-          <!-- 标签 -->
-          <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">标签</label>
-            <!-- 标签输入容器（点击任意位置聚焦输入框） -->
-            <div
-              ref="tagContainerRef"
-              class="flex min-h-[42px] w-full cursor-text flex-wrap items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 transition-colors dark:border-gray-600 dark:bg-gray-700"
-              :class="tagInputFocused ? 'border-primary-500 ring-2 ring-primary-500/20' : ''"
-              @click="focusTagInput"
-            >
-              <!-- 已选标签胶囊 -->
-              <span
-                v-for="(tag, i) in materialForm.tags"
-                :key="i"
-                class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium"
-                :style="tagChipStyle(tag)"
-              >
-                {{ tag }}
-                <button
-                  type="button"
-                  class="flex h-4 w-4 items-center justify-center rounded-full opacity-60 transition-opacity hover:opacity-100"
-                  :style="{ color: 'inherit' }"
-                  @mousedown.prevent
-                  @click.stop="removeTag(i)"
-                >
-                  <svg class="h-3 w-3" viewBox="0 0 10 10" fill="currentColor">
-                    <path d="M6.414 5l2.293-2.293a1 1 0 00-1.414-1.414L5 3.586 2.707 1.293A1 1 0 001.293 2.707L3.586 5 1.293 7.293a1 1 0 001.414 1.414L5 6.414l2.293 2.293a1 1 0 001.414-1.414L6.414 5z"/>
-                  </svg>
-                </button>
-              </span>
-              <!-- 实际输入框（自适应宽度） -->
-              <input
-                ref="tagInputRef"
-                v-model="materialForm.tagInput"
-                type="text"
-                :placeholder="materialForm.tags.length === 0 ? '输入后回车添加，支持方向键选择' : ''"
-                class="min-w-[120px] flex-1 border-none bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-gray-100 dark:placeholder:text-gray-500"
-                @keydown="handleTagKeydown"
-                @focus="tagInputFocused = true; showTagDropdown = true"
-                @blur="handleTagInputBlur"
-              />
-            </div>
-            <!-- 下拉候选列表 -->
-            <div class="relative">
-              <ul
-                v-if="showTagDropdown && filteredTagOptions.length > 0"
-                class="absolute left-0 right-0 top-0 z-20 mt-1 max-h-44 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800"
-              >
-                <li
-                  v-for="(opt, idx) in filteredTagOptions"
-                  :key="opt"
-                  class="flex cursor-pointer items-center px-4 py-2 text-sm transition-colors"
-                  :class="idx === tagDropdownActive
-                    ? 'bg-primary-500 text-white'
-                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700 dark:text-gray-300 dark:hover:bg-primary-900/20 dark:hover:text-primary-300'"
-                  @mousedown.prevent
-                  @click="selectTagOption(opt)"
-                  @mouseover="tagDropdownActive = idx"
-                >
-                  {{ opt }}
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <!-- 附件上传 -->
-          <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">附件</label>
-            <!-- 已上传附件列表 -->
-            <div v-if="materialForm.attachments.length > 0" class="mb-3 space-y-2">
-              <div
-                v-for="(att, i) in materialForm.attachments"
-                :key="att.id"
-                class="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-700/50"
-              >
-                <!-- PDF 图标 -->
-                <svg v-if="att.type === 'pdf'" class="h-6 w-6 shrink-0 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h5v7h7v9H6z"/><path d="M8 13h3v1H8zm0 2h6v1H8zm0 2h6v1H8z"/></svg>
-                <!-- 图片缩略图 -->
-                <img v-else-if="att.type === 'image'" :src="att.url" class="h-8 w-8 shrink-0 rounded object-cover" />
-                <!-- 视频图标 -->
-                <span v-else class="shrink-0 text-lg">🎬</span>
-                <span class="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-300">{{ att.name }}</span>
-                <button class="shrink-0 text-gray-400 hover:text-red-500" @click="removeAttachment(i)">&times;</button>
-              </div>
-            </div>
-            <!-- 上传按钮 -->
-            <label class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 bg-white px-4 py-6 text-sm text-gray-500 transition-colors hover:border-primary-300 hover:bg-primary-50/50 dark:border-gray-600 dark:bg-gray-700/50 dark:hover:border-primary-500/50">
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-              <span>{{ materialForm.uploading ? '上传中...' : '点击上传附件（支持图片/视频/PDF）' }}</span>
-              <input
-                type="file"
-                class="hidden"
-                multiple
-                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v,application/pdf"
-                :disabled="materialForm.uploading"
-                @change="handleMaterialFileSelect"
-              />
-            </label>
-          </div>
-
-          <!-- 提交按钮 -->
-          <div class="flex gap-3">
-            <button
-              class="rounded-lg bg-primary-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
-              :disabled="materialForm.uploading"
-              @click="saveMaterial"
-            >
-              {{ materialForm.editingId ? '更新' : '保存' }}
-            </button>
-            <button
-              v-if="materialForm.editingId"
-              class="rounded-lg bg-gray-100 px-6 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-              @click="resetMaterialForm"
-            >
-              取消编辑
-            </button>
-          </div>
-        </div>
-
-        <!-- 管理 Tab -->
-        <div v-if="materialActiveTab === 'manage'">
-          <div v-if="materialLoading" class="py-10 text-center text-sm text-gray-400">加载中...</div>
-          <div v-else-if="materialItems.length === 0" class="py-10 text-center text-sm text-gray-400 dark:text-gray-500">暂无材料条目</div>
-          <div v-else class="space-y-3">
-            <div
-              v-for="item in materialItems"
-              :key="item.id"
-              class="rounded-lg border border-gray-100 bg-white p-4 transition-colors dark:border-gray-700 dark:bg-gray-800"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0 flex-1">
-                  <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ item.title }}</h4>
-                  <div class="mt-1.5 flex flex-wrap gap-1.5">
-                    <span v-for="tag in item.tags" :key="tag" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400">{{ tag }}</span>
-                  </div>
-                  <p class="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
-                    附件：
-                    <template v-if="item.attachments.filter(a => a.type === 'pdf').length">PDF {{ item.attachments.filter(a => a.type === 'pdf').length }}件 </template>
-                    <template v-if="item.attachments.filter(a => a.type === 'image').length">图片 {{ item.attachments.filter(a => a.type === 'image').length }}张 </template>
-                    <template v-if="item.attachments.filter(a => a.type === 'video').length">视频 {{ item.attachments.filter(a => a.type === 'video').length }}条</template>
-                    <template v-if="item.attachments.length === 0">无</template>
-                  </p>
-                </div>
-                <div class="flex shrink-0 gap-2">
-                  <button class="rounded-lg px-3 py-1.5 text-xs font-medium text-primary-500 transition-colors hover:bg-primary-50 dark:hover:bg-primary-900/20" @click="startEditMaterial(item)">编辑</button>
-                  <button class="rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20" @click="deleteMaterial(item.id)">删除</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ========== 装修 - 成本预算 ========== -->
-      <div v-if="activeTab === 'reno-budget'">
-        <div class="mb-6">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">成本预算</h2>
-        </div>
-        <div class="py-16 text-center">
-          <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/20">
-            <span class="text-3xl">💰</span>
-          </div>
-          <p class="text-lg font-medium text-gray-600 dark:text-gray-400">敬请期待</p>
-          <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">成本预算管理功能正在开发中...</p>
-        </div>
-      </div>
-
       </div>
     </main>
     </div><!-- 右侧内容区 end -->
@@ -1711,7 +1448,6 @@ const adminNavGroups: AdminNavGroup[] = [
     key: 'content',
     label: '内容管理',
     children: [
-      { key: 'manage', label: '文章管理', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z' },
       { key: 'albums', label: '相册管理', icon: 'M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M2.25 18.75h18a1.5 1.5 0 001.5-1.5V6.75a1.5 1.5 0 00-1.5-1.5h-18a1.5 1.5 0 00-1.5 1.5v10.5a1.5 1.5 0 001.5 1.5z' },
       { key: 'messages', label: '留言管理', icon: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155' },
       { key: 'profile', label: '个人资料', icon: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z' },
@@ -1725,19 +1461,10 @@ const adminNavGroups: AdminNavGroup[] = [
       { key: 'perf', label: '性能', icon: 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z' },
     ],
   },
-  {
-    key: 'renovation',
-    label: '装修',
-    children: [
-      { key: 'reno-articles', label: '文章管理', icon: 'M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10' },
-      { key: 'reno-materials', label: '材料清单', icon: 'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z' },
-      { key: 'reno-budget', label: '成本预算', icon: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-    ],
-  },
 ]
 // 向后兼容：扁平化所有 Tab（用于 v-if 切换内容区域）
 const adminTabs = adminNavGroups.flatMap(g => g.children)
-const activeTab = ref('manage')
+const activeTab = ref('albums')
 const sidebarOpen = ref(false) // 移动端侧边栏展开状态
 const activeGroup = computed(() => {
   // write Tab 属于内容管理组（虽然不在导航中显示）
@@ -1822,7 +1549,7 @@ function resetForm() {
   editor.value?.commands.setContent('<p>开始写作...</p>')
 }
 
-function cancelEdit() { resetForm(); activeTab.value = 'manage' }
+function cancelEdit() { resetForm(); activeTab.value = 'albums' }
 
 async function handlePublish() {
   if (!editor.value || !form.title.trim()) return
@@ -1841,7 +1568,7 @@ async function handlePublish() {
       await apiUpdateArticle(editingArticleId.value, payload)
       publishSuccess.value = true
       showSuccess('文章保存成功')
-      setTimeout(() => { resetForm(); activeTab.value = 'manage'; publishSuccess.value = false; fetchManageArticles() }, 1500)
+      setTimeout(() => { resetForm(); activeTab.value = 'albums'; publishSuccess.value = false; fetchManageArticles() }, 1500)
     } else {
       await apiCreateArticle(payload)
       publishSuccess.value = true
@@ -1887,13 +1614,11 @@ watch(searchKeyword, () => {
 })
 
 watch(activeTab, (val) => {
-  if (val === 'manage') fetchManageArticles()
   if (val === 'profile') fetchProfile()
   if (val === 'albums') fetchAdminAlbums()
   if (val === 'messages') fetchAdminMessages()
   if (val === 'analytics') fetchAnalyticsData()
   if (val === 'perf') fetchPerfData()
-  if (val === 'reno-materials') fetchMaterials()
 })
 
 async function startEdit(article: ArticleListItem) {
@@ -3025,245 +2750,6 @@ watch(perfTrendDays, () => {
   fetchPerfPages()
   fetchPerfLogs(1)
 })
-
-// ====== 材料清单 ======
-const materialItems = ref<MaterialItem[]>([])
-const materialLoading = ref(false)
-const materialActiveTab = ref<'edit' | 'manage'>('manage')
-
-// ====== 标签颜色（与渲染侧保持一致的 hash 算法）======
-function hashColor(str: string, lightness: number): string {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  const hue = Math.abs(hash) % 360
-  return `hsl(${hue}, 70%, ${lightness}%)`
-}
-
-function tagChipStyle(tag: string) {
-  return {
-    backgroundColor: hashColor(tag, 93),
-    color: hashColor(tag, 40),
-  }
-}
-
-const showTagDropdown = ref(false)
-const tagInputFocused = ref(false)
-const tagDropdownActive = ref(-1)
-const tagInputRef = ref<HTMLInputElement | null>(null)
-const tagContainerRef = ref<HTMLElement | null>(null)
-
-const materialForm = reactive({
-  editingId: null as number | null,
-  title: '',
-  tags: [] as string[],
-  tagInput: '',
-  attachments: [] as MaterialAttachment[],
-  uploading: false,
-})
-
-async function fetchMaterials() {
-  materialLoading.value = true
-  try {
-    materialItems.value = await apiFetchMaterials()
-  } catch {
-    // 静默
-  } finally {
-    materialLoading.value = false
-  }
-}
-
-// 所有已有的标签（从 materialItems 中提取唯一值，供下拉候选使用）
-const allMaterialTags = computed(() => {
-  const set = new Set<string>()
-  for (const item of materialItems.value) {
-    for (const tag of item.tags) set.add(tag)
-  }
-  for (const tag of materialForm.tags) set.add(tag)
-  return Array.from(set)
-})
-
-// 过滤已选和当前输入的候选标签
-const filteredTagOptions = computed(() => {
-  const input = materialForm.tagInput.trim().toLowerCase()
-  return allMaterialTags.value.filter(
-    t => !materialForm.tags.includes(t) && (input === '' || t.toLowerCase().includes(input))
-  )
-})
-
-function resetMaterialForm() {
-  materialForm.editingId = null
-  materialForm.title = ''
-  materialForm.tags = []
-  materialForm.tagInput = ''
-  materialForm.attachments = []
-}
-
-function startEditMaterial(item: MaterialItem) {
-  materialForm.editingId = item.id
-  materialForm.title = item.title
-  materialForm.tags = [...item.tags]
-  materialForm.tagInput = ''
-  materialForm.attachments = [...item.attachments]
-  materialActiveTab.value = 'edit'
-}
-
-function focusTagInput() {
-  tagInputRef.value?.focus()
-}
-
-function handleTagKeydown(e: KeyboardEvent) {
-  const opts = filteredTagOptions.value
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault()
-    showTagDropdown.value = true
-    tagDropdownActive.value = Math.min(tagDropdownActive.value + 1, opts.length - 1)
-    return
-  }
-  if (e.key === 'ArrowUp') {
-    e.preventDefault()
-    tagDropdownActive.value = Math.max(tagDropdownActive.value - 1, -1)
-    return
-  }
-  if (e.key === 'Escape') {
-    showTagDropdown.value = false
-    tagDropdownActive.value = -1
-    return
-  }
-  if (e.key === 'Enter' || e.key === ',') {
-    e.preventDefault()
-    // 如果有键盘高亮的候选项，优先选它
-    if (tagDropdownActive.value >= 0 && opts[tagDropdownActive.value]) {
-      selectTagOption(opts[tagDropdownActive.value])
-    } else {
-      addTagFromInput()
-    }
-    return
-  }
-  if (e.key === 'Backspace' && materialForm.tagInput === '') {
-    if (materialForm.tags.length > 0) {
-      materialForm.tags.pop()
-    }
-    return
-  }
-  // 其他按键：重置高亮，打开下拉
-  tagDropdownActive.value = -1
-  showTagDropdown.value = true
-}
-
-function addTagFromInput() {
-  const tag = materialForm.tagInput.trim().replace(/,$/, '')
-  if (tag && !materialForm.tags.includes(tag)) {
-    materialForm.tags.push(tag)
-  }
-  materialForm.tagInput = ''
-  tagDropdownActive.value = -1
-  showTagDropdown.value = true // 保持下拉以便继续添加
-}
-
-function selectTagOption(tag: string) {
-  if (!materialForm.tags.includes(tag)) {
-    materialForm.tags.push(tag)
-  }
-  materialForm.tagInput = ''
-  tagDropdownActive.value = -1
-  showTagDropdown.value = false
-  // 选完继续聚焦
-  nextTick(() => tagInputRef.value?.focus())
-}
-
-function handleTagInputBlur() {
-  tagInputFocused.value = false
-  setTimeout(() => {
-    showTagDropdown.value = false
-    tagDropdownActive.value = -1
-  }, 150)
-}
-
-function removeTag(i: number) {
-  materialForm.tags.splice(i, 1)
-}
-
-function removeAttachment(i: number) {
-  materialForm.attachments.splice(i, 1)
-}
-
-async function handleMaterialFileSelect(e: Event) {
-  const input = e.target as HTMLInputElement
-  const files = input.files
-  if (!files || files.length === 0) return
-
-  materialForm.uploading = true
-  try {
-    for (const file of Array.from(files)) {
-      const result = await chunkedUpload(file, undefined, { folder: 'materials' })
-      // 根据文件类型判断附件类型
-      let attType: 'pdf' | 'image' | 'video' = 'image'
-      if (file.type === 'application/pdf') attType = 'pdf'
-      else if (file.type.startsWith('video/')) attType = 'video'
-
-      const attachment: MaterialAttachment = {
-        id: uuidv4(),
-        type: attType,
-        url: result.url,
-        name: file.name,
-        size: file.size,
-      }
-      materialForm.attachments.push(attachment)
-    }
-  } catch {
-    showError('上传失败')
-  } finally {
-    materialForm.uploading = false
-  }
-  input.value = ''
-}
-
-async function saveMaterial() {
-  if (!materialForm.title.trim()) {
-    showError('请输入标题')
-    return
-  }
-  const data = {
-    title: materialForm.title.trim(),
-    tags: materialForm.tags,
-    attachments: materialForm.attachments,
-    sortOrder: 0,
-  }
-  try {
-    if (materialForm.editingId) {
-      await apiUpdateMaterial(materialForm.editingId, data)
-      showSuccess('更新成功')
-    } else {
-      await apiCreateMaterial(data)
-      showSuccess('创建成功')
-    }
-    resetMaterialForm()
-    materialActiveTab.value = 'manage'
-    await fetchMaterials()
-  } catch {
-    showError('保存失败')
-  }
-}
-
-async function deleteMaterial(id: number) {
-  showConfirm({
-    title: '确认删除',
-    content: '删除后无法恢复，是否继续？',
-    danger: true,
-    onOk: async () => {
-      try {
-        await apiDeleteMaterial(id)
-        showSuccess('删除成功')
-        await fetchMaterials()
-      } catch {
-        showError('删除失败')
-      }
-    },
-  })
-}
 
 onUnmounted(() => {
   editor.value?.destroy()

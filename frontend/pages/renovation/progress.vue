@@ -13,7 +13,7 @@
           返回装修
         </NuxtLink>
         <span class="mx-3 text-gray-300 dark:text-gray-600">/</span>
-        <span class="text-sm font-medium text-gray-900 dark:text-gray-100">装修进度</span>
+        <span class="text-sm font-medium text-gray-900 dark:text-gray-100">踩坑日记</span>
       </div>
     </header>
 
@@ -22,9 +22,16 @@
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20">
           <span class="text-3xl">📋</span>
         </div>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">装修进度</h1>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">功能正在开发中，敬请期待...</p>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">踩坑日记</h1>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">记录装修过程中的坑与教训...</p>
       </div>
     </main>
   </div>
 </template>
+
+<script setup lang="ts">
+useSeoMeta({
+  title: '踩坑日记 - 装修 - fatwill 的小屋',
+  description: '记录装修过程中的坑与教训',
+})
+</script>

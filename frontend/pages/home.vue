@@ -462,8 +462,8 @@
           <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">分享我的装修经验</p>
         </div>
 
-        <!-- 功能区：三个按钮 -->
-        <div class="mb-8 grid grid-cols-3 gap-3 sm:gap-4">
+        <!-- 功能区：两个按钮 -->
+        <div class="mb-8 grid grid-cols-2 gap-3 sm:gap-4">
           <NuxtLink
             to="/renovation/budget"
             class="group flex flex-col items-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-5 transition-all duration-200 hover:border-amber-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-amber-700 sm:px-4 sm:py-6"
@@ -476,44 +476,10 @@
             class="group flex flex-col items-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-5 transition-all duration-200 hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-700 sm:px-4 sm:py-6"
           >
             <span class="text-2xl transition-transform duration-200 group-hover:scale-110 sm:text-3xl">📋</span>
-            <span class="text-xs font-medium text-gray-700 dark:text-gray-300 sm:text-sm">装修进度</span>
-          </NuxtLink>
-          <NuxtLink
-            to="/renovation/materials"
-            class="group flex flex-col items-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-5 transition-all duration-200 hover:border-green-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-green-700 sm:px-4 sm:py-6"
-          >
-            <span class="text-2xl transition-transform duration-200 group-hover:scale-110 sm:text-3xl">🧱</span>
-            <span class="text-xs font-medium text-gray-700 dark:text-gray-300 sm:text-sm">材料清单</span>
+            <span class="text-xs font-medium text-gray-700 dark:text-gray-300 sm:text-sm">踩坑日记</span>
           </NuxtLink>
         </div>
 
-        <!-- 装修知识必备 -->
-        <div>
-          <h3 class="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">📚 装修知识必备</h3>
-          <!-- 加载状态 -->
-          <div v-if="renovationLoading" class="space-y-3">
-            <div v-for="i in 4" :key="i" class="animate-pulse">
-              <div class="h-5 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-            </div>
-          </div>
-          <!-- 文章列表 -->
-          <div v-else-if="renovationArticles.length > 0" class="divide-y divide-gray-100 dark:divide-gray-700/60">
-            <NuxtLink
-              v-for="article in renovationArticles"
-              :key="article.id"
-              :to="`/renovation/articles/${article.id}`"
-              class="block py-3 transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
-            >
-              <span class="text-[15px] font-medium text-gray-800 transition-colors hover:text-primary-600 dark:text-gray-200 dark:hover:text-primary-400">
-                {{ article.title }}
-              </span>
-            </NuxtLink>
-          </div>
-          <!-- 空状态 -->
-          <div v-else class="py-10 text-center text-sm text-gray-400 dark:text-gray-500">
-            暂无文章
-          </div>
-        </div>
       </div>
 
       <!-- ========== Agent Team Tab ========== -->
@@ -974,8 +940,6 @@ import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profil
 import type { MessageItem } from '~/features/guestbook'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle } from '~/utils/api'
 import { apiGetMessages } from '~/features/guestbook'
-import { apiFetchRenovationArticles } from '~/features/renovation'
-import type { RenovationArticleListItem } from '~/features/renovation'
 import { toCdnUrl, toThumbUrl, toWebpUrl } from '~/utils/imageUrl'
 
 /** 判断是否为视频媒体（兼容历史数据 null → 视为图片） */
@@ -1174,21 +1138,6 @@ async function fetchDislikesForPhotos(photos: PhotoItem[]) {
       }
     })
   )
-}
-
-// ====== 装修知识文章数据 ======
-const renovationArticles = ref<RenovationArticleListItem[]>([])
-const renovationLoading = ref(false)
-async function fetchRenovationArticles() {
-  if (renovationArticles.value.length > 0) return // 已加载过则跳过
-  renovationLoading.value = true
-  try {
-    renovationArticles.value = await apiFetchRenovationArticles()
-  } catch {
-    // 静默处理
-  } finally {
-    renovationLoading.value = false
-  }
 }
 
 // ====== Agent Team 数据 ======
@@ -2046,9 +1995,6 @@ watch(activeTab, (val) => {
   if (val === 'life' && !albumsLoaded.value) {
     fetchAlbums()
   }
-  if (val === 'renovation') {
-    fetchRenovationArticles()
-  }
 })
 
 function formatDate(dateStr: string): string {
@@ -2120,9 +2066,6 @@ onMounted(() => {
   }
   if (activeTab.value === 'guestbook' && !guestbookLoaded.value) {
     fetchGuestbookMessages()
-  }
-  if (activeTab.value === 'renovation') {
-    fetchRenovationArticles()
   }
 })
 

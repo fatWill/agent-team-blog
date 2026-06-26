@@ -91,7 +91,7 @@ onMounted(() => {
 
   if (!cached) {
     loading.value = false
-    error.value = 'PDF 信息未找到，请从材料清单页面打开'
+    error.value = 'PDF 信息未找到'
   } else {
     const pdfInfo = JSON.parse(cached) as { id: string; url: string; name: string }
     pdfName.value = pdfInfo.name
