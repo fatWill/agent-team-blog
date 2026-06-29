@@ -211,8 +211,16 @@ func autoMigrate() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_material_items_sort ON material_items (sort_order)`,
 
-		// 兼容已有数据库：为 articles 表新增 views 字段（如果不存在）
-		// SQLite 不支持 IF NOT EXISTS 语法，用 SELECT 检测
+		// 微信同步日志表
+		`CREATE TABLE IF NOT EXISTS wechat_sync_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			article_id TEXT NOT NULL DEFAULT '',
+			action TEXT NOT NULL DEFAULT '',
+			status TEXT NOT NULL DEFAULT '',
+			error TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_wechat_sync_logs_article ON wechat_sync_logs (article_id)`,
 	}
 
 	for _, sql := range ddl {
@@ -237,6 +245,17 @@ func autoMigrate() error {
 		DB.Exec(`ALTER TABLE photos ADD COLUMN media_type TEXT NOT NULL DEFAULT 'image'`)
 		DB.Exec(`ALTER TABLE photos ADD COLUMN thumbnail_url TEXT`)
 		DB.Exec(`ALTER TABLE photos ADD COLUMN duration INTEGER`)
+	}
+
+	// 兼容迁移：为已有 articles 表新增微信同步相关字段
+	var wechatDraftCol int
+	DB.Raw(`SELECT COUNT(*) FROM pragma_table_info('articles') WHERE name = 'wechat_draft_media_id'`).Scan(&wechatDraftCol)
+	if wechatDraftCol == 0 {
+		DB.Exec(`ALTER TABLE articles ADD COLUMN wechat_draft_media_id TEXT`)
+		DB.Exec(`ALTER TABLE articles ADD COLUMN wechat_synced_at DATETIME`)
+		DB.Exec(`ALTER TABLE articles ADD COLUMN wechat_sync_status TEXT NOT NULL DEFAULT 'pending'`)
+		DB.Exec(`ALTER TABLE articles ADD COLUMN wechat_sync_error TEXT`)
+		DB.Exec(`ALTER TABLE articles ADD COLUMN wechat_auto_sync INTEGER NOT NULL DEFAULT 1`)
 	}
 
 	// 初始化装修文章数据（仅当表为空时插入）

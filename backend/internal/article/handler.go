@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatWill/agent-team-blog/backend/internal/wechat"
 	"github.com/fatWill/agent-team-blog/backend/models"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/fatWill/agent-team-blog/backend/pkg/nginx"
@@ -124,6 +125,9 @@ func CreateArticle(c *gin.Context) {
 	// 异步清除 Nginx 首页缓存
 	nginx.PurgeCache([]string{"/"})
 
+	// 异步触发微信公众号同步（文章创建即视为发布）
+	go wechat.EnqueueSync(a.ID)
+
 	c.JSON(http.StatusOK, gin.H{
 		"id":         a.ID,
 		"title":      a.Title,
@@ -201,6 +205,9 @@ func UpdateArticle(c *gin.Context) {
 	// 异步清除 Nginx 缓存：文章详情页 + 首页
 	nginx.PurgeCache([]string{"/", "/articles/" + id})
 
+	// 异步触发微信公众号同步（文章更新后重新同步）
+	go wechat.EnqueueSync(id)
+
 	c.JSON(http.StatusOK, gin.H{
 		"id":         a.ID,
 		"title":      a.Title,
@@ -213,8 +220,6 @@ func UpdateArticle(c *gin.Context) {
 		"updatedAt":  a.UpdatedAt,
 	})
 }
-
-// DeleteArticle DELETE /api/articles/:id
 func DeleteArticle(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {

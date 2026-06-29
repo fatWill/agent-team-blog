@@ -61,6 +61,9 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
+	// 启动微信同步 worker
+	wechat.StartSyncWorker()
+
 	// CORS 配置
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.Server.CORSOrigin},
@@ -216,6 +219,18 @@ func registerRoutes(api *gin.RouterGroup) {
 	{
 		wechatGroup.GET("/jssdk-config", wechat.GetJSSDKConfig)
 	}
+
+	// ========== 微信管理 API（需鉴权） ==========
+	wechatAdminGroup := api.Group("/admin/wechat")
+	wechatAdminGroup.Use(authMW)
+	{
+		wechatAdminGroup.GET("/access-token-status", wechat.GetAccessTokenStatus)
+		wechatAdminGroup.GET("/server-ip", wechat.GetServerIP)
+	}
+
+	// 文章微信同步管理（需鉴权）
+	api.POST("/admin/articles/:id/sync-wechat", authMW, wechat.SyncWechatHandler)
+	api.GET("/admin/articles/:id/wechat-sync-logs", authMW, wechat.GetSyncLogsHandler)
 
 	// ========== 更新日志 ==========
 	api.GET("/changelog", changelog.GetChangelog)

@@ -101,7 +101,7 @@ backend/
 | changelog | `internal/changelog/` | 更新日志查询 | — |
 | theme | `internal/theme/` | 主题偏好 | → `upload.RandomString` |
 | pv | `internal/pv/` | PV/UV 统计、访问日志 | → `pkg/middleware.GetClientIP`、`pkg/rds` |
-| wechat | `internal/wechat/` | 微信 JS-SDK 签名 | → `pkg/rds` |
+| wechat | `internal/wechat/` | 微信公众号：JS-SDK 签名、草稿同步、素材管理 | → `pkg/rds`、`pkg/db`、`models` |
 
 ## 路由注册表（完整 API 清单）
 
@@ -193,6 +193,15 @@ backend/
 |------|------|------|---------|------|
 | GET | `/api/wechat/jssdk-config` | ❌ | `wechat.GetJSSDKConfig` | 获取 JS-SDK 签名配置（传入 url 参数） |
 
+### 微信管理 API（`/api/admin/wechat` + `/api/admin/articles`）
+
+| 方法 | 路径 | 鉴权 | Handler | 说明 |
+|------|------|------|---------|------|
+| GET | `/api/admin/wechat/access-token-status` | ✅ | `wechat.GetAccessTokenStatus` | 查看 access_token 缓存状态 |
+| GET | `/api/admin/wechat/server-ip` | ✅ | `wechat.GetServerIP` | 获取 VPS 出口 IP（配白名单用） |
+| POST | `/api/admin/articles/:id/sync-wechat` | ✅ | `wechat.SyncWechatHandler` | 手动触发文章同步到微信草稿箱 |
+| GET | `/api/admin/articles/:id/wechat-sync-logs` | ✅ | `wechat.GetSyncLogsHandler` | 查看文章同步日志 |
+
 ### PV/UV 统计 (`/api/pv`)
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
@@ -217,6 +226,7 @@ backend/
 | `messages` | `models/misc.go → Message` | `id` uint64 自增 | 留言板 |
 | `changelogs` | `models/misc.go → Changelog` | `id` uint64 自增 | 更新日志 |
 | `page_views` | `models/pv.go → PageView` | `id` uint64 自增 | 页面访问记录（PV/UV） |
+| `wechat_sync_logs` | `models/article.go → WechatSyncLog` | `id` uint64 自增 | 微信同步操作日志 |
 
 ## 鉴权机制
 
@@ -233,7 +243,7 @@ backend/
 | `auth_token:{token}` | 30 天（滚动续期） | Redis | 用户登录态 |
 | `theme:{uid}` | 30 天 | Redis | 用户主题偏好（light/dark） |
 | `pv:{device_id}:{path}` | 60 秒 | Redis | PV 上报防刷（同设备+同路径 60s 去重） |
-| `wechat:access_token` | 7000 秒 | Redis | 微信 access_token 缓存（微信有效期 7200s） |
+| `wechat:access_token` | 7000 秒 | Redis | 微信 access_token 缓存（加锁防并发、失败重试3次） |
 | `wechat:jsapi_ticket` | 7000 秒 | Redis | 微信 jsapi_ticket 缓存（微信有效期 7200s） |
 
 > IP 限频使用**内存 Map**（`pkg/middleware/middleware.go`），非 Redis。每 5 分钟清理过期条目。
@@ -299,6 +309,8 @@ refactor(backend agent): 简要描述
 - `logs`：JSON 数组，每条 ≤20 字，最多 5 条
 
 ## 变更日志
+
+- 2026-06-29: **新增微信公众号草稿同步功能** — 文章发布/更新后异步同步到公众号草稿箱；Tiptap JSON→公众号HTML转换器；图片自动上传到微信；管理API（手动同步、同步日志、token状态、服务器IP）；articles表新增5个微信同步字段；新建wechat_sync_logs表
 
 - 2026-05-13: **新增微信 JS-SDK 签名接口** — `GET /api/wechat/jssdk-config`，Redis 缓存 access_token 和 jsapi_ticket（7000s TTL），SHA1 签名生成；服务器环境变量新增 `WECHAT_APP_ID` / `WECHAT_APP_SECRET`
 
