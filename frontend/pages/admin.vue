@@ -206,6 +206,31 @@
             </div>
           </div>
 
+          <!-- 发布设置区域 -->
+          <div class="flex items-center gap-6 rounded-lg border border-gray-100 bg-gray-50/50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50">
+            <!-- 自动同步开关 -->
+            <label class="flex cursor-pointer items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <input
+                v-model="form.wechatAutoSync"
+                type="checkbox"
+                class="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700"
+              />
+              自动同步到公众号草稿箱
+            </label>
+            <!-- 手动同步按钮（仅编辑模式） -->
+            <button
+              v-if="editingArticleId"
+              type="button"
+              :disabled="wechatSyncing"
+              class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/20"
+              @click="handleManualSync"
+            >
+              <svg v-if="wechatSyncing" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+              <svg v-else class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+              {{ wechatSyncing ? '同步中...' : '同步到公众号' }}
+            </button>
+          </div>
+
           <div class="flex items-center justify-end gap-3">
             <span v-if="publishSuccess" class="text-sm text-green-600 dark:text-green-400">✓ {{ editingArticleId ? '保存成功！' : '发布成功！' }}</span>
             <span v-if="publishError" class="text-sm text-red-500">{{ publishError }}</span>
@@ -214,6 +239,67 @@
             </button>
           </div>
         </form>
+      </div>
+
+      <!-- ========== Tab: 文章管理 ========== -->
+      <div v-if="activeTab === 'articles'">
+        <div class="mb-6 flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">文章管理</h2>
+          <button
+            class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-600"
+            @click="resetForm(); editingArticleId = null; activeTab = 'write'"
+          >
+            + 写文章
+          </button>
+        </div>
+        <div class="mb-6">
+          <input v-model="searchKeyword" type="text" placeholder="按标题搜索文章..." class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-primary-400" />
+        </div>
+        <div v-if="manageLoading" class="flex items-center justify-center py-20">
+          <AppLoading tip="加载中..." />
+        </div>
+        <div v-else-if="manageArticles.length > 0" class="space-y-3">
+          <div
+            v-for="article in manageArticles"
+            :key="article.id"
+            class="relative rounded-lg border border-gray-100 bg-white p-4 transition-colors dark:border-gray-700 dark:bg-gray-800"
+          >
+            <!-- 失败红点徽章 -->
+            <span
+              v-if="article.wechatSyncStatus === 'failed' && article.wechatAutoSync !== false"
+              class="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800 cursor-pointer"
+              @click="openSyncLogModal(article)"
+            />
+            <div class="flex items-start gap-4">
+              <img v-if="article.coverImage" :src="toCdnUrl(article.coverImage)" :alt="article.title" class="h-16 w-24 flex-shrink-0 rounded-md object-cover" />
+              <div v-else class="flex h-16 w-24 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
+                <svg class="h-6 w-6 text-gray-300 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v14.25a1.5 1.5 0 001.5 1.5z" /></svg>
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3 class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ article.title }}</h3>
+                <p v-if="article.summary" class="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">{{ article.summary }}</p>
+                <time class="mt-1 block text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
+              </div>
+              <!-- 微信同步状态标签 -->
+              <div class="flex flex-shrink-0 items-center gap-2">
+                <button
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors cursor-pointer"
+                  :class="wechatSyncStatusClass(article.wechatSyncStatus)"
+                  :title="wechatSyncTooltip(article)"
+                  @click="openSyncLogModal(article)"
+                >
+                  <svg v-if="article.wechatSyncStatus === 'syncing'" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  {{ wechatSyncStatusLabel(article.wechatSyncStatus) }}
+                </button>
+                <button class="rounded-md px-3 py-1.5 text-xs font-medium text-primary-500 transition-colors hover:bg-primary-50 dark:hover:bg-primary-900/20" @click="startEdit(article)">编辑</button>
+                <button class="rounded-md px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20" :disabled="deletingId === article.id" @click="handleDelete(article)">{{ deletingId === article.id ? '删除中...' : '删除' }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="py-20 text-center">
+          <p class="text-gray-400 dark:text-gray-500">{{ searchKeyword ? '没有找到匹配的文章' : '暂无文章' }}</p>
+        </div>
       </div>
 
       <!-- ========== Tab 3: 个人资料 ========== -->
@@ -1243,9 +1329,139 @@
         </div>
       </div>
 
+      <!-- ========== Tab: 微信管理 ========== -->
+      <div v-if="activeTab === 'wechat'">
+        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">微信管理</h2>
+
+        <div class="space-y-6">
+          <!-- 服务器 IP 卡片 -->
+          <div class="rounded-xl border border-gray-100 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+            <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">服务器出口 IP</h3>
+            <div v-if="wechatServerIp" class="flex items-center gap-3">
+              <code class="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-mono text-gray-800 dark:bg-gray-700 dark:text-gray-200">{{ wechatServerIp }}</code>
+              <button
+                class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                @click="copyServerIp"
+              >
+                复制 IP
+              </button>
+            </div>
+            <div v-else class="text-sm text-gray-400 dark:text-gray-500">加载中...</div>
+            <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">
+              请确认此 IP 已添加到公众号后台 → 设置与开发 → 基本配置 → IP 白名单
+            </p>
+          </div>
+
+          <!-- Access Token 状态卡片 -->
+          <div class="rounded-xl border border-gray-100 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+            <div class="mb-3 flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Access Token 状态</h3>
+              <button
+                class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                :disabled="wechatStatusLoading"
+                @click="fetchWechatStatus"
+              >
+                {{ wechatStatusLoading ? '刷新中...' : '立即刷新' }}
+              </button>
+            </div>
+            <div v-if="wechatTokenStatus" class="space-y-2 text-sm">
+              <div class="flex items-center gap-2">
+                <span class="text-gray-500 dark:text-gray-400">缓存状态：</span>
+                <span v-if="wechatTokenStatus.cached" class="font-medium text-green-600 dark:text-green-400">已缓存</span>
+                <span v-else class="font-medium text-yellow-600 dark:text-yellow-400">未缓存</span>
+              </div>
+              <div v-if="wechatTokenStatus.remainingSeconds" class="flex items-center gap-2">
+                <span class="text-gray-500 dark:text-gray-400">剩余有效时间：</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300">{{ formatSeconds(wechatTokenStatus.remainingSeconds) }}</span>
+              </div>
+              <div v-if="wechatTokenStatus.lastRefreshedAt" class="flex items-center gap-2">
+                <span class="text-gray-500 dark:text-gray-400">上次刷新时间：</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300">{{ formatDate(wechatTokenStatus.lastRefreshedAt) }}</span>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-400 dark:text-gray-500">加载中...</div>
+          </div>
+
+          <!-- 同步日志全局视图（预留） -->
+          <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-6 dark:border-gray-700 dark:bg-gray-800/30">
+            <h3 class="mb-2 text-sm font-semibold text-gray-500 dark:text-gray-400">同步日志全局视图</h3>
+            <p class="text-xs text-gray-400 dark:text-gray-500">P1 功能，后续版本实现</p>
+          </div>
+        </div>
+      </div>
+
       </div>
     </main>
     </div><!-- 右侧内容区 end -->
+
+    <!-- ========== 微信同步日志 Modal ========== -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div
+          v-if="syncLogModal.visible"
+          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          @click.self="syncLogModal.visible = false"
+        >
+          <div class="mx-4 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-800">
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">微信同步日志</h3>
+              <button
+                class="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                @click="syncLogModal.visible = false"
+              >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p class="mb-3 text-sm text-gray-500 dark:text-gray-400">{{ syncLogModal.articleTitle }}</p>
+            <!-- 操作按钮 -->
+            <div class="mb-4 flex gap-2">
+              <button
+                v-if="syncLogModal.status === 'failed'"
+                :disabled="wechatSyncing"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-60"
+                @click="handleRetrySync"
+              >
+                重试同步
+              </button>
+              <button
+                v-if="syncLogModal.status === 'success'"
+                :disabled="wechatSyncing"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-600 disabled:opacity-60"
+                @click="handleRetrySync"
+              >
+                重新同步
+              </button>
+            </div>
+            <!-- 日志列表 -->
+            <div class="max-h-80 space-y-2 overflow-y-auto">
+              <div v-if="syncLogModal.loading" class="flex items-center justify-center py-8">
+                <AppLoading tip="加载日志..." />
+              </div>
+              <template v-else-if="syncLogModal.logs.length > 0">
+                <div
+                  v-for="log in syncLogModal.logs"
+                  :key="log.id"
+                  class="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-700"
+                >
+                  <div class="flex items-center justify-between">
+                    <span
+                      class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
+                      :class="wechatSyncStatusClass(log.status)"
+                    >
+                      {{ wechatSyncStatusLabel(log.status) }}
+                    </span>
+                    <time class="text-[11px] text-gray-400 dark:text-gray-500">{{ formatDate(log.createdAt) }}</time>
+                  </div>
+                  <p v-if="log.error" class="mt-1 text-xs text-red-500 dark:text-red-400">{{ log.error }}</p>
+                  <p v-if="log.mediaId" class="mt-1 truncate text-[11px] text-gray-400 dark:text-gray-500">media_id: {{ log.mediaId }}</p>
+                </div>
+              </template>
+              <div v-else class="py-8 text-center text-sm text-gray-400 dark:text-gray-500">暂无同步日志</div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- ========== 新建/编辑相册 Modal ========== -->
     <Teleport to="body">
@@ -1374,9 +1590,8 @@ import { showSuccess, showError, showConfirm } from '~/utils/ui'
 import type { ArticleListItem, AlbumItem, PhotoItem, MessageItem } from '~/types'
 import { useAuthStore } from '~/stores/auth'
 import { chunkedUpload } from '~/utils/chunkedUpload'
-import { apiFetchMaterials, apiCreateMaterial, apiUpdateMaterial, apiDeleteMaterial } from '~/features/material'
-import type { MaterialItem, MaterialAttachment } from '~/features/material'
-import { v4 as uuidv4 } from 'uuid'
+import type { WechatSyncStatus, WechatSyncLog, WechatTokenStatus, WechatServerIp } from '~/features/article'
+import { apiSyncArticleToWechat, apiGetWechatSyncLogs, apiGetWechatTokenStatus, apiGetWechatServerIp } from '~/features/article'
 import {
   apiCreateArticle,
   apiUpdateArticle,
@@ -1448,6 +1663,7 @@ const adminNavGroups: AdminNavGroup[] = [
     key: 'content',
     label: '内容管理',
     children: [
+      { key: 'articles', label: '文章管理', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z' },
       { key: 'albums', label: '相册管理', icon: 'M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M2.25 18.75h18a1.5 1.5 0 001.5-1.5V6.75a1.5 1.5 0 00-1.5-1.5h-18a1.5 1.5 0 00-1.5 1.5v10.5a1.5 1.5 0 001.5 1.5z' },
       { key: 'messages', label: '树洞管理', icon: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155' },
     ],
@@ -1465,12 +1681,13 @@ const adminNavGroups: AdminNavGroup[] = [
     children: [
       { key: 'analytics', label: '数据', icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z' },
       { key: 'perf', label: '性能', icon: 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z' },
+      { key: 'wechat', label: '微信管理', icon: 'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z' },
     ],
   },
 ]
 // 向后兼容：扁平化所有 Tab（用于 v-if 切换内容区域）
 const adminTabs = adminNavGroups.flatMap(g => g.children)
-const activeTab = ref('albums')
+const activeTab = ref('articles')
 const sidebarOpen = ref(false) // 移动端侧边栏展开状态
 const activeGroup = computed(() => {
   // write Tab 属于内容管理组（虽然不在导航中显示）
@@ -1492,6 +1709,7 @@ const form = reactive({
   title: '',
   summary: '',
   coverImage: '',
+  wechatAutoSync: true,
 })
 
 const publishing = ref(false)
@@ -1552,10 +1770,11 @@ function resetForm() {
   form.title = ''
   form.summary = ''
   form.coverImage = ''
+  form.wechatAutoSync = true
   editor.value?.commands.setContent('<p>开始写作...</p>')
 }
 
-function cancelEdit() { resetForm(); activeTab.value = 'albums' }
+function cancelEdit() { resetForm(); activeTab.value = 'articles' }
 
 async function handlePublish() {
   if (!editor.value || !form.title.trim()) return
@@ -1569,12 +1788,13 @@ async function handlePublish() {
       summary: form.summary.trim() || undefined,
       coverImage: form.coverImage.trim() || undefined,
       content,
+      wechatAutoSync: form.wechatAutoSync,
     }
     if (editingArticleId.value) {
       await apiUpdateArticle(editingArticleId.value, payload)
       publishSuccess.value = true
       showSuccess('文章保存成功')
-      setTimeout(() => { resetForm(); activeTab.value = 'albums'; publishSuccess.value = false; fetchManageArticles() }, 1500)
+      setTimeout(() => { resetForm(); activeTab.value = 'articles'; publishSuccess.value = false; fetchManageArticles() }, 1500)
     } else {
       await apiCreateArticle(payload)
       publishSuccess.value = true
@@ -1620,12 +1840,14 @@ watch(searchKeyword, () => {
 })
 
 watch(activeTab, (val) => {
+  if (val === 'articles') fetchManageArticles()
   if (val === 'profile') fetchProfile()
   if (val === 'albums') fetchAdminAlbums()
   if (val === 'messages') fetchAdminMessages()
   if (val === 'analytics') fetchAnalyticsData()
   if (val === 'perf') fetchPerfData()
-})
+  if (val === 'wechat') fetchWechatStatus()
+}, { immediate: true })
 
 async function startEdit(article: ArticleListItem) {
   try {
@@ -1634,6 +1856,7 @@ async function startEdit(article: ArticleListItem) {
     form.title = detail.title
     form.summary = detail.summary || ''
     form.coverImage = detail.coverImage || ''
+    form.wechatAutoSync = article.wechatAutoSync !== false
     editor.value?.commands.setContent(detail.content)
     activeTab.value = 'write'
   } catch { showError('加载文章详情失败，请重试') }
@@ -1659,6 +1882,163 @@ async function handleDelete(article: ArticleListItem) {
       } finally { deletingId.value = null }
     },
   })
+}
+
+// ====== 微信同步 ======
+const wechatSyncing = ref(false)
+
+// 同步状态样式
+function wechatSyncStatusClass(status?: WechatSyncStatus): string {
+  switch (status) {
+    case 'syncing': return 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+    case 'success': return 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400'
+    case 'failed': return 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+    default: return 'bg-gray-50 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+  }
+}
+
+function wechatSyncStatusLabel(status?: WechatSyncStatus): string {
+  switch (status) {
+    case 'syncing': return '同步中'
+    case 'success': return '已同步'
+    case 'failed': return '同步失败'
+    default: return '未同步'
+  }
+}
+
+function wechatSyncTooltip(article: ArticleListItem): string {
+  if (article.wechatSyncStatus === 'success' && article.wechatSyncedAt) {
+    return `同步时间: ${formatDate(article.wechatSyncedAt)}`
+  }
+  if (article.wechatSyncStatus === 'failed' && article.wechatSyncError) {
+    return article.wechatSyncError
+  }
+  return ''
+}
+
+// 同步日志弹窗
+const syncLogModal = reactive({
+  visible: false,
+  articleId: '',
+  articleTitle: '',
+  status: '' as WechatSyncStatus | '',
+  logs: [] as WechatSyncLog[],
+  loading: false,
+})
+
+async function openSyncLogModal(article: ArticleListItem) {
+  syncLogModal.visible = true
+  syncLogModal.articleId = article.id
+  syncLogModal.articleTitle = article.title
+  syncLogModal.status = article.wechatSyncStatus || 'pending'
+  syncLogModal.logs = []
+  syncLogModal.loading = true
+  try {
+    const res = await apiGetWechatSyncLogs(article.id)
+    syncLogModal.logs = res.logs
+  } catch {
+    showError('加载同步日志失败')
+  } finally {
+    syncLogModal.loading = false
+  }
+}
+
+async function handleRetrySync() {
+  if (!syncLogModal.articleId) return
+  wechatSyncing.value = true
+  try {
+    await apiSyncArticleToWechat(syncLogModal.articleId)
+    showSuccess('同步已触发')
+    syncLogModal.visible = false
+    // 刷新文章列表
+    await fetchManageArticles()
+  } catch {
+    showError('同步触发失败')
+  } finally {
+    wechatSyncing.value = false
+  }
+}
+
+// 编辑页手动同步
+async function handleManualSync() {
+  if (!editingArticleId.value) return
+  wechatSyncing.value = true
+  try {
+    await apiSyncArticleToWechat(editingArticleId.value)
+    showSuccess('同步已触发，后台正在处理')
+  } catch {
+    showError('同步触发失败')
+  } finally {
+    wechatSyncing.value = false
+  }
+}
+
+// 文章列表轮询（仅当存在 syncing 状态时）
+let articlePollTimer: ReturnType<typeof setInterval> | null = null
+
+function startArticlePoll() {
+  stopArticlePoll()
+  articlePollTimer = setInterval(() => {
+    const hasSyncing = manageArticles.value.some(a => a.wechatSyncStatus === 'syncing')
+    if (hasSyncing) {
+      fetchManageArticles()
+    } else {
+      stopArticlePoll()
+    }
+  }, 30000)
+}
+
+function stopArticlePoll() {
+  if (articlePollTimer) {
+    clearInterval(articlePollTimer)
+    articlePollTimer = null
+  }
+}
+
+// 当文章列表加载完毕后检查是否需要启动轮询
+watch(manageArticles, (articles) => {
+  if (articles.some(a => a.wechatSyncStatus === 'syncing')) {
+    startArticlePoll()
+  } else {
+    stopArticlePoll()
+  }
+})
+
+// ====== 微信管理页 ======
+const wechatServerIp = ref('')
+const wechatTokenStatus = ref<WechatTokenStatus | null>(null)
+const wechatStatusLoading = ref(false)
+
+async function fetchWechatStatus() {
+  wechatStatusLoading.value = true
+  try {
+    const [ipRes, tokenRes] = await Promise.all([
+      apiGetWechatServerIp(),
+      apiGetWechatTokenStatus(),
+    ])
+    wechatServerIp.value = ipRes.ip
+    wechatTokenStatus.value = tokenRes
+  } catch {
+    showError('获取微信状态失败')
+  } finally {
+    wechatStatusLoading.value = false
+  }
+}
+
+function copyServerIp() {
+  if (!wechatServerIp.value) return
+  navigator.clipboard.writeText(wechatServerIp.value).then(() => {
+    showSuccess('已复制到剪贴板')
+  }).catch(() => {
+    showError('复制失败')
+  })
+}
+
+function formatSeconds(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  if (h > 0) return `${h}小时${m}分钟`
+  return `${m}分钟`
 }
 
 // ====== 个人资料 ======
@@ -2760,6 +3140,7 @@ watch(perfTrendDays, () => {
 onUnmounted(() => {
   editor.value?.destroy()
   if (searchTimer) clearTimeout(searchTimer)
+  stopArticlePoll()
   chartResizeObserver?.disconnect()
   perfChartResizeOb?.disconnect()
 })

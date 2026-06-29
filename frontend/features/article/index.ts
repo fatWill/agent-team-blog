@@ -5,6 +5,10 @@ export type {
   ArticleListResponse,
   CreateArticleRequest,
   UpdateArticleRequest,
+  WechatSyncStatus,
+  WechatSyncLog,
+  WechatTokenStatus,
+  WechatServerIp,
 } from './types'
 
 export {
@@ -20,4 +24,8 @@ export {
   apiRecordArticleView,
   apiGetRandomArticle,
   apiSearchArticles,
+  apiSyncArticleToWechat,
+  apiGetWechatSyncLogs,
+  apiGetWechatTokenStatus,
+  apiGetWechatServerIp,
 } from './api'

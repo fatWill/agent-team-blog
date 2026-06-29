@@ -3,6 +3,9 @@ import type {
   ArticleDetail,
   CreateArticleRequest,
   UpdateArticleRequest,
+  WechatSyncLog,
+  WechatTokenStatus,
+  WechatServerIp,
 } from './types'
 
 /** 获取文章列表 */
@@ -103,5 +106,33 @@ export async function apiSearchArticles(keyword: string): Promise<ArticleListRes
   const res = await $fetch<ArticleListResponse>('/api/articles', {
     params: { search: keyword },
   })
+  return res
+}
+
+// ====== 微信公众号同步 ======
+
+/** 手动触发同步文章到微信草稿箱 */
+export async function apiSyncArticleToWechat(articleId: string): Promise<{ mediaId: string }> {
+  const res = await $fetch<{ mediaId: string }>(`/api/admin/articles/${articleId}/sync-wechat`, {
+    method: 'POST',
+  })
+  return res
+}
+
+/** 获取文章的微信同步日志 */
+export async function apiGetWechatSyncLogs(articleId: string): Promise<{ logs: WechatSyncLog[] }> {
+  const res = await $fetch<{ logs: WechatSyncLog[] }>(`/api/admin/articles/${articleId}/wechat-sync-logs`)
+  return res
+}
+
+/** 获取微信 access_token 缓存状态 */
+export async function apiGetWechatTokenStatus(): Promise<WechatTokenStatus> {
+  const res = await $fetch<WechatTokenStatus>('/api/admin/wechat/access-token-status')
+  return res
+}
+
+/** 获取 VPS 出口公网 IP */
+export async function apiGetWechatServerIp(): Promise<WechatServerIp> {
+  const res = await $fetch<WechatServerIp>('/api/admin/wechat/server-ip')
   return res
 }
