@@ -70,4 +70,6 @@ export interface WechatTokenStatus {
 /** 微信服务器 IP 响应 */
 export interface WechatServerIp {
   ip: string
+  hint?: string
+  mpConsoleURL?: string
 }

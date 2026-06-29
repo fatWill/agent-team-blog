@@ -1348,7 +1348,7 @@
             </div>
             <div v-else class="text-sm text-gray-400 dark:text-gray-500">加载中...</div>
             <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">
-              请确认此 IP 已添加到公众号后台 → 设置与开发 → 基本配置 → IP 白名单
+              {{ wechatServerIpHint || '请确认此 IP 已添加到公众号后台 → 设置与开发 → 基本配置 → IP 白名单' }}
             </p>
           </div>
 
@@ -2006,6 +2006,7 @@ watch(manageArticles, (articles) => {
 
 // ====== 微信管理页 ======
 const wechatServerIp = ref('')
+const wechatServerIpHint = ref('')
 const wechatTokenStatus = ref<WechatTokenStatus | null>(null)
 const wechatStatusLoading = ref(false)
 
@@ -2017,6 +2018,7 @@ async function fetchWechatStatus() {
       apiGetWechatTokenStatus(),
     ])
     wechatServerIp.value = ipRes.ip
+    wechatServerIpHint.value = ipRes.hint || ''
     wechatTokenStatus.value = tokenRes
   } catch {
     showError('获取微信状态失败')
