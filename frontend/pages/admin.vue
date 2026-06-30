@@ -1427,7 +1427,11 @@
                   </thead>
                   <tbody>
                     <tr v-for="article in paginatedSyncArticles" :key="article.id" class="border-b border-gray-50 dark:border-gray-700/50">
-                      <td class="max-w-[200px] truncate py-3 pr-4 text-gray-900 dark:text-gray-100" :title="article.title">{{ article.title }}</td>
+                      <td class="max-w-[200px] py-3 pr-4 text-gray-900 dark:text-gray-100">
+                        <ATooltip :title="article.title" placement="topLeft">
+                          <span class="block truncate">{{ article.title }}</span>
+                        </ATooltip>
+                      </td>
                       <td class="py-3 pr-4 text-gray-500 dark:text-gray-400">{{ formatDate(article.createdAt) }}</td>
                       <td class="py-3 pr-4">
                         <span class="inline-block min-w-[4.5rem] text-center rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(article.wechatSyncStatus)">
@@ -1452,7 +1456,9 @@
               <!-- 移动端卡片 -->
               <div class="space-y-3 md:hidden">
                 <div v-for="article in paginatedSyncArticles" :key="article.id" class="rounded-lg border border-gray-100 p-3 dark:border-gray-700">
-                  <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" :title="article.title">{{ article.title }}</p>
+                  <ATooltip :title="article.title" placement="topLeft">
+                    <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ article.title }}</p>
+                  </ATooltip>
                   <div class="mt-2 flex items-center justify-between">
                     <span class="inline-block min-w-[4.5rem] text-center rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(article.wechatSyncStatus)">
                       {{ wechatSyncStatusLabel(article.wechatSyncStatus) }}
@@ -1519,12 +1525,12 @@
               </select>
             </div>
             <!-- 日志表格 -->
-            <div v-if="globalLogLoading" class="flex items-center justify-center py-8">
+            <div v-if="globalLogLoading && globalLogs.length === 0" class="flex items-center justify-center py-8">
               <AppLoading tip="加载日志..." />
             </div>
             <div v-else-if="globalLogs.length > 0" class="flex flex-col">
               <!-- 表格容器固定高度 + 内部滚动 -->
-              <div class="h-[320px] overflow-y-auto md:h-[480px]">
+              <div class="h-[320px] overflow-y-auto transition-opacity duration-150 md:h-[480px]" :class="globalLogLoading ? 'pointer-events-none opacity-50' : ''">
                 <!-- 桌面端表格 -->
                 <div class="hidden md:block">
                   <table class="w-full text-sm">
@@ -1540,8 +1546,10 @@
                     <tbody>
                       <tr v-for="log in globalLogs" :key="log.id" class="border-b border-gray-50 dark:border-gray-700/50">
                         <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ formatDate(log.createdAt) }}</td>
-                        <td class="max-w-[180px] truncate py-3 pr-4">
-                          <span v-if="log.articleTitle" class="text-gray-900 dark:text-gray-100" :title="log.articleTitle">{{ log.articleTitle }}</span>
+                        <td class="max-w-[180px] py-3 pr-4">
+                          <ATooltip v-if="log.articleTitle" :title="log.articleTitle" placement="topLeft">
+                            <span class="block truncate text-gray-900 dark:text-gray-100">{{ log.articleTitle }}</span>
+                          </ATooltip>
                           <span v-else class="text-gray-400 dark:text-gray-500">(已删除)</span>
                         </td>
                         <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ syncActionLabel(log.action) }}</td>
@@ -1550,8 +1558,11 @@
                             {{ wechatSyncStatusLabel(log.status) }}
                           </span>
                         </td>
-                        <td class="max-w-[200px] truncate py-3 text-gray-500 dark:text-gray-400" :title="log.error || ''">
-                          {{ log.error || '-' }}
+                        <td class="max-w-[200px] py-3 text-gray-500 dark:text-gray-400">
+                          <ATooltip v-if="log.error" :title="log.error" placement="topLeft">
+                            <span class="block truncate">{{ log.error }}</span>
+                          </ATooltip>
+                          <span v-else>-</span>
                         </td>
                       </tr>
                     </tbody>
@@ -1561,7 +1572,9 @@
                 <div class="space-y-3 md:hidden">
                   <div v-for="log in globalLogs" :key="log.id" class="rounded-lg border border-gray-100 p-3 dark:border-gray-700">
                     <div class="flex items-center justify-between">
-                      <span v-if="log.articleTitle" class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" :title="log.articleTitle">{{ log.articleTitle }}</span>
+                      <ATooltip v-if="log.articleTitle" :title="log.articleTitle" placement="topLeft">
+                        <span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ log.articleTitle }}</span>
+                      </ATooltip>
                       <span v-else class="text-sm text-gray-400 dark:text-gray-500">(已删除)</span>
                       <span class="inline-block min-w-[4.5rem] text-center rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(log.status)">
                         {{ wechatSyncStatusLabel(log.status) }}
@@ -1570,7 +1583,9 @@
                     <p class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
                       {{ formatDate(log.createdAt) }} · {{ syncActionLabel(log.action) }}
                     </p>
-                    <p v-if="log.error" class="mt-1 truncate text-[11px] text-red-500 dark:text-red-400" :title="log.error">{{ log.error }}</p>
+                    <ATooltip v-if="log.error" :title="log.error" placement="topLeft">
+                      <p class="mt-1 truncate text-[11px] text-red-500 dark:text-red-400">{{ log.error }}</p>
+                    </ATooltip>
                   </div>
                 </div>
               </div>
@@ -1836,6 +1851,7 @@ import {
   apiDeleteMessage,
 } from '~/utils/api'
 import { toCdnUrl } from '~/utils/imageUrl'
+import { Tooltip as ATooltip } from 'ant-design-vue'
 
 interface AdminPhotoItem {
   id: number           // 正式照片为正数 DB id；占位项为负数临时 id

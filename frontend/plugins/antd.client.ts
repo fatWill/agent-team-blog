@@ -2,6 +2,7 @@ import { message } from 'ant-design-vue'
 import 'ant-design-vue/es/message/style'
 import 'ant-design-vue/es/modal/style'
 import 'ant-design-vue/es/spin/style'
+import 'ant-design-vue/es/tooltip/style'
 
 export default defineNuxtPlugin(() => {
   // 配置 message 全局设置
