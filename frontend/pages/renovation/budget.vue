@@ -338,6 +338,55 @@ onMounted(async () => {
     else { originalItems.value = deepCloneItems(HARDCODED_DATA); migrated.value = false }
   } catch { originalItems.value = deepCloneItems(HARDCODED_DATA); migrated.value = false }
   draftItems.value = deepCloneItems(originalItems.value)
+
+  // 一次性数据回填：仅登录态 + 已迁移 + sessionStorage 未标记时执行
+  if (isLoggedIn.value && migrated.value) {
+    const RESTORE_KEY = 'budget-actual-restored-v1'
+    if (!sessionStorage.getItem(RESTORE_KEY)) {
+      // 构建硬编码 actual 映射（key = itemName, value = actual）
+      const hardcodedActualMap = new Map<string, number>()
+      for (const hd of HARDCODED_DATA) {
+        if (hd.actual !== null && hd.actual > 0) {
+          hardcodedActualMap.set(hd.itemName, hd.actual)
+        }
+      }
+      // 找出接口返回 actual 为 0 或 null，但硬编码里有非 0 actual 的项
+      const needRestore: { id: number; category: string; item_name: string; amount: number; actual: number; remark: string; sort_order: number }[] = []
+      for (const item of originalItems.value) {
+        if (item.id && (item.actual === null || item.actual === 0)) {
+          const hardActual = hardcodedActualMap.get(item.itemName)
+          if (hardActual && hardActual > 0) {
+            needRestore.push({
+              id: item.id,
+              category: item.category,
+              item_name: item.itemName,
+              amount: item.amount,
+              actual: hardActual,
+              remark: item.remark,
+              sort_order: item.sortOrder,
+            })
+          }
+        }
+      }
+      if (needRestore.length > 0) {
+        try {
+          const restoreRes = await $fetch<{ code: number; data: { items: BudgetItemAPI[] } }>(
+            '/api/renovation/budget/items/batch',
+            { method: 'POST', body: { creates: [], updates: needRestore, deletes: [] } }
+          )
+          if (restoreRes.data?.items) {
+            originalItems.value = apiItemsToDraft(restoreRes.data.items)
+            draftItems.value = deepCloneItems(originalItems.value)
+          }
+          showSuccess(`已自动恢复 ${needRestore.length} 条实际支出数据`)
+        } catch (e: any) {
+          showError('自动恢复实际支出数据失败：' + (e?.message || '未知错误'))
+        }
+      }
+      // 无论成功失败都标记，防止重复触发
+      sessionStorage.setItem(RESTORE_KEY, 'true')
+    }
+  }
 })
 
 // ====== computed ======
