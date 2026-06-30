@@ -15,10 +15,10 @@
         <span class="mx-3 text-gray-300 dark:text-gray-600">/</span>
         <span class="text-sm font-medium text-gray-900 dark:text-gray-100">成本预算</span>
         <!-- 右侧操作按钮 -->
-        <div class="ml-auto flex items-center gap-2">
+        <div class="ml-auto flex shrink-0 items-center gap-2">
           <template v-if="editing">
             <button
-              class="flex items-center gap-1 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+              class="flex shrink-0 items-center gap-1 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
               :disabled="saving"
               @click="handleSave"
             >
@@ -29,22 +29,22 @@
               保存
             </button>
             <button
-              class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              class="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               @click="handleCancel"
             >
               取消
             </button>
           </template>
-          <ATooltip v-else-if="isLoggedIn" title="编辑">
-            <button
-              class="flex h-8 w-8 items-center justify-center rounded-lg text-indigo-500 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-              @click="enterEditMode"
-            >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-              </svg>
-            </button>
-          </ATooltip>
+          <button
+            v-else-if="isLoggedIn"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-indigo-500 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+            title="编辑"
+            @click="enterEditMode"
+          >
+            <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+            </svg>
+          </button>
         </div>
       </div>
     </header>
@@ -109,7 +109,7 @@
           </div>
           <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div class="overflow-x-auto">
-              <table class="w-full min-w-[520px] text-sm">
+              <table class="w-full min-w-[540px] text-sm">
                 <thead>
                   <tr class="border-b border-gray-200 dark:border-gray-700" :class="categoryHeaderBgClass(category.key)">
                     <th class="whitespace-nowrap px-3 py-2.5 text-left font-semibold text-gray-600 dark:text-gray-300 sm:px-4">项目名称</th>
@@ -149,8 +149,8 @@
                         <input v-model="item.remark" class="w-full rounded border border-gray-200 px-2 py-1 text-sm text-gray-900 outline-none focus:border-indigo-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" placeholder="备注" />
                       </td>
                       <td class="px-2 py-1.5">
-                        <button class="flex h-6 w-6 items-center justify-center rounded text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" title="删除此行" @click="removeDraftRow(item._uid)">
-                          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <button class="flex h-7 w-7 items-center justify-center rounded text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" title="删除此行" @click="removeDraftRow(item._uid)">
+                          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                           </svg>
                         </button>
@@ -158,8 +158,8 @@
                     </template>
                   </tr>
                   <tr v-if="editing">
-                    <td :colspan="6" class="px-3 py-2">
-                      <button class="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20" @click="addDraftRow(category.key)">
+                    <td :colspan="6" class="px-3 py-2.5">
+                      <button class="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20" @click="addDraftRow(category.key)">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                         新增一行
                       </button>
@@ -183,7 +183,7 @@
       <!-- 总计卡片 -->
       <div class="mt-6 overflow-hidden rounded-xl border-2 border-gray-300 bg-gray-100 shadow-sm dark:border-gray-600 dark:bg-gray-700">
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[520px] text-sm">
+          <table class="w-full min-w-[540px] text-sm">
             <tbody>
               <tr>
                 <td class="px-3 py-3 font-bold text-gray-900 dark:text-gray-100 sm:px-4">总计</td>
@@ -236,7 +236,6 @@
 </template>
 
 <script setup lang="ts">
-import { Tooltip as ATooltip } from 'ant-design-vue'
 import { showSuccess, showError, showConfirm } from '~/shared/utils/ui'
 import QRCode from 'qrcode'
 
