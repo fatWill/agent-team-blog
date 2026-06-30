@@ -8,6 +8,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/album"
 	"github.com/fatWill/agent-team-blog/backend/internal/article"
 	"github.com/fatWill/agent-team-blog/backend/internal/auth"
+	"github.com/fatWill/agent-team-blog/backend/internal/budget"
 	"github.com/fatWill/agent-team-blog/backend/internal/changelog"
 	"github.com/fatWill/agent-team-blog/backend/internal/download"
 	"github.com/fatWill/agent-team-blog/backend/internal/guestbook"
@@ -200,6 +201,13 @@ func registerRoutes(api *gin.RouterGroup) {
 		renoGroup.POST("", authMW, renovation.CreateArticle)
 		renoGroup.PUT("/:id", authMW, renovation.UpdateArticle)
 		renoGroup.DELETE("/:id", authMW, renovation.DeleteArticle)
+	}
+
+	// ========== 装修预算 ==========
+	budgetGroup := api.Group("/renovation/budget")
+	{
+		budgetGroup.GET("/items", budget.GetItems)
+		budgetGroup.POST("/items/batch", authMW, budget.BatchEditItems)
 	}
 
 	// ========== 材料清单 ==========

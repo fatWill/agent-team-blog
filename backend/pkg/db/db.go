@@ -221,6 +221,18 @@ func autoMigrate() error {
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_wechat_sync_logs_article ON wechat_sync_logs (article_id)`,
+
+		// 装修成本预算项表
+		`CREATE TABLE IF NOT EXISTS budget_items (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			category TEXT NOT NULL DEFAULT '',
+			item_name TEXT NOT NULL DEFAULT '',
+			amount REAL NOT NULL DEFAULT 0,
+			remark TEXT NOT NULL DEFAULT '',
+			sort_order INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, sql := range ddl {
