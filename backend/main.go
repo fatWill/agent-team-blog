@@ -226,6 +226,7 @@ func registerRoutes(api *gin.RouterGroup) {
 	{
 		wechatAdminGroup.GET("/access-token-status", wechat.GetAccessTokenStatus)
 		wechatAdminGroup.GET("/server-ip", wechat.GetServerIP)
+		wechatAdminGroup.GET("/sync-logs", wechat.ListAllSyncLogs)
 	}
 
 	// 文章微信同步管理（需鉴权）
