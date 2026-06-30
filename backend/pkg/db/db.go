@@ -258,6 +258,14 @@ func autoMigrate() error {
 		DB.Exec(`ALTER TABLE articles ADD COLUMN wechat_auto_sync INTEGER NOT NULL DEFAULT 1`)
 	}
 
+	// 兼容迁移：为已有 profile 表新增 name 列
+	var nameColCount int
+	DB.Raw(`SELECT COUNT(*) FROM pragma_table_info('profile') WHERE name = 'name'`).Scan(&nameColCount)
+	if nameColCount == 0 {
+		DB.Exec(`ALTER TABLE profile ADD COLUMN name TEXT NOT NULL DEFAULT 'fatwill'`)
+		DB.Exec(`UPDATE profile SET name = 'fatwill' WHERE name = ''`)
+	}
+
 	// 初始化装修文章数据（仅当表为空时插入）
 	var renoCount int64
 	DB.Raw(`SELECT COUNT(*) FROM renovation_articles`).Scan(&renoCount)

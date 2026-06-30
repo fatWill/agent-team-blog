@@ -5,6 +5,7 @@ import "time"
 // Profile 个人资料表
 type Profile struct {
 	ID     uint64 `json:"-" gorm:"primaryKey"`
+	Name   string `json:"name" gorm:"column:name;type:varchar(50)"`
 	Avatar string `json:"avatar" gorm:"column:avatar;type:varchar(500)"`
 	Bio    string `json:"bio" gorm:"column:bio;type:text"`
 }

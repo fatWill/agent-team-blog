@@ -13,16 +13,17 @@ import (
 func GetProfile(c *gin.Context) {
 	var p models.Profile
 	if err := db.DB.Where("id = 1").First(&p).Error; err != nil {
-		c.JSON(http.StatusOK, gin.H{"avatar": "", "bio": ""})
+		c.JSON(http.StatusOK, gin.H{"name": "fatwill", "avatar": "", "bio": ""})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"avatar": p.Avatar, "bio": p.Bio})
+	c.JSON(http.StatusOK, gin.H{"name": p.Name, "avatar": p.Avatar, "bio": p.Bio})
 }
 
 // UpdateProfile PUT /api/profile
 func UpdateProfile(c *gin.Context) {
 	var body struct {
+		Name   *string `json:"name"`
 		Avatar *string `json:"avatar"`
 		Bio    *string `json:"bio"`
 	}
@@ -32,12 +33,24 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	if body.Avatar == nil && body.Bio == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "至少需要提供 avatar 或 bio 中的一个字段"})
+	if body.Name == nil && body.Avatar == nil && body.Bio == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "至少需要提供 name、avatar 或 bio 中的一个字段"})
 		return
 	}
 
 	updates := map[string]interface{}{}
+	if body.Name != nil {
+		name := strings.TrimSpace(*body.Name)
+		if name == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "昵称不能为空"})
+			return
+		}
+		if len([]rune(name)) > 50 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "昵称长度不能超过 50 个字符"})
+			return
+		}
+		updates["name"] = name
+	}
 	if body.Avatar != nil {
 		updates["avatar"] = strings.TrimSpace(*body.Avatar)
 	}
@@ -50,5 +63,5 @@ func UpdateProfile(c *gin.Context) {
 	var p models.Profile
 	db.DB.Where("id = 1").First(&p)
 
-	c.JSON(http.StatusOK, gin.H{"avatar": p.Avatar, "bio": p.Bio})
+	c.JSON(http.StatusOK, gin.H{"name": p.Name, "avatar": p.Avatar, "bio": p.Bio})
 }
