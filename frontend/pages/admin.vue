@@ -18,7 +18,7 @@
       <!-- 侧边栏顶部：Logo + 名称 -->
       <div class="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.06] px-5">
         <NuxtLink to="/articles" class="flex items-center gap-2.5 transition-opacity hover:opacity-80">
-          <img src="/avatar.png" alt="avatar" class="h-7 w-7 rounded-full ring-1 ring-white/10" />
+          <img :src="sidebarAvatar ? toCdnUrl(sidebarAvatar) : '/avatar.png'" alt="avatar" class="h-7 w-7 rounded-full ring-1 ring-white/10 object-cover" />
           <span class="text-[15px] font-semibold text-white/90">fatwill</span>
         </NuxtLink>
         <!-- 移动端关闭按钮 -->
@@ -2380,6 +2380,16 @@ function syncActionLabel(action: string): string {
   }
 }
 
+// ====== 侧边栏品牌（与前台同步） ======
+const sidebarAvatar = ref('')
+
+async function fetchSidebarBranding() {
+  try {
+    const data = await apiGetProfile()
+    sidebarAvatar.value = data.avatar || ''
+  } catch { /* 静默 */ }
+}
+
 // ====== 个人资料 ======
 const avatarFileInput = ref<HTMLInputElement | null>(null)
 const profileForm = reactive({ avatar: '', bio: '' })
@@ -2417,6 +2427,7 @@ async function handleSaveProfile() {
   profileError.value = ''
   try {
     await apiUpdateProfile({ avatar: profileForm.avatar, bio: profileForm.bio })
+    sidebarAvatar.value = profileForm.avatar
     profileSuccess.value = true
     showSuccess('个人信息保存成功')
     setTimeout(() => { profileSuccess.value = false }, 3000)
@@ -3035,6 +3046,9 @@ const tooltip = reactive({ visible: false, x: 0, y: 0, date: '', pv: 0, uv: 0 })
 let chartResizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
+  // 加载侧边栏品牌信息（头像）
+  fetchSidebarBranding()
+
   // 确保微信 Tab 数据在客户端加载（watch immediate 在 SSR 中可能不触发网络请求）
   if (activeTab.value === 'wechat') {
     fetchWechatStatus()
