@@ -33,8 +33,8 @@
       <!-- 导航菜单 -->
       <nav class="flex-1 overflow-y-auto px-3 py-4">
         <div v-for="(group, gi) in adminNavGroups" :key="group.key" :class="gi > 0 ? 'mt-6' : ''">
-          <!-- 分组标题 -->
-          <div class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-white/25">
+          <!-- 分组标题（只有多个分组时才显示） -->
+          <div v-if="adminNavGroups.length > 1" class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-white/25">
             {{ group.label }}
           </div>
           <!-- 菜单项 -->
@@ -1426,7 +1426,7 @@
                       <td class="py-3 pr-4 text-gray-500 dark:text-gray-400">{{ article.wechatSyncedAt ? formatDate(article.wechatSyncedAt) : '-' }}</td>
                       <td class="py-3 text-right">
                         <button
-                          :disabled="wechatSyncing"
+                          :disabled="syncingArticleIds.has(article.id) || article.wechatSyncStatus === 'syncing'"
                           class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60"
                           :class="syncArticleBtnClass(article.wechatSyncStatus)"
                           @click="handleDirectSync(article)"
@@ -1447,7 +1447,7 @@
                       {{ wechatSyncStatusLabel(article.wechatSyncStatus) }}
                     </span>
                     <button
-                      :disabled="wechatSyncing"
+                      :disabled="syncingArticleIds.has(article.id) || article.wechatSyncStatus === 'syncing'"
                       class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60"
                       :class="syncArticleBtnClass(article.wechatSyncStatus)"
                       @click="handleDirectSync(article)"
@@ -1869,13 +1869,6 @@ interface AdminNavGroup {
 }
 const adminNavGroups: AdminNavGroup[] = [
   {
-    key: 'personal',
-    label: '个人',
-    children: [
-      { key: 'profile', label: '个人资料', icon: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z' },
-    ],
-  },
-  {
     key: 'stats',
     label: '统计',
     children: [
@@ -2086,11 +2079,12 @@ async function handleDelete(article: ArticleListItem) {
 
 // ====== 微信同步 ======
 const wechatSyncing = ref(false)
+const syncingArticleIds = ref<Set<string>>(new Set())
 
 // 同步状态样式
 function wechatSyncStatusClass(status?: WechatSyncStatus): string {
   switch (status) {
-    case 'syncing': return 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+    case 'syncing': return 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
     case 'success': return 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400'
     case 'failed': return 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
     default: return 'bg-gray-50 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
@@ -2099,7 +2093,7 @@ function wechatSyncStatusClass(status?: WechatSyncStatus): string {
 
 function wechatSyncStatusLabel(status?: WechatSyncStatus): string {
   switch (status) {
-    case 'syncing': return '同步中'
+    case 'syncing': return '同步中…'
     case 'success': return '已同步'
     case 'failed': return '同步失败'
     default: return '未同步'
@@ -2247,6 +2241,7 @@ function formatSeconds(seconds: number): string {
 const syncFilterTabs = [
   { key: 'all', label: '全部' },
   { key: 'pending', label: '未同步' },
+  { key: 'syncing', label: '同步中' },
   { key: 'success', label: '已同步' },
   { key: 'failed', label: '失败' },
 ]
@@ -2258,6 +2253,9 @@ const filteredSyncArticles = computed(() => {
   if (syncFilterStatus.value === 'all') return manageArticles.value
   if (syncFilterStatus.value === 'pending') {
     return manageArticles.value.filter(a => !a.wechatSyncStatus || a.wechatSyncStatus === 'pending')
+  }
+  if (syncFilterStatus.value === 'syncing') {
+    return manageArticles.value.filter(a => a.wechatSyncStatus === 'syncing' || syncingArticleIds.value.has(a.id))
   }
   return manageArticles.value.filter(a => a.wechatSyncStatus === syncFilterStatus.value)
 })
@@ -2290,15 +2288,23 @@ function syncArticleBtnLabel(status?: WechatSyncStatus): string {
 }
 
 async function handleDirectSync(article: ArticleListItem) {
-  wechatSyncing.value = true
+  const id = article.id
+  const prevStatus = article.wechatSyncStatus
+  // 乐观更新：立刻标记为 syncing
+  syncingArticleIds.value = new Set([...syncingArticleIds.value, id])
+  article.wechatSyncStatus = 'syncing'
   try {
-    await apiSyncArticleToWechat(article.id)
+    await apiSyncArticleToWechat(id)
     showSuccess('同步已触发')
     await fetchManageArticles()
   } catch {
+    // 回滚状态
+    article.wechatSyncStatus = prevStatus
     showError('同步触发失败')
   } finally {
-    wechatSyncing.value = false
+    const next = new Set(syncingArticleIds.value)
+    next.delete(id)
+    syncingArticleIds.value = next
   }
 }
 
