@@ -8,6 +8,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/album"
 	"github.com/fatWill/agent-team-blog/backend/internal/article"
 	"github.com/fatWill/agent-team-blog/backend/internal/auth"
+	"github.com/fatWill/agent-team-blog/backend/internal/backup"
 	"github.com/fatWill/agent-team-blog/backend/internal/budget"
 	"github.com/fatWill/agent-team-blog/backend/internal/changelog"
 	"github.com/fatWill/agent-team-blog/backend/internal/download"
@@ -38,6 +39,14 @@ func main() {
 		log.Fatalf("初始化 SQLite 失败: %v", err)
 	}
 	log.Printf("✅ SQLite 连接成功 (%s)", cfg.DB.Path)
+
+	// SQLite 启动备份（失败不阻塞启动）
+	if err := backup.BackupNow("startup"); err != nil {
+		log.Printf("⚠️ 启动备份失败: %v", err)
+	}
+
+	// 启动每日定时备份
+	backup.StartDailyBackup()
 
 	// 初始化 Redis
 	if err := rds.Init(&cfg.Redis); err != nil {

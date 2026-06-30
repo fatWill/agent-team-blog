@@ -2,10 +2,12 @@ package budget
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"strings"
 
+	"github.com/fatWill/agent-team-blog/backend/internal/backup"
 	"github.com/fatWill/agent-team-blog/backend/models"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/gin-gonic/gin"
@@ -27,6 +29,7 @@ type batchCreateItem struct {
 	Category  string  `json:"category"`
 	ItemName  string  `json:"item_name"`
 	Amount    float64 `json:"amount"`
+	Actual    float64 `json:"actual"`
 	Remark    string  `json:"remark"`
 	SortOrder int     `json:"sort_order"`
 }
@@ -37,6 +40,7 @@ type batchUpdateItem struct {
 	Category  string  `json:"category"`
 	ItemName  string  `json:"item_name"`
 	Amount    float64 `json:"amount"`
+	Actual    float64 `json:"actual"`
 	Remark    string  `json:"remark"`
 	SortOrder int     `json:"sort_order"`
 }
@@ -75,6 +79,10 @@ func BatchEditItems(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": fmt.Sprintf("creates[%d]: amount 不能为负数", i)})
 			return
 		}
+		if item.Actual < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": fmt.Sprintf("creates[%d]: actual 不能为负数", i)})
+			return
+		}
 	}
 
 	// 校验 updates
@@ -95,6 +103,10 @@ func BatchEditItems(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": fmt.Sprintf("updates[%d]: amount 不能为负数", i)})
 			return
 		}
+		if item.Actual < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": fmt.Sprintf("updates[%d]: actual 不能为负数", i)})
+			return
+		}
 	}
 
 	// 校验 deletes
@@ -103,6 +115,11 @@ func BatchEditItems(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": fmt.Sprintf("deletes[%d]: id 无效", i)})
 			return
 		}
+	}
+
+	// 事务前备份（失败不阻塞业务）
+	if err := backup.BackupNow("prebudget"); err != nil {
+		log.Printf("⚠️ 事务前备份失败: %v", err)
 	}
 
 	// 事务执行
@@ -124,6 +141,7 @@ func BatchEditItems(c *gin.Context) {
 				"category":   strings.TrimSpace(u.Category),
 				"item_name":  strings.TrimSpace(u.ItemName),
 				"amount":     roundAmount(u.Amount),
+				"actual":     roundAmount(u.Actual),
 				"remark":     strings.TrimSpace(u.Remark),
 				"sort_order": u.SortOrder,
 			})
@@ -141,6 +159,7 @@ func BatchEditItems(c *gin.Context) {
 				Category:  strings.TrimSpace(cr.Category),
 				ItemName:  strings.TrimSpace(cr.ItemName),
 				Amount:    roundAmount(cr.Amount),
+				Actual:    roundAmount(cr.Actual),
 				Remark:    strings.TrimSpace(cr.Remark),
 				SortOrder: cr.SortOrder,
 			}
@@ -153,7 +172,6 @@ func BatchEditItems(c *gin.Context) {
 	})
 
 	if err != nil {
-		// 区分业务错误和系统错误
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "不存在") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": errMsg})

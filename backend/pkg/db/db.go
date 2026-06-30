@@ -278,6 +278,15 @@ func autoMigrate() error {
 		DB.Exec(`UPDATE profile SET name = 'fatwill' WHERE name = ''`)
 	}
 
+	// 兼容迁移：为已有 budget_items 表新增 actual 列
+	var actualColCount int
+	DB.Raw(`SELECT COUNT(*) FROM pragma_table_info('budget_items') WHERE name = 'actual'`).Scan(&actualColCount)
+	if actualColCount == 0 {
+		if err := DB.Exec(`ALTER TABLE budget_items ADD COLUMN actual REAL NOT NULL DEFAULT 0`).Error; err != nil {
+			return fmt.Errorf("迁移 budget_items.actual 失败: %w", err)
+		}
+	}
+
 	// 初始化装修文章数据（仅当表为空时插入）
 	var renoCount int64
 	DB.Raw(`SELECT COUNT(*) FROM renovation_articles`).Scan(&renoCount)
