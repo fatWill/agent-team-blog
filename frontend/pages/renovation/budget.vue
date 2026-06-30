@@ -308,7 +308,7 @@ const HARDCODED_DATA: DraftItem[] = [
 ]
 
 // ====== 状态 ======
-const isLoggedIn = ref(false)
+const { isLoggedIn } = useAuth()
 const editing = ref(false)
 const saving = ref(false)
 const migrated = ref(false)
@@ -330,7 +330,6 @@ originalItems.value = deepCloneItems(HARDCODED_DATA)
 draftItems.value = deepCloneItems(HARDCODED_DATA)
 
 onMounted(async () => {
-  try { await $fetch('/api/auth/check'); isLoggedIn.value = true } catch { isLoggedIn.value = false }
   try {
     const res = await $fetch<{ items: BudgetItemAPI[] }>('/api/renovation/budget/items')
     if (res.items && res.items.length > 0) { originalItems.value = apiItemsToDraft(res.items); migrated.value = true }

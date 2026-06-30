@@ -2,17 +2,44 @@
   <div class="flex min-h-screen flex-col">
     <!-- 移动端顶部导航栏（仅 < md 显示） -->
     <header class="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-gray-200/60 bg-white/80 px-4 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80 md:hidden">
-      <!-- 汉堡菜单按钮 -->
-      <button
-        class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-        aria-label="打开菜单"
-        @click="drawerOpen = true"
-      >
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
-      <!-- 右侧：搜索 + Admin + GitHub + 主题切换 -->
+      <!-- 左侧：登录icon + 汉堡菜单 -->
+      <div class="flex shrink-0 items-center gap-1">
+        <!-- 登录按钮（未登录时显示） -->
+        <button
+          v-if="!isLoggedIn"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          title="登录"
+          aria-label="登录"
+          @click="loginModalVisible = true"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+          </svg>
+        </button>
+        <!-- 已登录：管理后台入口 -->
+        <NuxtLink
+          v-else
+          to="/admin"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          title="管理后台"
+          aria-label="管理后台"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+        </NuxtLink>
+        <!-- 汉堡菜单按钮 -->
+        <button
+          class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+          aria-label="打开菜单"
+          @click="drawerOpen = true"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+      <!-- 右侧：搜索 + GitHub + 主题切换 -->
       <div class="flex items-center gap-1">
         <button
           class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
@@ -20,26 +47,9 @@
           @click="searchVisible = true"
         >
           <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
         </button>
-        <button
-          v-if="!isLoggedIn"
-          class="px-2 py-1 text-sm font-medium text-primary-500 transition-colors hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-          @click="loginModalVisible = true"
-        >
-          登录
-        </button>
-        <NuxtLink
-          v-else
-          to="/admin"
-          class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-          aria-label="管理后台"
-        >
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-          </svg>
-        </NuxtLink>
         <a
           href="https://github.com/fatWill/agent-team-blog"
           target="_blank"
@@ -111,6 +121,30 @@
 
     <!-- PC端右上角固定按钮组（仅 >= md 显示） -->
     <div class="fixed right-6 top-6 z-50 hidden items-center gap-1 md:flex">
+      <!-- 登录按钮（未登录时显示，最左边） -->
+      <button
+        v-if="!isLoggedIn"
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+        title="登录"
+        aria-label="登录"
+        @click="loginModalVisible = true"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+        </svg>
+      </button>
+      <!-- 已登录：管理后台入口 -->
+      <NuxtLink
+        v-else
+        to="/admin"
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+        title="管理后台"
+        aria-label="管理后台"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+      </NuxtLink>
       <button
         class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
         aria-label="搜索"
@@ -120,23 +154,6 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
       </button>
-      <button
-        v-if="!isLoggedIn"
-        class="px-2.5 py-1.5 text-sm font-medium text-primary-500 transition-colors hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
-        @click="loginModalVisible = true"
-      >
-        登录
-      </button>
-      <NuxtLink
-        v-else
-        to="/admin"
-        class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-        aria-label="管理后台"
-      >
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-        </svg>
-      </NuxtLink>
       <a
         href="https://github.com/fatWill/agent-team-blog"
         target="_blank"
@@ -1504,6 +1521,9 @@ function selectTab(key: string) {
   drawerOpen.value = false
 }
 
+// ====== 登录态管理（SSR 安全，不再闪烁） ======
+const { isLoggedIn, refreshAuth } = useAuth()
+
 // ====== SSR 并行预取：文章 + 更新日志 + 个人资料 ======
 const loading = ref(false)
 const error = ref(false)
@@ -1595,9 +1615,6 @@ async function fetchProfile() {
   }
 }
 
-// ====== 登录态管理（仅客户端） ======
-const isLoggedIn = ref(false)
-
 // 登录 Modal
 const loginModalVisible = ref(false)
 const loginForm = reactive({ username: '', password: '' })
@@ -1609,7 +1626,7 @@ async function handleLoginSubmit() {
   loginSubmitting.value = true
   try {
     await apiLogin({ username: loginForm.username, password: loginForm.password })
-    isLoggedIn.value = true
+    await refreshAuth()
     loginModalVisible.value = false
     loginForm.username = ''
     loginForm.password = ''
@@ -1621,16 +1638,6 @@ async function handleLoginSubmit() {
     loginSubmitting.value = false
   }
 }
-
-// 客户端检查登录态
-onMounted(async () => {
-  try {
-    await $fetch('/api/auth/check')
-    isLoggedIn.value = true
-  } catch {
-    isLoggedIn.value = false
-  }
-})
 
 // ====== 头像上传 ======
 const avatarModalVisible = ref(false)
