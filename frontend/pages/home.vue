@@ -303,23 +303,35 @@
                   <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(article.createdAt) }}</time>
                   <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">👁 {{ article.views ?? 0 }}</span>
                 </div>
-                <button
-                  class="group/like flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
-                  @click.prevent.stop="handleArticleLike(article.id, $event)"
-                >
-                  <svg
-                    class="h-3.5 w-3.5 transition-all duration-300"
-                    :class="[
-                      isArticleLiked(article.id) ? 'text-red-500 fill-red-500' : 'text-gray-400 fill-none stroke-gray-400 dark:text-gray-500 dark:stroke-gray-500',
-                      articleLikeAnimating[article.id] ? 'scale-125' : '',
-                    ]"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
+                <div class="flex items-center gap-1">
+                  <button
+                    class="group/like flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                    @click.prevent.stop="handleArticleLike(article.id, $event)"
                   >
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                  </svg>
-                  <span :class="isArticleLiked(article.id) ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'">{{ getArticleLikeCount(article) }}</span>
-                </button>
+                    <svg
+                      class="h-3.5 w-3.5 transition-all duration-300"
+                      :class="[
+                        isArticleLiked(article.id) ? 'text-red-500 fill-red-500' : 'text-gray-400 fill-none stroke-gray-400 dark:text-gray-500 dark:stroke-gray-500',
+                        articleLikeAnimating[article.id] ? 'scale-125' : '',
+                      ]"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                    </svg>
+                    <span :class="isArticleLiked(article.id) ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'">{{ getArticleLikeCount(article) }}</span>
+                  </button>
+                  <ATooltip v-if="isLoggedIn" title="删除文章">
+                    <button
+                      class="flex items-center justify-center rounded-full p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500 dark:text-gray-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                      @click.prevent.stop="handleDeleteArticle(article)"
+                    >
+                      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                    </button>
+                  </ATooltip>
+                </div>
               </div>
             </div>
           </NuxtLink>
@@ -1153,8 +1165,9 @@ import type { MessageItem } from '~/features/guestbook'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle, apiUpdateProfile } from '~/utils/api'
 import { apiGetMessages, apiCreateMessage } from '~/features/guestbook'
 import { apiLogin } from '~/features/auth'
+import { Tooltip as ATooltip } from 'ant-design-vue'
 import { chunkedUpload } from '~/utils/chunkedUpload'
-import { showSuccess, showError } from '~/utils/ui'
+import { showSuccess, showError, showConfirm } from '~/utils/ui'
 import { toCdnUrl, toThumbUrl, toWebpUrl } from '~/utils/imageUrl'
 
 /** 判断是否为视频媒体（兼容历史数据 null → 视为图片） */
@@ -1833,6 +1846,31 @@ async function handleArticleLike(articleId: string, e?: Event) {
       delete articleLikeAbortControllers[articleId]
     }
   }
+}
+
+// ====== 删除文章（仅登录态） ======
+function handleDeleteArticle(article: ArticleListItem) {
+  showConfirm({
+    title: '确认删除？',
+    content: '删除后文章将无法恢复，是否继续？',
+    okText: '删除',
+    cancelText: '取消',
+    danger: true,
+    onOk: async () => {
+      try {
+        await $fetch(`/api/articles/${article.id}`, { method: 'DELETE' })
+        // 从列表中移除该文章（不刷新整页）
+        const list = articlesData.value?.list
+        if (list) {
+          const idx = list.findIndex((a: ArticleListItem) => a.id === article.id)
+          if (idx !== -1) list.splice(idx, 1)
+        }
+        showSuccess('删除成功')
+      } catch (err: any) {
+        showError(err?.data?.message || err?.message || '删除失败')
+      }
+    },
+  })
 }
 
 // ====== 相册功能 ======
