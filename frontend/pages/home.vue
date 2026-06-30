@@ -2,9 +2,22 @@
   <div class="flex min-h-screen flex-col">
     <!-- 移动端顶部导航栏（仅 < md 显示） -->
     <header class="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-gray-200/60 bg-white/80 px-4 backdrop-blur-lg transition-colors duration-300 dark:border-gray-700/60 dark:bg-gray-900/80 md:hidden">
-      <!-- 左侧：登录icon + 汉堡菜单 -->
+      <!-- 左侧：汉堡菜单 -->
       <div class="flex shrink-0 items-center gap-1">
-        <!-- 登录按钮（未登录时显示） -->
+        <!-- 汉堡菜单按钮 -->
+        <button
+          class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+          aria-label="打开菜单"
+          @click="drawerOpen = true"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+      <!-- 右侧：登录/管理 + 搜索 + GitHub + 主题切换 -->
+      <div class="flex items-center gap-1">
+        <!-- 登录按钮（未登录时显示，最左边） -->
         <button
           v-if="!isLoggedIn"
           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
@@ -28,19 +41,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
           </svg>
         </NuxtLink>
-        <!-- 汉堡菜单按钮 -->
-        <button
-          class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-          aria-label="打开菜单"
-          @click="drawerOpen = true"
-        >
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      </div>
-      <!-- 右侧：搜索 + GitHub + 主题切换 -->
-      <div class="flex items-center gap-1">
         <button
           class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
           aria-label="搜索"
