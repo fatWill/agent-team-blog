@@ -24,14 +24,19 @@ func (Article) TableName() string { return "articles" }
 
 // ArticleListItem 文章列表项（不含 content）
 type ArticleListItem struct {
-	ID         string    `json:"id"`
-	Title      string    `json:"title"`
-	Summary    string    `json:"summary"`
-	CoverImage string    `json:"coverImage"`
-	LikeCount  int       `json:"likeCount"`
-	Views      int       `json:"views"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID                 string     `json:"id"`
+	Title              string     `json:"title"`
+	Summary            string     `json:"summary"`
+	CoverImage         string     `json:"coverImage"`
+	LikeCount          int        `json:"likeCount"`
+	Views              int        `json:"views"`
+	WechatSyncStatus   string     `json:"wechatSyncStatus"`
+	WechatSyncedAt     *time.Time `json:"wechatSyncedAt,omitempty"`
+	WechatDraftMediaID *string    `json:"wechatDraftMediaId,omitempty"`
+	WechatSyncError    *string    `json:"wechatSyncError,omitempty"`
+	WechatAutoSync     int        `json:"wechatAutoSync"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	UpdatedAt          time.Time  `json:"updatedAt"`
 }
 
 // ArticleLike 文章点赞记录

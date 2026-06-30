@@ -27,7 +27,7 @@ func GetArticles(c *gin.Context) {
 		models.Article
 	}
 
-	q := db.DB.Select("id, title, summary, cover_image, like_count, views, created_at, updated_at")
+	q := db.DB.Select("id, title, summary, cover_image, like_count, views, wechat_sync_status, wechat_synced_at, wechat_draft_media_id, wechat_sync_error, wechat_auto_sync, created_at, updated_at")
 	if title != "" {
 		q = q.Where("title LIKE ?", "%"+title+"%")
 	}
@@ -44,14 +44,19 @@ func GetArticles(c *gin.Context) {
 	list := make([]models.ArticleListItem, 0, len(articles))
 	for _, a := range articles {
 		list = append(list, models.ArticleListItem{
-			ID:         a.ID,
-			Title:      a.Title,
-			Summary:    a.Summary,
-			CoverImage: a.CoverImage,
-			LikeCount:  a.LikeCount,
-			Views:      a.Views,
-			CreatedAt:  a.CreatedAt,
-			UpdatedAt:  a.UpdatedAt,
+			ID:                 a.ID,
+			Title:              a.Title,
+			Summary:            a.Summary,
+			CoverImage:         a.CoverImage,
+			LikeCount:          a.LikeCount,
+			Views:              a.Views,
+			WechatSyncStatus:   a.WechatSyncStatus,
+			WechatSyncedAt:     a.WechatSyncedAt,
+			WechatDraftMediaID: a.WechatDraftMediaID,
+			WechatSyncError:    a.WechatSyncError,
+			WechatAutoSync:     a.WechatAutoSync,
+			CreatedAt:          a.CreatedAt,
+			UpdatedAt:          a.UpdatedAt,
 		})
 	}
 
@@ -73,15 +78,20 @@ func GetArticle(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":         article.ID,
-		"title":      article.Title,
-		"summary":    article.Summary,
-		"coverImage": article.CoverImage,
-		"content":    article.Content,
-		"likeCount":  article.LikeCount,
-		"views":      article.Views,
-		"createdAt":  article.CreatedAt,
-		"updatedAt":  article.UpdatedAt,
+		"id":                 article.ID,
+		"title":              article.Title,
+		"summary":            article.Summary,
+		"coverImage":         article.CoverImage,
+		"content":            article.Content,
+		"likeCount":          article.LikeCount,
+		"views":              article.Views,
+		"wechatSyncStatus":   article.WechatSyncStatus,
+		"wechatSyncedAt":     article.WechatSyncedAt,
+		"wechatDraftMediaId": article.WechatDraftMediaID,
+		"wechatSyncError":    article.WechatSyncError,
+		"wechatAutoSync":     article.WechatAutoSync,
+		"createdAt":          article.CreatedAt,
+		"updatedAt":          article.UpdatedAt,
 	})
 }
 
