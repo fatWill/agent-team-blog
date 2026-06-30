@@ -60,6 +60,36 @@ export interface WechatSyncLog {
   createdAt: string
 }
 
+/** 全局同步日志条目 */
+export interface GlobalSyncLog {
+  id: number
+  articleId: string
+  articleTitle: string
+  action: string
+  status: WechatSyncStatus
+  error?: string | null
+  createdAt: string
+}
+
+/** 全局同步日志列表响应 */
+export interface GlobalSyncLogsResponse {
+  logs: GlobalSyncLog[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+/** 全局同步日志查询参数 */
+export interface GlobalSyncLogsParams {
+  page?: number
+  pageSize?: number
+  status?: string
+  action?: string
+  articleId?: string
+  startDate?: string
+  endDate?: string
+}
+
 /** 微信 access_token 状态 */
 export interface WechatTokenStatus {
   cached: boolean

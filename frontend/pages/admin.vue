@@ -1329,9 +1329,9 @@
         </div>
       </div>
 
-      <!-- ========== Tab: 微信管理 ========== -->
+      <!-- ========== Tab: 微信 ========== -->
       <div v-if="activeTab === 'wechat'">
-        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">微信管理</h2>
+        <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">微信</h2>
 
         <div class="space-y-6">
           <!-- 服务器 IP 卡片 -->
@@ -1382,10 +1382,204 @@
             <div v-else class="text-sm text-gray-400 dark:text-gray-500">加载中...</div>
           </div>
 
-          <!-- 同步日志全局视图（预留） -->
-          <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-6 dark:border-gray-700 dark:bg-gray-800/30">
-            <h3 class="mb-2 text-sm font-semibold text-gray-500 dark:text-gray-400">同步日志全局视图</h3>
-            <p class="text-xs text-gray-400 dark:text-gray-500">P1 功能，后续版本实现</p>
+          <!-- 文章同步管理 -->
+          <div class="rounded-xl border border-gray-100 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+            <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">文章同步管理</h3>
+            <!-- 状态筛选 Tab -->
+            <div class="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+              <button
+                v-for="tab in syncFilterTabs"
+                :key="tab.key"
+                class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                :class="syncFilterStatus === tab.key ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+                @click="syncFilterStatus = tab.key"
+              >
+                {{ tab.label }}
+              </button>
+            </div>
+            <!-- 文章列表 -->
+            <div v-if="manageLoading" class="flex items-center justify-center py-8">
+              <AppLoading tip="加载中..." />
+            </div>
+            <div v-else-if="filteredSyncArticles.length > 0">
+              <!-- 桌面端表格 -->
+              <div class="hidden md:block">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-gray-100 dark:border-gray-700">
+                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">标题</th>
+                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">发布时间</th>
+                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">同步状态</th>
+                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">最后同步</th>
+                      <th class="pb-2 text-right font-medium text-gray-500 dark:text-gray-400">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="article in paginatedSyncArticles" :key="article.id" class="border-b border-gray-50 dark:border-gray-700/50">
+                      <td class="max-w-[200px] truncate py-3 pr-4 text-gray-900 dark:text-gray-100">{{ article.title }}</td>
+                      <td class="py-3 pr-4 text-gray-500 dark:text-gray-400">{{ formatDate(article.createdAt) }}</td>
+                      <td class="py-3 pr-4">
+                        <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(article.wechatSyncStatus)">
+                          {{ wechatSyncStatusLabel(article.wechatSyncStatus) }}
+                        </span>
+                      </td>
+                      <td class="py-3 pr-4 text-gray-500 dark:text-gray-400">{{ article.wechatSyncedAt ? formatDate(article.wechatSyncedAt) : '-' }}</td>
+                      <td class="py-3 text-right">
+                        <button
+                          :disabled="wechatSyncing"
+                          class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60"
+                          :class="syncArticleBtnClass(article.wechatSyncStatus)"
+                          @click="handleDirectSync(article)"
+                        >
+                          {{ syncArticleBtnLabel(article.wechatSyncStatus) }}
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- 移动端卡片 -->
+              <div class="space-y-3 md:hidden">
+                <div v-for="article in paginatedSyncArticles" :key="article.id" class="rounded-lg border border-gray-100 p-3 dark:border-gray-700">
+                  <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ article.title }}</p>
+                  <div class="mt-2 flex items-center justify-between">
+                    <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(article.wechatSyncStatus)">
+                      {{ wechatSyncStatusLabel(article.wechatSyncStatus) }}
+                    </span>
+                    <button
+                      :disabled="wechatSyncing"
+                      class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60"
+                      :class="syncArticleBtnClass(article.wechatSyncStatus)"
+                      @click="handleDirectSync(article)"
+                    >
+                      {{ syncArticleBtnLabel(article.wechatSyncStatus) }}
+                    </button>
+                  </div>
+                  <p class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                    {{ formatDate(article.createdAt) }} · 最后同步：{{ article.wechatSyncedAt ? formatDate(article.wechatSyncedAt) : '-' }}
+                  </p>
+                </div>
+              </div>
+              <!-- 分页 -->
+              <div v-if="syncArticleTotalPages > 1" class="mt-4 flex items-center justify-center gap-2">
+                <button
+                  :disabled="syncArticlePage <= 1"
+                  class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                  @click="syncArticlePage--"
+                >
+                  上一页
+                </button>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ syncArticlePage }} / {{ syncArticleTotalPages }}</span>
+                <button
+                  :disabled="syncArticlePage >= syncArticleTotalPages"
+                  class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                  @click="syncArticlePage++"
+                >
+                  下一页
+                </button>
+              </div>
+            </div>
+            <div v-else class="py-8 text-center text-sm text-gray-400 dark:text-gray-500">暂无文章</div>
+          </div>
+
+          <!-- 全局同步日志 -->
+          <div class="rounded-xl border border-gray-100 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+            <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">全局同步日志</h3>
+            <!-- 筛选器 -->
+            <div class="mb-4 flex flex-wrap gap-3">
+              <select
+                v-model="globalLogFilter.status"
+                class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                @change="fetchGlobalSyncLogs()"
+              >
+                <option value="">全部状态</option>
+                <option value="success">成功</option>
+                <option value="failed">失败</option>
+              </select>
+              <select
+                v-model="globalLogFilter.action"
+                class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                @change="fetchGlobalSyncLogs()"
+              >
+                <option value="">全部动作</option>
+                <option value="upload_image">上传图片</option>
+                <option value="create_draft">创建草稿</option>
+                <option value="update_draft">更新草稿</option>
+              </select>
+            </div>
+            <!-- 日志表格 -->
+            <div v-if="globalLogLoading" class="flex items-center justify-center py-8">
+              <AppLoading tip="加载日志..." />
+            </div>
+            <div v-else-if="globalLogs.length > 0">
+              <!-- 桌面端表格 -->
+              <div class="hidden md:block">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-gray-100 dark:border-gray-700">
+                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">时间</th>
+                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">文章</th>
+                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">动作</th>
+                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">状态</th>
+                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">错误信息</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="log in globalLogs" :key="log.id" class="border-b border-gray-50 dark:border-gray-700/50">
+                      <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ formatDate(log.createdAt) }}</td>
+                      <td class="max-w-[180px] truncate py-3 pr-4">
+                        <span v-if="log.articleTitle" class="text-gray-900 dark:text-gray-100">{{ log.articleTitle }}</span>
+                        <span v-else class="text-gray-400 dark:text-gray-500">(已删除)</span>
+                      </td>
+                      <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ syncActionLabel(log.action) }}</td>
+                      <td class="py-3 pr-4">
+                        <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(log.status)">
+                          {{ wechatSyncStatusLabel(log.status) }}
+                        </span>
+                      </td>
+                      <td class="max-w-[200px] truncate py-3 text-gray-500 dark:text-gray-400" :title="log.error || ''">
+                        {{ log.error || '-' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- 移动端卡片 -->
+              <div class="space-y-3 md:hidden">
+                <div v-for="log in globalLogs" :key="log.id" class="rounded-lg border border-gray-100 p-3 dark:border-gray-700">
+                  <div class="flex items-center justify-between">
+                    <span v-if="log.articleTitle" class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ log.articleTitle }}</span>
+                    <span v-else class="text-sm text-gray-400 dark:text-gray-500">(已删除)</span>
+                    <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(log.status)">
+                      {{ wechatSyncStatusLabel(log.status) }}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                    {{ formatDate(log.createdAt) }} · {{ syncActionLabel(log.action) }}
+                  </p>
+                  <p v-if="log.error" class="mt-1 truncate text-[11px] text-red-500 dark:text-red-400">{{ log.error }}</p>
+                </div>
+              </div>
+              <!-- 分页 -->
+              <div v-if="globalLogTotalPages > 1" class="mt-4 flex items-center justify-center gap-2">
+                <button
+                  :disabled="globalLogPage <= 1"
+                  class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                  @click="globalLogPage--; fetchGlobalSyncLogs()"
+                >
+                  上一页
+                </button>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ globalLogPage }} / {{ globalLogTotalPages }}</span>
+                <button
+                  :disabled="globalLogPage >= globalLogTotalPages"
+                  class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                  @click="globalLogPage++; fetchGlobalSyncLogs()"
+                >
+                  下一页
+                </button>
+              </div>
+            </div>
+            <div v-else class="py-8 text-center text-sm text-gray-400 dark:text-gray-500">暂无同步日志</div>
           </div>
         </div>
       </div>
@@ -1605,8 +1799,8 @@ import { showSuccess, showError, showConfirm } from '~/utils/ui'
 import type { ArticleListItem, AlbumItem, PhotoItem, MessageItem } from '~/types'
 import { useAuthStore } from '~/stores/auth'
 import { chunkedUpload } from '~/utils/chunkedUpload'
-import type { WechatSyncStatus, WechatSyncLog, WechatTokenStatus, WechatServerIp } from '~/features/article'
-import { apiSyncArticleToWechat, apiGetWechatSyncLogs, apiGetWechatTokenStatus, apiGetWechatServerIp } from '~/features/article'
+import type { WechatSyncStatus, WechatSyncLog, WechatTokenStatus, WechatServerIp, GlobalSyncLog, GlobalSyncLogsParams } from '~/features/article'
+import { apiSyncArticleToWechat, apiGetWechatSyncLogs, apiGetWechatTokenStatus, apiGetWechatServerIp, apiGetGlobalSyncLogs } from '~/features/article'
 import {
   apiCreateArticle,
   apiUpdateArticle,
@@ -1675,15 +1869,6 @@ interface AdminNavGroup {
 }
 const adminNavGroups: AdminNavGroup[] = [
   {
-    key: 'content',
-    label: '内容管理',
-    children: [
-      { key: 'articles', label: '文章管理', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z' },
-      { key: 'albums', label: '相册管理', icon: 'M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M2.25 18.75h18a1.5 1.5 0 001.5-1.5V6.75a1.5 1.5 0 00-1.5-1.5h-18a1.5 1.5 0 00-1.5 1.5v10.5a1.5 1.5 0 001.5 1.5z' },
-      { key: 'messages', label: '树洞管理', icon: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155' },
-    ],
-  },
-  {
     key: 'personal',
     label: '个人',
     children: [
@@ -1696,13 +1881,13 @@ const adminNavGroups: AdminNavGroup[] = [
     children: [
       { key: 'analytics', label: '数据', icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z' },
       { key: 'perf', label: '性能', icon: 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z' },
-      { key: 'wechat', label: '微信管理', icon: 'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z' },
+      { key: 'wechat', label: '微信', icon: 'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z' },
     ],
   },
 ]
 // 向后兼容：扁平化所有 Tab（用于 v-if 切换内容区域）
 const adminTabs = adminNavGroups.flatMap(g => g.children)
-const activeTab = ref('articles')
+const activeTab = ref('wechat')
 const sidebarOpen = ref(false) // 移动端侧边栏展开状态
 const activeGroup = computed(() => {
   // write Tab 属于内容管理组（虽然不在导航中显示）
@@ -1861,7 +2046,7 @@ watch(activeTab, (val) => {
   if (val === 'messages') fetchAdminMessages()
   if (val === 'analytics') fetchAnalyticsData()
   if (val === 'perf') fetchPerfData()
-  if (val === 'wechat') fetchWechatStatus()
+  if (val === 'wechat') { fetchWechatStatus(); fetchManageArticles(); fetchGlobalSyncLogs() }
 }, { immediate: true })
 
 async function startEdit(article: ArticleListItem) {
@@ -2056,6 +2241,104 @@ function formatSeconds(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60)
   if (h > 0) return `${h}小时${m}分钟`
   return `${m}分钟`
+}
+
+// ====== 文章同步管理 ======
+const syncFilterTabs = [
+  { key: 'all', label: '全部' },
+  { key: 'pending', label: '未同步' },
+  { key: 'success', label: '已同步' },
+  { key: 'failed', label: '失败' },
+]
+const syncFilterStatus = ref('all')
+const syncArticlePage = ref(1)
+const syncArticlePageSize = 10
+
+const filteredSyncArticles = computed(() => {
+  if (syncFilterStatus.value === 'all') return manageArticles.value
+  if (syncFilterStatus.value === 'pending') {
+    return manageArticles.value.filter(a => !a.wechatSyncStatus || a.wechatSyncStatus === 'pending')
+  }
+  return manageArticles.value.filter(a => a.wechatSyncStatus === syncFilterStatus.value)
+})
+
+const syncArticleTotalPages = computed(() => Math.ceil(filteredSyncArticles.value.length / syncArticlePageSize))
+
+const paginatedSyncArticles = computed(() => {
+  const start = (syncArticlePage.value - 1) * syncArticlePageSize
+  return filteredSyncArticles.value.slice(start, start + syncArticlePageSize)
+})
+
+// 切换筛选时重置页码
+watch(syncFilterStatus, () => { syncArticlePage.value = 1 })
+
+function syncArticleBtnClass(status?: WechatSyncStatus): string {
+  switch (status) {
+    case 'failed': return 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
+    case 'success': return 'bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+    default: return 'bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30'
+  }
+}
+
+function syncArticleBtnLabel(status?: WechatSyncStatus): string {
+  switch (status) {
+    case 'failed': return '重试'
+    case 'success': return '重新同步'
+    case 'syncing': return '同步中...'
+    default: return '同步到公众号'
+  }
+}
+
+async function handleDirectSync(article: ArticleListItem) {
+  wechatSyncing.value = true
+  try {
+    await apiSyncArticleToWechat(article.id)
+    showSuccess('同步已触发')
+    await fetchManageArticles()
+  } catch {
+    showError('同步触发失败')
+  } finally {
+    wechatSyncing.value = false
+  }
+}
+
+// ====== 全局同步日志 ======
+const globalLogs = ref<GlobalSyncLog[]>([])
+const globalLogLoading = ref(false)
+const globalLogPage = ref(1)
+const globalLogTotal = ref(0)
+const globalLogPageSize = 20
+const globalLogFilter = reactive({ status: '', action: '' })
+
+const globalLogTotalPages = computed(() => Math.ceil(globalLogTotal.value / globalLogPageSize))
+
+async function fetchGlobalSyncLogs() {
+  globalLogLoading.value = true
+  try {
+    const params: GlobalSyncLogsParams = {
+      page: globalLogPage.value,
+      pageSize: globalLogPageSize,
+    }
+    if (globalLogFilter.status) params.status = globalLogFilter.status
+    if (globalLogFilter.action) params.action = globalLogFilter.action
+    const res = await apiGetGlobalSyncLogs(params)
+    globalLogs.value = res.logs
+    globalLogTotal.value = res.total
+  } catch {
+    globalLogs.value = []
+    showError('加载同步日志失败')
+  } finally {
+    globalLogLoading.value = false
+  }
+}
+
+function syncActionLabel(action: string): string {
+  switch (action) {
+    case 'upload_image': return '上传图片'
+    case 'create_draft': return '创建草稿'
+    case 'update_draft': return '更新草稿'
+    default: return action
+  }
 }
 
 // ====== 个人资料 ======

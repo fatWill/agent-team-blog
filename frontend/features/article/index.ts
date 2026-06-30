@@ -9,6 +9,9 @@ export type {
   WechatSyncLog,
   WechatTokenStatus,
   WechatServerIp,
+  GlobalSyncLog,
+  GlobalSyncLogsResponse,
+  GlobalSyncLogsParams,
 } from './types'
 
 export {
@@ -28,4 +31,5 @@ export {
   apiGetWechatSyncLogs,
   apiGetWechatTokenStatus,
   apiGetWechatServerIp,
+  apiGetGlobalSyncLogs,
 } from './api'

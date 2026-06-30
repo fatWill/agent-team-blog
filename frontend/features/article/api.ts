@@ -6,6 +6,8 @@ import type {
   WechatSyncLog,
   WechatTokenStatus,
   WechatServerIp,
+  GlobalSyncLogsResponse,
+  GlobalSyncLogsParams,
 } from './types'
 
 /** 获取文章列表 */
@@ -134,5 +136,19 @@ export async function apiGetWechatTokenStatus(): Promise<WechatTokenStatus> {
 /** 获取 VPS 出口公网 IP */
 export async function apiGetWechatServerIp(): Promise<WechatServerIp> {
   const res = await $fetch<WechatServerIp>('/api/admin/wechat/server-ip')
+  return res
+}
+
+/** 获取全局微信同步日志列表 */
+export async function apiGetGlobalSyncLogs(params?: GlobalSyncLogsParams): Promise<GlobalSyncLogsResponse> {
+  const query: Record<string, string> = {}
+  if (params?.page) query.page = String(params.page)
+  if (params?.pageSize) query.pageSize = String(params.pageSize)
+  if (params?.status) query.status = params.status
+  if (params?.action) query.action = params.action
+  if (params?.articleId) query.articleId = params.articleId
+  if (params?.startDate) query.startDate = params.startDate
+  if (params?.endDate) query.endDate = params.endDate
+  const res = await $fetch<GlobalSyncLogsResponse>('/api/admin/wechat/sync-logs', { params: query })
   return res
 }
