@@ -1384,13 +1384,24 @@
 
           <!-- 文章同步管理 -->
           <div class="rounded-xl border border-gray-100 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-            <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">文章同步管理</h3>
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">文章同步管理</h3>
+              <a
+                href="https://mp.weixin.qq.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 md:text-sm"
+              >
+                点击前往微信公众号发布
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+              </a>
+            </div>
             <!-- 状态筛选 Tab -->
-            <div class="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+            <div class="mb-4 flex gap-1 overflow-x-auto whitespace-nowrap rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
               <button
                 v-for="tab in syncFilterTabs"
                 :key="tab.key"
-                class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                class="flex-none rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
                 :class="syncFilterStatus === tab.key ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
                 @click="syncFilterStatus = tab.key"
               >
@@ -1416,10 +1427,10 @@
                   </thead>
                   <tbody>
                     <tr v-for="article in paginatedSyncArticles" :key="article.id" class="border-b border-gray-50 dark:border-gray-700/50">
-                      <td class="max-w-[200px] truncate py-3 pr-4 text-gray-900 dark:text-gray-100">{{ article.title }}</td>
+                      <td class="max-w-[200px] truncate py-3 pr-4 text-gray-900 dark:text-gray-100" :title="article.title">{{ article.title }}</td>
                       <td class="py-3 pr-4 text-gray-500 dark:text-gray-400">{{ formatDate(article.createdAt) }}</td>
                       <td class="py-3 pr-4">
-                        <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(article.wechatSyncStatus)">
+                        <span class="inline-block min-w-[4.5rem] text-center rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(article.wechatSyncStatus)">
                           {{ wechatSyncStatusLabel(article.wechatSyncStatus) }}
                         </span>
                       </td>
@@ -1441,9 +1452,9 @@
               <!-- 移动端卡片 -->
               <div class="space-y-3 md:hidden">
                 <div v-for="article in paginatedSyncArticles" :key="article.id" class="rounded-lg border border-gray-100 p-3 dark:border-gray-700">
-                  <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ article.title }}</p>
+                  <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" :title="article.title">{{ article.title }}</p>
                   <div class="mt-2 flex items-center justify-between">
-                    <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(article.wechatSyncStatus)">
+                    <span class="inline-block min-w-[4.5rem] text-center rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(article.wechatSyncStatus)">
                       {{ wechatSyncStatusLabel(article.wechatSyncStatus) }}
                     </span>
                     <button
@@ -1511,57 +1522,60 @@
             <div v-if="globalLogLoading" class="flex items-center justify-center py-8">
               <AppLoading tip="加载日志..." />
             </div>
-            <div v-else-if="globalLogs.length > 0">
-              <!-- 桌面端表格 -->
-              <div class="hidden md:block">
-                <table class="w-full text-sm">
-                  <thead>
-                    <tr class="border-b border-gray-100 dark:border-gray-700">
-                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">时间</th>
-                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">文章</th>
-                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">动作</th>
-                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">状态</th>
-                      <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">错误信息</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="log in globalLogs" :key="log.id" class="border-b border-gray-50 dark:border-gray-700/50">
-                      <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ formatDate(log.createdAt) }}</td>
-                      <td class="max-w-[180px] truncate py-3 pr-4">
-                        <span v-if="log.articleTitle" class="text-gray-900 dark:text-gray-100">{{ log.articleTitle }}</span>
-                        <span v-else class="text-gray-400 dark:text-gray-500">(已删除)</span>
-                      </td>
-                      <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ syncActionLabel(log.action) }}</td>
-                      <td class="py-3 pr-4">
-                        <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(log.status)">
-                          {{ wechatSyncStatusLabel(log.status) }}
-                        </span>
-                      </td>
-                      <td class="max-w-[200px] truncate py-3 text-gray-500 dark:text-gray-400" :title="log.error || ''">
-                        {{ log.error || '-' }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <!-- 移动端卡片 -->
-              <div class="space-y-3 md:hidden">
-                <div v-for="log in globalLogs" :key="log.id" class="rounded-lg border border-gray-100 p-3 dark:border-gray-700">
-                  <div class="flex items-center justify-between">
-                    <span v-if="log.articleTitle" class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ log.articleTitle }}</span>
-                    <span v-else class="text-sm text-gray-400 dark:text-gray-500">(已删除)</span>
-                    <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(log.status)">
-                      {{ wechatSyncStatusLabel(log.status) }}
-                    </span>
+            <div v-else-if="globalLogs.length > 0" class="flex flex-col">
+              <!-- 表格容器固定高度 + 内部滚动 -->
+              <div class="h-[320px] overflow-y-auto md:h-[480px]">
+                <!-- 桌面端表格 -->
+                <div class="hidden md:block">
+                  <table class="w-full text-sm">
+                    <thead class="sticky top-0 bg-white dark:bg-gray-800">
+                      <tr class="border-b border-gray-100 dark:border-gray-700">
+                        <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">时间</th>
+                        <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">文章</th>
+                        <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">动作</th>
+                        <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">状态</th>
+                        <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">错误信息</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="log in globalLogs" :key="log.id" class="border-b border-gray-50 dark:border-gray-700/50">
+                        <td class="py-3 pr-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ formatDate(log.createdAt) }}</td>
+                        <td class="max-w-[180px] truncate py-3 pr-4">
+                          <span v-if="log.articleTitle" class="text-gray-900 dark:text-gray-100" :title="log.articleTitle">{{ log.articleTitle }}</span>
+                          <span v-else class="text-gray-400 dark:text-gray-500">(已删除)</span>
+                        </td>
+                        <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ syncActionLabel(log.action) }}</td>
+                        <td class="py-3 pr-4">
+                          <span class="inline-block min-w-[4.5rem] text-center rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(log.status)">
+                            {{ wechatSyncStatusLabel(log.status) }}
+                          </span>
+                        </td>
+                        <td class="max-w-[200px] truncate py-3 text-gray-500 dark:text-gray-400" :title="log.error || ''">
+                          {{ log.error || '-' }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- 移动端卡片 -->
+                <div class="space-y-3 md:hidden">
+                  <div v-for="log in globalLogs" :key="log.id" class="rounded-lg border border-gray-100 p-3 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                      <span v-if="log.articleTitle" class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" :title="log.articleTitle">{{ log.articleTitle }}</span>
+                      <span v-else class="text-sm text-gray-400 dark:text-gray-500">(已删除)</span>
+                      <span class="inline-block min-w-[4.5rem] text-center rounded-full px-2 py-0.5 text-[11px] font-medium" :class="wechatSyncStatusClass(log.status)">
+                        {{ wechatSyncStatusLabel(log.status) }}
+                      </span>
+                    </div>
+                    <p class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                      {{ formatDate(log.createdAt) }} · {{ syncActionLabel(log.action) }}
+                    </p>
+                    <p v-if="log.error" class="mt-1 truncate text-[11px] text-red-500 dark:text-red-400" :title="log.error">{{ log.error }}</p>
                   </div>
-                  <p class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
-                    {{ formatDate(log.createdAt) }} · {{ syncActionLabel(log.action) }}
-                  </p>
-                  <p v-if="log.error" class="mt-1 truncate text-[11px] text-red-500 dark:text-red-400">{{ log.error }}</p>
                 </div>
               </div>
-              <!-- 分页 -->
-              <div v-if="globalLogTotalPages > 1" class="mt-4 flex items-center justify-center gap-2">
+              <!-- 分页器固定在底部 -->
+              <div v-if="globalLogTotalPages > 1" class="mt-3 flex items-center justify-center gap-2 border-t border-gray-100 pt-3 dark:border-gray-700">
                 <button
                   :disabled="globalLogPage <= 1"
                   class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
@@ -3002,6 +3016,13 @@ const tooltip = reactive({ visible: false, x: 0, y: 0, date: '', pv: 0, uv: 0 })
 let chartResizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
+  // 确保微信 Tab 数据在客户端加载（watch immediate 在 SSR 中可能不触发网络请求）
+  if (activeTab.value === 'wechat') {
+    fetchWechatStatus()
+    fetchManageArticles()
+    fetchGlobalSyncLogs()
+  }
+
   if (chartContainerRef.value) {
     const updateWidth = () => {
       const containerEl = chartContainerRef.value?.parentElement
