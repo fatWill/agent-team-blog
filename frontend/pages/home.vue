@@ -1153,7 +1153,6 @@ import type { MessageItem } from '~/features/guestbook'
 import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle, apiUpdateProfile } from '~/utils/api'
 import { apiGetMessages, apiCreateMessage } from '~/features/guestbook'
 import { apiLogin } from '~/features/auth'
-import { useAuthStore } from '~/stores/auth'
 import { chunkedUpload } from '~/utils/chunkedUpload'
 import { showSuccess, showError } from '~/utils/ui'
 import { toCdnUrl, toThumbUrl, toWebpUrl } from '~/utils/imageUrl'
@@ -1186,8 +1185,8 @@ const route = useRoute()
 
 // ====== 首页 OG Meta 标签（静态，兜底微信分享卡片） ======
 useSeoMeta({
-  ogTitle: () => `${profile.value.name} 的小屋`,
-  ogDescription: () => `${profile.value.name} 的小屋 — 分享技术与生活`,
+  ogTitle: 'fatwill 的小屋',
+  ogDescription: 'fatwill 的小屋 — 分享技术与生活',
   ogImage: 'https://fatwill.cloud/og-default.png',
   ogUrl: 'https://fatwill.cloud/articles',
   ogType: 'website',
@@ -1488,18 +1487,22 @@ const tabToPath: Record<string, string> = {
 const activeTab = computed(() => pathToTab[route.path] || 'articles')
 
 // SEO meta（必须在 tabToPath 和 activeTab 定义之后，避免 TDZ）
+const seoTitle = computed(() => `${profileData.value?.name || 'fatwill'} 的小屋`)
+const seoDescription = computed(() => `${profileData.value?.name || 'fatwill'} 的小屋 — 分享技术文章与生活记录。`)
+const canonicalUrl = computed(() => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`)
+
 useSeoMeta({
-  title: () => `${profile.value.name} 的小屋`,
-  description: () => `${profile.value.name} 的小屋 — 分享技术文章与生活记录。`,
-  ogTitle: () => `${profile.value.name} 的小屋`,
-  ogDescription: () => `${profile.value.name} 的小屋 — 分享技术文章与生活记录。`,
+  title: seoTitle,
+  description: seoDescription,
+  ogTitle: seoTitle,
+  ogDescription: seoDescription,
   ogType: 'website',
-  ogUrl: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`,
-  ogSiteName: () => profile.value.name,
+  ogUrl: canonicalUrl,
+  ogSiteName: computed(() => profileData.value?.name || 'fatwill'),
   twitterCard: 'summary',
 })
 useHead({
-  link: [{ rel: 'canonical', href: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}` }],
+  link: [{ rel: 'canonical', href: canonicalUrl }],
 })
 
 function selectTab(key: string) {
@@ -1557,6 +1560,10 @@ const profile = computed<Profile>(() => ({
   bio: profileData.value?.bio || '',
 }))
 
+// 站点品牌名（用于 SEO meta 和页面标题）
+const siteTitle = computed(() => `${profile.value.name} 的小屋`)
+const siteDescription = computed(() => `${profile.value.name} 的小屋 — 分享技术与生活。`)
+
 // SSR 条件预取结果：按路由将预取的相册/留言板数据同步到对应 ref
 // conditionalResults 的内容取决于当前路由：
 //   /life     → conditionalResults[0] = albums useAsyncData 结果
@@ -1575,9 +1582,8 @@ async function fetchProfile() {
   }
 }
 
-// ====== 登录态管理 ======
-const authStore = useAuthStore()
-const isLoggedIn = computed(() => authStore.isLoggedIn)
+// ====== 登录态管理（仅客户端） ======
+const isLoggedIn = ref(false)
 
 // 登录 Modal
 const loginModalVisible = ref(false)
@@ -1590,7 +1596,7 @@ async function handleLoginSubmit() {
   loginSubmitting.value = true
   try {
     await apiLogin({ username: loginForm.username, password: loginForm.password })
-    authStore.setLoggedIn(true, loginForm.username)
+    isLoggedIn.value = true
     loginModalVisible.value = false
     loginForm.username = ''
     loginForm.password = ''
@@ -1605,8 +1611,11 @@ async function handleLoginSubmit() {
 
 // 客户端检查登录态
 onMounted(async () => {
-  if (!authStore.isLoggedIn) {
-    await authStore.checkAuth()
+  try {
+    await $fetch('/api/auth/check')
+    isLoggedIn.value = true
+  } catch {
+    isLoggedIn.value = false
   }
 })
 
@@ -2469,9 +2478,9 @@ function handleSearchShortcut(e: KeyboardEvent) {
 }
 
 useHead({
-  title: () => `${profile.value.name} 的小屋`,
+  title: siteTitle,
   meta: [
-    { name: 'description', content: () => `${profile.value.name} 的小屋 — 分享技术与生活。` },
+    { name: 'description', content: siteDescription },
   ],
 })
 </script>
