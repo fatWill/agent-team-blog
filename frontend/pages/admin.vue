@@ -1409,14 +1409,16 @@
               </button>
             </div>
             <!-- 文章列表 -->
-            <div v-if="manageLoading" class="flex items-center justify-center py-8">
+            <div v-if="manageLoading && manageArticles.length === 0" class="flex items-center justify-center py-8">
               <AppLoading tip="加载中..." />
             </div>
-            <div v-else-if="filteredSyncArticles.length > 0">
+            <div v-else-if="filteredSyncArticles.length > 0" class="flex flex-col">
+              <!-- 表格容器固定高度 + 内部滚动 -->
+              <div class="h-[320px] overflow-y-auto transition-opacity duration-150 md:h-[480px]" :class="manageLoading ? 'pointer-events-none opacity-50' : ''">
               <!-- 桌面端表格 -->
               <div class="hidden md:block">
                 <table class="w-full text-sm">
-                  <thead>
+                  <thead class="sticky top-0 bg-white dark:bg-gray-800">
                     <tr class="border-b border-gray-100 dark:border-gray-700">
                       <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">标题</th>
                       <th class="pb-2 text-left font-medium text-gray-500 dark:text-gray-400">发布时间</th>
@@ -1477,8 +1479,9 @@
                   </p>
                 </div>
               </div>
+              </div>
               <!-- 分页 -->
-              <div v-if="syncArticleTotalPages > 1" class="mt-4 flex items-center justify-center gap-2">
+              <div v-show="syncArticleTotalPages > 1" class="mt-4 flex items-center justify-center gap-2">
                 <button
                   :disabled="syncArticlePage <= 1"
                   class="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
