@@ -12,6 +12,7 @@ export interface TabItem {
 
 /** 博主个人资料 */
 export interface Profile {
+  name: string
   avatar: string
   bio: string
 }

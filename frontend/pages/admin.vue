@@ -19,7 +19,7 @@
       <div class="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.06] px-5">
         <NuxtLink to="/articles" class="flex items-center gap-2.5 transition-opacity hover:opacity-80">
           <img :src="sidebarAvatar ? toCdnUrl(sidebarAvatar) : '/avatar.png'" alt="avatar" class="h-7 w-7 rounded-full ring-1 ring-white/10 object-cover" />
-          <span class="text-[15px] font-semibold text-white/90">fatwill</span>
+          <span class="text-[15px] font-semibold text-white/90">{{ sidebarName }}</span>
         </NuxtLink>
         <!-- 移动端关闭按钮 -->
         <button
@@ -2382,17 +2382,19 @@ function syncActionLabel(action: string): string {
 
 // ====== 侧边栏品牌（与前台同步） ======
 const sidebarAvatar = ref('')
+const sidebarName = ref('fatwill')
 
 async function fetchSidebarBranding() {
   try {
     const data = await apiGetProfile()
     sidebarAvatar.value = data.avatar || ''
+    sidebarName.value = data.name || 'fatwill'
   } catch { /* 静默 */ }
 }
 
 // ====== 个人资料 ======
 const avatarFileInput = ref<HTMLInputElement | null>(null)
-const profileForm = reactive({ avatar: '', bio: '' })
+const profileForm = reactive({ name: '', avatar: '', bio: '' })
 const profileSaving = ref(false)
 const profileSuccess = ref(false)
 const profileError = ref('')
@@ -2402,6 +2404,7 @@ const avatarUploadPercent = ref(0)
 async function fetchProfile() {
   try {
     const data = await apiGetProfile()
+    profileForm.name = data.name || ''
     profileForm.avatar = data.avatar || ''
     profileForm.bio = data.bio || ''
   } catch { /* 静默处理 */ }
@@ -2426,8 +2429,9 @@ async function handleSaveProfile() {
   profileSuccess.value = false
   profileError.value = ''
   try {
-    await apiUpdateProfile({ avatar: profileForm.avatar, bio: profileForm.bio })
+    await apiUpdateProfile({ name: profileForm.name, avatar: profileForm.avatar, bio: profileForm.bio })
     sidebarAvatar.value = profileForm.avatar
+    sidebarName.value = profileForm.name || sidebarName.value
     profileSuccess.value = true
     showSuccess('个人信息保存成功')
     setTimeout(() => { profileSuccess.value = false }, 3000)

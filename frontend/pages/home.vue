@@ -23,7 +23,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
         </button>
+        <button
+          v-if="!isLoggedIn"
+          class="px-2 py-1 text-sm font-medium text-primary-500 transition-colors hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+          @click="loginModalVisible = true"
+        >
+          登录
+        </button>
         <NuxtLink
+          v-else
           to="/admin"
           class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
           aria-label="管理后台"
@@ -112,7 +120,15 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
       </button>
+      <button
+        v-if="!isLoggedIn"
+        class="px-2.5 py-1.5 text-sm font-medium text-primary-500 transition-colors hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+        @click="loginModalVisible = true"
+      >
+        登录
+      </button>
       <NuxtLink
+        v-else
         to="/admin"
         class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
         aria-label="管理后台"
@@ -149,22 +165,59 @@
     <!-- 个人信息区域 -->
     <section class="mx-auto w-full max-w-5xl px-4 pt-8 pb-6 md:px-8 md:pt-10">
       <div class="flex items-center gap-5">
-        <img
-          v-if="profile.avatar"
-          :src="toThumbUrl(profile.avatar, 200)"
-          alt="fatwill 头像"
-          class="h-20 w-20 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700"
-        />
+        <!-- 头像（已登录时可点击上传） -->
         <div
-          v-else
-          class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 ring-2 ring-gray-200 dark:bg-gray-700 dark:ring-gray-700"
+          class="group relative h-20 w-20 flex-shrink-0 cursor-default overflow-hidden rounded-full ring-2 ring-gray-200 dark:ring-gray-700"
+          :class="isLoggedIn ? 'cursor-pointer' : ''"
+          @click="openAvatarModal"
         >
-          <svg class="h-8 w-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-          </svg>
+          <img
+            v-if="profile.avatar"
+            :src="toThumbUrl(profile.avatar, 200)"
+            :alt="profile.name + ' 头像'"
+            class="h-full w-full object-cover"
+          />
+          <div
+            v-else
+            class="flex h-full w-full items-center justify-center bg-gray-100 dark:bg-gray-700"
+          >
+            <svg class="h-8 w-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+          </div>
+          <!-- 已登录 hover 修改遮罩 -->
+          <div
+            v-if="isLoggedIn"
+            class="absolute inset-x-0 bottom-0 flex h-7 items-center justify-center bg-black/50 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100"
+          >
+            修改
+          </div>
         </div>
         <div class="flex-1">
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">fatwill</h1>
+          <!-- 昵称（已登录可编辑） -->
+          <div class="flex items-center gap-2">
+            <input
+              v-if="nameEditing"
+              ref="nameInputRef"
+              v-model="nameInput"
+              class="rounded-md border border-gray-300 px-2 py-0.5 text-2xl font-bold text-gray-900 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-primary-400"
+              :style="{ width: Math.max(nameInput.length * 1.2 + 2, 4) + 'ch' }"
+              @blur="saveNameEdit"
+              @keydown.enter="($event.target as HTMLInputElement).blur()"
+              @keydown.escape="cancelNameEdit"
+            />
+            <h1 v-else class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ profile.name }}</h1>
+            <button
+              v-if="isLoggedIn && !nameEditing"
+              class="flex h-6 w-6 items-center justify-center rounded text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              aria-label="编辑昵称"
+              @click="startNameEdit"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+            </button>
+          </div>
           <p v-if="profile.bio" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {{ profile.bio }}
           </p>
@@ -968,14 +1021,141 @@
       </Transition>
     </Teleport>
 
+    <!-- 登录 Modal -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="loginModalVisible" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" @click.self="loginModalVisible = false">
+          <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+            <h2 class="mb-5 text-lg font-bold text-gray-900 dark:text-gray-100">登录</h2>
+            <form @submit.prevent="handleLoginSubmit">
+              <div class="space-y-4">
+                <div>
+                  <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">账号</label>
+                  <input
+                    v-model="loginForm.username"
+                    type="text"
+                    autocomplete="username"
+                    required
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                    placeholder="请输入账号"
+                  />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">密码</label>
+                  <input
+                    v-model="loginForm.password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                    placeholder="请输入密码"
+                  />
+                </div>
+                <p v-if="loginError" class="text-sm text-red-500">{{ loginError }}</p>
+                <div class="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    class="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                    @click="loginModalVisible = false"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    :disabled="loginSubmitting"
+                    class="flex-1 rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {{ loginSubmitting ? '登录中...' : '登录' }}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- 头像上传 Modal -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="avatarModalVisible" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" @click.self="avatarModalVisible = false">
+          <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+            <h2 class="mb-5 text-lg font-bold text-gray-900 dark:text-gray-100">头像上传</h2>
+            <!-- 拖拽上传区 -->
+            <div
+              class="relative flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors"
+              :class="avatarDragOver ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-300 hover:border-gray-400 dark:border-gray-600'"
+              @dragover.prevent="avatarDragOver = true"
+              @dragleave="avatarDragOver = false"
+              @drop="handleAvatarDrop"
+              @click="avatarFileInput?.click()"
+            >
+              <input ref="avatarFileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" @change="handleAvatarFileSelect" />
+              <template v-if="avatarPreview">
+                <div class="flex items-center gap-4">
+                  <div class="text-center">
+                    <p class="mb-1 text-xs text-gray-500 dark:text-gray-400">当前</p>
+                    <img v-if="profile.avatar" :src="toThumbUrl(profile.avatar, 100)" class="h-16 w-16 rounded-full object-cover" />
+                    <div v-else class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-600" />
+                  </div>
+                  <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                  <div class="text-center">
+                    <p class="mb-1 text-xs text-gray-500 dark:text-gray-400">新头像</p>
+                    <img :src="avatarPreview" class="h-16 w-16 rounded-full object-cover" />
+                  </div>
+                </div>
+                <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">点击重新选择</p>
+              </template>
+              <template v-else>
+                <svg class="mb-2 h-8 w-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                <p class="text-sm text-gray-500 dark:text-gray-400">拖拽图片到此处或点击选择</p>
+                <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">支持 jpg/png/webp/gif，最大 5MB</p>
+              </template>
+            </div>
+            <!-- 上传进度 -->
+            <div v-if="avatarUploading" class="mt-3">
+              <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                <div class="h-full rounded-full bg-primary-500 transition-all duration-300" :style="{ width: avatarUploadPercent + '%' }" />
+              </div>
+              <p class="mt-1 text-center text-xs text-gray-500 dark:text-gray-400">{{ avatarUploadPercent }}%</p>
+            </div>
+            <!-- 按钮 -->
+            <div class="mt-5 flex gap-3">
+              <button
+                type="button"
+                class="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                @click="avatarModalVisible = false"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                :disabled="!avatarFile || avatarUploading"
+                class="flex-1 rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                @click="handleAvatarUpload"
+              >
+                {{ avatarUploading ? '上传中...' : '上传' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import type { ArticleListItem, TabItem, ChangelogItem, ChangelogResponse, Profile, AlbumItem, PhotoItem } from '~/types'
 import type { MessageItem } from '~/features/guestbook'
-import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle } from '~/utils/api'
+import { apiFetchArticles, apiGetProfile, apiGetAlbums, apiGetPhotos, apiVerifyAlbumPassword, apiVerifyPhotoPassword, apiToggleArticleLike, apiGetArticleLikeStatusBatch, apiGetRandomArticle, apiUpdateProfile } from '~/utils/api'
 import { apiGetMessages, apiCreateMessage } from '~/features/guestbook'
+import { apiLogin } from '~/features/auth'
+import { useAuthStore } from '~/stores/auth'
+import { chunkedUpload } from '~/utils/chunkedUpload'
+import { showSuccess, showError } from '~/utils/ui'
 import { toCdnUrl, toThumbUrl, toWebpUrl } from '~/utils/imageUrl'
 
 /** 判断是否为视频媒体（兼容历史数据 null → 视为图片） */
@@ -1006,8 +1186,8 @@ const route = useRoute()
 
 // ====== 首页 OG Meta 标签（静态，兜底微信分享卡片） ======
 useSeoMeta({
-  ogTitle: 'fatwill 的小屋',
-  ogDescription: 'fatwill 的小屋 — 分享技术与生活',
+  ogTitle: () => `${profile.value.name} 的小屋`,
+  ogDescription: () => `${profile.value.name} 的小屋 — 分享技术与生活`,
   ogImage: 'https://fatwill.cloud/og-default.png',
   ogUrl: 'https://fatwill.cloud/articles',
   ogType: 'website',
@@ -1309,13 +1489,13 @@ const activeTab = computed(() => pathToTab[route.path] || 'articles')
 
 // SEO meta（必须在 tabToPath 和 activeTab 定义之后，避免 TDZ）
 useSeoMeta({
-  title: 'fatwill 的小屋',
-  description: 'fatwill 的小屋 — 分享技术文章与生活记录。',
-  ogTitle: 'fatwill 的小屋',
-  ogDescription: 'fatwill 的小屋 — 分享技术文章与生活记录。',
+  title: () => `${profile.value.name} 的小屋`,
+  description: () => `${profile.value.name} 的小屋 — 分享技术文章与生活记录。`,
+  ogTitle: () => `${profile.value.name} 的小屋`,
+  ogDescription: () => `${profile.value.name} 的小屋 — 分享技术文章与生活记录。`,
   ogType: 'website',
   ogUrl: () => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`,
-  ogSiteName: 'fatwill',
+  ogSiteName: () => profile.value.name,
   twitterCard: 'summary',
 })
 useHead({
@@ -1350,7 +1530,7 @@ const [
     getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   }),
   useAsyncData('profile', () => apiGetProfile(), {
-    default: () => ({ avatar: '', bio: '' }),
+    default: () => ({ name: 'fatwill', avatar: '', bio: '' }),
     getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   }),
   // 仅在 /life 路由下 SSR 预取相册
@@ -1372,6 +1552,7 @@ const [
 const articles = computed(() => articlesData.value?.list ?? [])
 const changelog = computed(() => changelogData.value?.changelog ?? [])
 const profile = computed<Profile>(() => ({
+  name: profileData.value?.name || 'fatwill',
   avatar: profileData.value?.avatar || '',
   bio: profileData.value?.bio || '',
 }))
@@ -1392,6 +1573,147 @@ async function fetchProfile() {
   } catch {
     // 静默处理
   }
+}
+
+// ====== 登录态管理 ======
+const authStore = useAuthStore()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+
+// 登录 Modal
+const loginModalVisible = ref(false)
+const loginForm = reactive({ username: '', password: '' })
+const loginSubmitting = ref(false)
+const loginError = ref('')
+
+async function handleLoginSubmit() {
+  loginError.value = ''
+  loginSubmitting.value = true
+  try {
+    await apiLogin({ username: loginForm.username, password: loginForm.password })
+    authStore.setLoggedIn(true, loginForm.username)
+    loginModalVisible.value = false
+    loginForm.username = ''
+    loginForm.password = ''
+    showSuccess('登录成功')
+  } catch (err: unknown) {
+    const fetchErr = err as { data?: { statusMessage?: string } }
+    loginError.value = fetchErr?.data?.statusMessage || '登录失败，请重试'
+  } finally {
+    loginSubmitting.value = false
+  }
+}
+
+// 客户端检查登录态
+onMounted(async () => {
+  if (!authStore.isLoggedIn) {
+    await authStore.checkAuth()
+  }
+})
+
+// ====== 头像上传 ======
+const avatarModalVisible = ref(false)
+const avatarFile = ref<File | null>(null)
+const avatarPreview = ref('')
+const avatarUploading = ref(false)
+const avatarUploadPercent = ref(0)
+const avatarDragOver = ref(false)
+const avatarFileInput = ref<HTMLInputElement | null>(null)
+
+function openAvatarModal() {
+  if (!isLoggedIn.value) return
+  avatarModalVisible.value = true
+  avatarFile.value = null
+  avatarPreview.value = ''
+  avatarUploadPercent.value = 0
+}
+
+function handleAvatarDrop(e: DragEvent) {
+  e.preventDefault()
+  avatarDragOver.value = false
+  const file = e.dataTransfer?.files[0]
+  if (file) validateAndSetAvatar(file)
+}
+
+function handleAvatarFileSelect(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) validateAndSetAvatar(file)
+  input.value = ''
+}
+
+function validateAndSetAvatar(file: File) {
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowed.includes(file.type)) {
+    showError('仅支持 jpg/png/webp/gif 格式')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showError('图片大小不能超过 5MB')
+    return
+  }
+  avatarFile.value = file
+  avatarPreview.value = URL.createObjectURL(file)
+}
+
+async function handleAvatarUpload() {
+  if (!avatarFile.value) return
+  avatarUploading.value = true
+  try {
+    const result = await chunkedUpload(avatarFile.value, (p) => { avatarUploadPercent.value = p.percent })
+    await apiUpdateProfile({ avatar: result.url })
+    profileData.value = { ...profileData.value!, avatar: result.url }
+    avatarModalVisible.value = false
+    showSuccess('头像更新成功')
+  } catch {
+    showError('头像上传失败，请重试')
+  } finally {
+    avatarUploading.value = false
+    avatarUploadPercent.value = 0
+  }
+}
+
+// ====== 昵称编辑 ======
+const nameEditing = ref(false)
+const nameInput = ref('')
+const nameInputRef = ref<HTMLInputElement | null>(null)
+
+function startNameEdit() {
+  if (!isLoggedIn.value) return
+  nameEditing.value = true
+  nameInput.value = profile.value.name
+  nextTick(() => {
+    nameInputRef.value?.focus()
+    nameInputRef.value?.select()
+  })
+}
+
+async function saveNameEdit() {
+  const trimmed = nameInput.value.trim()
+  if (!trimmed) {
+    showError('昵称不能为空')
+    return
+  }
+  if (trimmed.length > 50) {
+    showError('昵称不能超过 50 个字符')
+    return
+  }
+  if (trimmed === profile.value.name) {
+    nameEditing.value = false
+    return
+  }
+  try {
+    const updated = await apiUpdateProfile({ name: trimmed })
+    profileData.value = { ...profileData.value!, name: updated.name }
+    nameEditing.value = false
+    showSuccess('昵称更新成功')
+  } catch {
+    showError('昵称保存失败，请重试')
+  }
+}
+
+function cancelNameEdit() {
+  nameEditing.value = false
+  nameInput.value = profile.value.name
 }
 
 async function fetchChangelog() {
@@ -2147,9 +2469,9 @@ function handleSearchShortcut(e: KeyboardEvent) {
 }
 
 useHead({
-  title: 'fatwill 的小屋',
+  title: () => `${profile.value.name} 的小屋`,
   meta: [
-    { name: 'description', content: 'fatwill 的小屋 — 分享技术与生活。' },
+    { name: 'description', content: () => `${profile.value.name} 的小屋 — 分享技术与生活。` },
   ],
 })
 </script>
