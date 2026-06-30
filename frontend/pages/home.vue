@@ -1486,25 +1486,6 @@ const tabToPath: Record<string, string> = {
 }
 const activeTab = computed(() => pathToTab[route.path] || 'articles')
 
-// SEO meta（必须在 tabToPath 和 activeTab 定义之后，避免 TDZ）
-const seoTitle = computed(() => `${profileData.value?.name || 'fatwill'} 的小屋`)
-const seoDescription = computed(() => `${profileData.value?.name || 'fatwill'} 的小屋 — 分享技术文章与生活记录。`)
-const canonicalUrl = computed(() => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`)
-
-useSeoMeta({
-  title: seoTitle,
-  description: seoDescription,
-  ogTitle: seoTitle,
-  ogDescription: seoDescription,
-  ogType: 'website',
-  ogUrl: canonicalUrl,
-  ogSiteName: computed(() => profileData.value?.name || 'fatwill'),
-  twitterCard: 'summary',
-})
-useHead({
-  link: [{ rel: 'canonical', href: canonicalUrl }],
-})
-
 function selectTab(key: string) {
   router.push(tabToPath[key] || '/articles')
   drawerOpen.value = false
@@ -1563,6 +1544,25 @@ const profile = computed<Profile>(() => ({
 // 站点品牌名（用于 SEO meta 和页面标题）
 const siteTitle = computed(() => `${profile.value.name} 的小屋`)
 const siteDescription = computed(() => `${profile.value.name} 的小屋 — 分享技术与生活。`)
+
+// SEO meta（放在 profileData 初始化之后，避免客户端 TDZ 错误）
+const seoTitle = computed(() => `${profileData.value?.name || 'fatwill'} 的小屋`)
+const seoDescription = computed(() => `${profileData.value?.name || 'fatwill'} 的小屋 — 分享技术文章与生活记录。`)
+const canonicalUrl = computed(() => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`)
+
+useSeoMeta({
+  title: seoTitle,
+  description: seoDescription,
+  ogTitle: seoTitle,
+  ogDescription: seoDescription,
+  ogType: 'website',
+  ogUrl: canonicalUrl,
+  ogSiteName: computed(() => profileData.value?.name || 'fatwill'),
+  twitterCard: 'summary',
+})
+useHead({
+  link: [{ rel: 'canonical', href: canonicalUrl }],
+})
 
 // SSR 条件预取结果：按路由将预取的相册/留言板数据同步到对应 ref
 // conditionalResults 的内容取决于当前路由：
