@@ -1416,20 +1416,35 @@
             <!-- 操作按钮 -->
             <div class="mb-4 flex gap-2">
               <button
-                v-if="syncLogModal.status === 'failed'"
+                v-if="syncLogModal.status === 'pending'"
+                :disabled="wechatSyncing"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-60"
+                @click="handleRetrySync"
+              >
+                {{ wechatSyncing ? '同步中...' : '同步到公众号' }}
+              </button>
+              <button
+                v-else-if="syncLogModal.status === 'failed'"
                 :disabled="wechatSyncing"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-60"
                 @click="handleRetrySync"
               >
-                重试同步
+                {{ wechatSyncing ? '同步中...' : '重试同步' }}
               </button>
               <button
-                v-if="syncLogModal.status === 'success'"
+                v-else-if="syncLogModal.status === 'success'"
                 :disabled="wechatSyncing"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-600 disabled:opacity-60"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-600 disabled:opacity-60"
                 @click="handleRetrySync"
               >
-                重新同步
+                {{ wechatSyncing ? '同步中...' : '重新同步' }}
+              </button>
+              <button
+                v-else-if="syncLogModal.status === 'syncing'"
+                disabled
+                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-300 px-3 py-1.5 text-xs font-medium text-white cursor-not-allowed"
+              >
+                同步中...
               </button>
             </div>
             <!-- 日志列表 -->
@@ -1935,7 +1950,7 @@ async function openSyncLogModal(article: ArticleListItem) {
   syncLogModal.loading = true
   try {
     const res = await apiGetWechatSyncLogs(article.id)
-    syncLogModal.logs = res.logs
+    syncLogModal.logs = res.logs || []
   } catch {
     showError('加载同步日志失败')
   } finally {
