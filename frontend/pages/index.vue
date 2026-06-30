@@ -9,23 +9,30 @@
       @mousedown.prevent="onPointerDown"
       @touchstart.prevent="onPointerDown"
     >
-      <span class="enter-text">🏠 fatwill 的小屋</span>
+      <span class="enter-text">🏠 {{ profileName }} 的小屋</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   prepareWithSegments,
   layoutNextLine,
   type PreparedTextWithSegments,
   type LayoutCursor,
 } from '@chenglou/pretext'
+import { apiGetProfile } from '~/utils/api'
+
+const { data: profileData } = await useAsyncData('landing-profile', () => apiGetProfile(), {
+  default: () => ({ name: '', avatar: '', bio: '' }),
+  getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
+})
+const profileName = computed(() => profileData.value?.name || 'fatwill')
 
 useHead({
-  title: '欢迎做客 fatwill 的秘密花园',
-  meta: [{ name: 'description', content: '欢迎做客 fatwill 的秘密花园 — 分享技术与生活' }],
+  title: computed(() => `欢迎做客 ${profileName.value} 的秘密花园`),
+  meta: [{ name: 'description', content: computed(() => `欢迎做客 ${profileName.value} 的秘密花园 — 分享技术与生活`) }],
 })
 
 // ====== 代码片段 ======

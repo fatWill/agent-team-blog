@@ -1533,7 +1533,7 @@ const [
     getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   }),
   useAsyncData('profile', () => apiGetProfile(), {
-    default: () => ({ name: 'fatwill', avatar: '', bio: '' }),
+    default: () => ({ name: '', avatar: '', bio: '' }),
     getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   }),
   // 仅在 /life 路由下 SSR 预取相册
