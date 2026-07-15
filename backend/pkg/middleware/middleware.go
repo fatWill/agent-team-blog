@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -22,7 +23,13 @@ const (
 	TokenKeyPrefix = "auth_token:"
 	// CookieName cookie 名称
 	CookieName = "auth_token"
+	// CookieMaxAge Cookie 持久化时长（秒），与 TokenTTL 保持一致
+	CookieMaxAge = 30 * 24 * 3600
 )
+
+// CookieSecure 是否启用 Secure 标志（HTTPS 环境应为 true）
+// 通过环境变量 COOKIE_SECURE 控制，默认 true
+var CookieSecure = os.Getenv("COOKIE_SECURE") != "false"
 
 // GenerateToken 生成 64 位随机 Token
 func GenerateToken() (string, error) {
@@ -72,8 +79,8 @@ func AuthRequired() gin.HandlerFunc {
 			return
 		}
 
-		// 续期 cookie
-		c.SetCookie(CookieName, token, int(TokenTTL.Seconds()), "/", "", false, true)
+		// 续期 cookie（持久化 30 天）
+		c.SetCookie(CookieName, token, CookieMaxAge, "/", "", CookieSecure, true)
 		c.Set("username", username)
 		c.Next()
 	}

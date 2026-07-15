@@ -50,8 +50,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// 写入 httpOnly cookie
-	c.SetCookie(middleware.CookieName, token, int(middleware.TokenTTL.Seconds()), "/", "", false, true)
+	// 写入 httpOnly cookie（持久化 30 天，关闭浏览器后仍保持登录态）
+	c.SetCookie(middleware.CookieName, token, middleware.CookieMaxAge, "/", "", middleware.CookieSecure, true)
 
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
@@ -70,7 +70,7 @@ func Logout(c *gin.Context) {
 	}
 
 	// 清除 cookie（设置 maxAge = -1）
-	c.SetCookie(middleware.CookieName, "", -1, "/", "", false, true)
+	c.SetCookie(middleware.CookieName, "", -1, "/", "", middleware.CookieSecure, true)
 
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
