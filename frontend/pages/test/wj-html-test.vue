@@ -195,14 +195,13 @@ function handleSelect(key: '水果' | '蔬菜', value: string) {
     console.log('[wj-html-test] 准备发送第二步 payload:', JSON.stringify(vegPayload))
     sendPostMessage(vegPayload)
 
-    // 生成 finalToken 并合并发送结束关键词
+    // 生成随机字符串，作为结束关键词的 value 一并发送
     const token = generateRandomToken()
-    console.log('[wj-html-test] 生成 finalToken:', token)
-    addLog('info', '[生成]', `finalToken = ${token}`)
+    console.log('[wj-html-test] 生成结束关键词随机字符串:', token)
+    addLog('info', '[生成]', `结束关键词携带随机字符串 = ${token}`)
 
     const endPayload = {
-      finalToken: token,
-      '__WJ_IFRAME_QUESTION_END__': 1,
+      '__WJ_IFRAME_QUESTION_END__': token,
     }
     console.log('[wj-html-test] 准备发送结束 payload:', JSON.stringify(endPayload))
     sendPostMessage(endPayload)
