@@ -217,6 +217,14 @@
       </Transition>
     </Teleport>
 
+    <!-- 图片预览灯箱 -->
+    <MediaViewer
+      :visible="previewVisible"
+      :items="previewItems"
+      :initial-index="previewIndex"
+      @close="previewVisible = false"
+    />
+
     <!-- 页脚 -->
     <footer class="border-t border-gray-200/60 py-8 text-center text-sm text-gray-400 transition-colors dark:border-gray-700/60 dark:text-gray-500">
       <p>&copy; {{ new Date().getFullYear() }} fatwill. All rights reserved.</p>
@@ -252,6 +260,16 @@ const article = ref<ArticleDetail | null>(articleData.value)
 const loading = ref(!articleData.value)
 const error = ref(false)
 const articleContentRef = ref<HTMLElement | null>(null)
+
+// ====== 图片预览（MediaViewer） ======
+interface MediaItem {
+  type: 'image' | 'video'
+  url: string
+  name: string
+}
+const previewVisible = ref(false)
+const previewItems = ref<MediaItem[]>([])
+const previewIndex = ref(0)
 
 // ====== OG Meta 标签（SSR 阶段即可输出，兜底微信分享卡片） ======
 const defaultOgImage = 'https://fatwill.cloud/og-default.png'
@@ -439,7 +457,7 @@ async function enhanceCodeBlocks() {
   })
 }
 
-// ====== Tiptap 图片 WebP 优化 ======
+// ====== Tiptap 图片 WebP 优化 + 点击预览 ======
 function enhanceImages() {
   if (!articleContentRef.value) return
   const images = articleContentRef.value.querySelectorAll('img')
@@ -453,7 +471,38 @@ function enhanceImages() {
     }
     // 文章内图片统一懒加载
     img.setAttribute('loading', 'lazy')
+
+    // 点击预览绑定（幂等，避免重复绑定）
+    if (!img.dataset.previewBound) {
+      img.dataset.previewBound = '1'
+      img.style.cursor = 'zoom-in'
+      img.addEventListener('click', (e: MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        // 阻止外层 <a> 标签跳转
+        const anchor = img.closest('a')
+        if (anchor) {
+          e.preventDefault()
+        }
+        openImagePreview(img)
+      })
+    }
   })
+}
+
+/** 打开图片预览：收集当前所有图片，定位被点击的下标 */
+function openImagePreview(clickedImg: HTMLImageElement) {
+  if (!articleContentRef.value) return
+  const allImages = Array.from(articleContentRef.value.querySelectorAll('img'))
+  const items: MediaItem[] = allImages.map((img) => ({
+    type: 'image' as const,
+    url: img.getAttribute('src') || '',
+    name: img.getAttribute('alt') || '',
+  }))
+  const index = allImages.indexOf(clickedImg)
+  previewItems.value = items
+  previewIndex.value = index >= 0 ? index : 0
+  previewVisible.value = true
 }
 
 // SEO meta（SSR 阶段即生效）
@@ -660,6 +709,15 @@ onBeforeUnmount(() => {
   editor.value?.destroy()
   tocObserver?.disconnect()
   window.removeEventListener('scroll', updateReadProgress)
+})
+
+// ====== editorReady 切换后重新绑定图片预览事件 ======
+watch(editorReady, (ready) => {
+  if (ready) {
+    nextTick(() => {
+      enhanceImages()
+    })
+  }
 })
 </script>
 
