@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>素材测试</title>
+    <script>
+      // === CDN 资源基础路径 ===
+      window.__ASSETS_BASE__ = 'https://assets.fatwill.cloud/test/wj-jspsych-test';
+
+      // === onCredamoEndTrialFinish 空实现兜底（原 block1/2/3.js 会调用） ===
+      window.onCredamoEndTrialFinish = window.onCredamoEndTrialFinish || function (csv) {
+        console.log('[wj-jspsych-test] onCredamoEndTrialFinish stub, csv length:', (csv || '').length);
+      };
+
+      // === postMessage 上报工具（与 wj-html-test.vue 保持一致的通信约定） ===
+      window.__WJ_POST__ = function (payload) {
+        try {
+          window.parent.postMessage(payload, '*');
+          console.log('[wj-jspsych-test] postMessage:', payload);
+        } catch (e) {
+          console.warn('[wj-jspsych-test] postMessage failed:', e);
+        }
+      };
+
+      // 允许上报的字段白名单（严格与题型自定义变量对齐）
+      window.__WJ_REPORT_KEYS__ = [
+        'success','timeout','failed_images','failed_audio','failed_video',
+        'trial_type','trial_index','time_elapsed','internal_node_id',
+        'userCode','rt','stimulus','response','block','trial',
+        '测谎图','图片','startTime','endTime','diffTime','实际出现过'
+      ];
+
+      // 把 jsPsych trial data 过滤出上报字段并发一条消息
+      window.__WJ_REPORT_TRIAL__ = function (data) {
+        if (!data) return;
+        var payload = {};
+        window.__WJ_REPORT_KEYS__.forEach(function (k) {
+          if (data[k] !== undefined && data[k] !== null) payload[k] = data[k];
+        });
+        if (Object.keys(payload).length === 0) return;
+        window.__WJ_POST__(payload);
+      };
+
+      // 生成结束关键词的随机 token（与 wj-html-test 保持一致的方案）
+      window.__WJ_END_TOKEN__ = function () {
+        var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        var s = '';
+        for (var i = 0; i < 10; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+        return s;
+      };
+
+      // === iframe 环境检测 ===
+      (function () {
+        var isInIframe = window.parent !== window;
+        if (!isInIframe) {
+          console.warn('[wj-jspsych-test] 当前不是在 iframe 中运行，postMessage 将发送到自身 window');
+        } else {
+          console.info('[wj-jspsych-test] 检测到 iframe 环境，postMessage 将发送到 parent');
+        }
+      })();
+    </script>
+    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/jspsych@7.1.2.js"></script>
+    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/plugin-html-keyboard-response@1.1.0.js"></script>
+    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/plugin-preload@1.1.0.js"></script>
+    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/Orientation.js"></script>
+    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/resource.js"></script>
+    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/formatDate.js"></script>
+    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/block1.js"></script>
+    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/block2.js"></script>
+    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/block3.js"></script>
+    <link href="https://assets.fatwill.cloud/test/wj-jspsych-test/js/jspsych.css" rel="stylesheet" type="text/css" />
+    <style>
+      body {
+        background-color: #f5f7fa;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        position: relative;
+      }
+      .progress-container {
+        width: 100%;
+        height: 10px;
+        background-color: #e0e0e0;
+        border-radius: 5px;
+      }
+      .progress-bar {
+        height: 100%;
+        background-color: #3498db;
+        border-radius: 4px;
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+      .buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+      }
+
+      .focus-container {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .focus-container > div:first-child {
+        height: 28.8px;
+      }
+      .focus-container .fixation {
+        font-size: 36px;
+        font-weight: bold;
+        width: min(75vh, 85vw);
+        height: min(75vh, 85vw);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #2c3e50;
+      }
+      img {
+        width: min(75vh, 85vw);
+        height: min(75vh, 85vw);
+      }
+      .btn {
+        padding: 12px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: bold;
+      }
+      .overTime {
+        background-color: #e74c3c !important;
+      }
+      .btn-yes {
+        background-color: #2ecc71;
+        color: white;
+      }
+      .btn-yes:hover {
+        background-color: #27ae60;
+      }
+      .btn-no {
+        background-color: #e74c3c;
+        color: white;
+      }
+      .btn-no:hover {
+        background-color: #c0392b;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #2c3e50;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+      }
+      .submit-btn {
+        background-color: #3498db;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        display: block;
+        margin: 30px auto 0;
+        transition: background-color 0.3s ease;
+      }
+      .submit-btn:hover {
+        background-color: #2980b9;
+      }
+
+      .survey-fieldset {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        flex-wrap: wrap;
+        max-width: 600px;
+      }
+      .survey-fieldset > div {
+        display: flex;
+        flex-direction: row;
+        gap: 5px;
+      }
+      .survey-fieldset > div input[type="radio"] {
+        width: 20px;
+        height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      const getUserCode = () => {
+        return "xxxxxxyxxxxxxxx".replace(/[xy]/g, function (c) {
+          const r = (Math.random() * 16) | 0;
+          const v = c === "x" ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+      };
+
+      const delayTime = 5000; // 5s
+
+      const focusDelayTime = 500; // 500ms
+      const blankDelayTime = 1000; // 500ms
+
+      const block3ShowTime = 300;
+      const block3MaskTime = 700;
+
+      let timer = null; //超时定时器回调
+
+      // 初始化jsPsych（挂载全局上报钩子）
+      const jsPsych = initJsPsych({
+        on_trial_finish: function (data) {
+          // 每一条 trial 结束后自动上报
+          window.__WJ_REPORT_TRIAL__(data);
+        },
+        on_finish: function () {
+          // 整个实验流程结束，发送结束关键词
+          window.__WJ_POST__({
+            __WJ_IFRAME_QUESTION_END__: window.__WJ_END_TOKEN__(),
+          });
+          console.log('[wj-jspsych-test] 实验结束，已发送 __WJ_IFRAME_QUESTION_END__');
+        },
+      });
+
+      jsPsych.data.addProperties({
+        userCode: getUserCode(),
+      });
+
+      const rand = jsPsych.randomization.randomInt(0, 1);
+
+      const resourceMap = getResource(jsPsych);
+
+      // 创建实验时间线
+      const timeline = [];
+
+      const preload = {
+        type: jsPsychPreload,
+        images: resourceMap.block1.list.map((c) => c.link),
+        message: "资源加载中，请稍候...",
+        error_message: "资源加载失败，请刷新页面重试",
+      };
+      timeline.push(preload);
+
+      // 欢迎界面
+      const welcome_trial = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `
+                <div style="text-align: center;">
+                    <h2>素材测试</h2>
+                    <p>玩家您好！</p>
+                    <p>本小程序会呈现一些美术素材，</p>
+                    <p>请根据您的第一印象，尽量在3秒内进行选择。</p>
+                    <p>您的选择没有对错之分，请按照您的真实想法选择即可</p>
+                    <button class="btn btn-yes" id="start">确认</button>
+                </div>
+            `,
+        choices: "NO_KEYS",
+        on_load: function () {
+          document
+            .getElementById("start")
+            .addEventListener("click", function () {
+              jsPsych.finishTrial();
+            });
+        },
+      };
+      timeline.push(welcome_trial);
+
+      timeline.push({
+        type: jsPsychPreload,
+        images: resourceMap.block2.list.map((c) => c.link),
+        message: "资源加载中，请稍候...",
+        error_message: "资源加载失败，请刷新页面重试",
+      });
+
+      // 回合1
+      injectBlock1(timeline, rand, resourceMap.block1);
+
+      let preload3 = {
+        type: jsPsychPreload,
+        images: resourceMap.block3.list.map((c) => c.link),
+        message: "资源加载中，请稍候...",
+        error_message: "资源加载失败，请刷新页面重试",
+      };
+
+      timeline.push({
+        timeline: [preload3],
+        conditional_function: function () {
+          const ch = jsPsych.data
+            .get()
+            .filter({ block: 1, 图片: "测谎图" })
+            .last(1)
+            .values()[0];
+          if (ch && ch.response === "no") {
+            return false;
+          }
+
+          return true;
+        },
+      });
+
+      // 回合2
+      injectBlock2(timeline, rand, resourceMap.block2);
+
+      // 回合3
+      injectBlock3(timeline, rand, resourceMap.block3, resource.mask);
+
+      // 开始实验
+      jsPsych.run(timeline);
+    </script>
+  </body>
+</html>
