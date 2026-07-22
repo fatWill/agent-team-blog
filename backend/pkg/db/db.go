@@ -233,6 +233,18 @@ func autoMigrate() error {
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+
+		// 装修踩坑日记表
+		`CREATE TABLE IF NOT EXISTS pitfall_items (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			category TEXT NOT NULL DEFAULT '',
+			pitfall TEXT NOT NULL DEFAULT '',
+			solution TEXT NOT NULL DEFAULT '',
+			remark TEXT NOT NULL DEFAULT '',
+			sort_order INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, sql := range ddl {

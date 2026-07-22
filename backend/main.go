@@ -16,6 +16,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/material"
 	"github.com/fatWill/agent-team-blog/backend/internal/perf"
 	"github.com/fatWill/agent-team-blog/backend/internal/photo"
+	"github.com/fatWill/agent-team-blog/backend/internal/pitfall"
 	"github.com/fatWill/agent-team-blog/backend/internal/profile"
 	"github.com/fatWill/agent-team-blog/backend/internal/pv"
 	"github.com/fatWill/agent-team-blog/backend/internal/renovation"
@@ -217,6 +218,13 @@ func registerRoutes(api *gin.RouterGroup) {
 	{
 		budgetGroup.GET("/items", budget.GetItems)
 		budgetGroup.POST("/items/batch", authMW, budget.BatchEditItems)
+	}
+
+	// ========== 踩坑日记 ==========
+	pitfallGroup := api.Group("/renovation/pitfall")
+	{
+		pitfallGroup.GET("/items", pitfall.GetItems)
+		pitfallGroup.POST("/items/batch", authMW, pitfall.BatchEditItems)
 	}
 
 	// ========== 材料清单 ==========
