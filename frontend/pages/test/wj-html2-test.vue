@@ -168,6 +168,7 @@ const currentStep = ref<1 | 2 | 3 | 4 | 5>(1)
 const logs = ref<LogEntry[]>([])
 const lastPayload = ref<Record<string, unknown> | null>(null)
 const isInIframe = ref(false)
+const stepStartAt = ref<number>(0)
 
 const stepLabel = computed(() => {
   if (currentStep.value === 1) return '第1步 - 选择肉类'
@@ -219,17 +220,20 @@ function sendPostMessage(payload: Record<string, unknown>) {
 }
 
 function handleSelect(key: CategoryKey, value: string) {
-  console.log(`[wj-html2-test] 用户选择 ${key} = ${value}`)
-  addLog('info', '[用户操作]', `选择了 ${key}: ${value}`)
+  const now = Date.now()
+  const difftime = now - stepStartAt.value
+  console.log(`[wj-html2-test] 用户选择 ${key} = ${value}（耗时 ${difftime}ms）`)
+  addLog('info', '[用户操作]', `选择了 ${key}: ${value}（耗时 ${difftime}ms）`)
 
-  // 上报当前步骤的变量
-  const payload = { [key]: value }
+  // 上报当前步骤的变量（含 difftime）
+  const payload: Record<string, unknown> = { [key]: value, difftime }
   console.log(`[wj-html2-test] 准备发送第${currentStep.value}步 payload:`, JSON.stringify(payload))
   sendPostMessage(payload)
 
   if (currentStep.value < 4) {
     // 非最后一步，递进
     currentStep.value = (currentStep.value + 1) as 1 | 2 | 3 | 4 | 5
+    stepStartAt.value = Date.now()
     const nextLabels: Record<number, string> = {
       2: '进入第二步 - 选择蔬菜',
       3: '进入第三步 - 选择水果',
@@ -258,6 +262,7 @@ function handleReset() {
   currentStep.value = 1
   logs.value = []
   lastPayload.value = null
+  stepStartAt.value = Date.now()
   console.log('[wj-html2-test] 页面已重置，回到第一步')
   addLog('info', '[重置]', '页面已重置，等待用户选择第一步')
 }
@@ -265,6 +270,7 @@ function handleReset() {
 // 页面初始化
 onMounted(() => {
   isInIframe.value = window.parent !== window
+  stepStartAt.value = Date.now()
 
   if (!isInIframe.value) {
     console.warn('[wj-html2-test] 当前不是在 iframe 中运行，postMessage 将发送到自身 window')
