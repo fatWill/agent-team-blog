@@ -5,6 +5,7 @@ excalidraw_diagrams/
 .excalidraw-renderer/
 blogs/
 *.png
+!frontend/public/test/wj-jspsych2-test/**/*.png
 gen_cover.py
 gen_diagrams.py
 publish-article.mjs
