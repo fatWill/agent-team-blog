@@ -201,8 +201,11 @@ interface DraftItem {
   sortOrder: number
 }
 
-// ====== 常量 ======
-const CATEGORIES = ['局改', '硬装', '家私', '家电', '全屋智能', '其他'] as const
+// ====== 分类（从接口获取，SSR 兼容） ======
+const { data: categoriesData } = await useAsyncData('pitfall-categories', () =>
+  $fetch<{ categories: string[] }>('/api/renovation/pitfall/categories'),
+)
+const CATEGORIES = computed(() => categoriesData.value?.categories ?? [])
 
 // ====== 状态 ======
 const { isLoggedIn } = useAuth()
@@ -276,7 +279,7 @@ function addDraftRow() {
     : 0
   draftItems.value.push({
     _uid: genUid(),
-    category: '其他',
+    category: CATEGORIES.value[0] || '',
     pitfall: '',
     solution: '',
     remark: '',
@@ -317,7 +320,7 @@ async function handleSave() {
   // 前端校验
   for (let i = 0; i < draftItems.value.length; i++) {
     const item = draftItems.value[i]
-    if (!item.category || !CATEGORIES.includes(item.category as any)) {
+    if (!item.category || !CATEGORIES.value.includes(item.category)) {
       showError(`第 ${i + 1} 条「类型」必须选择有效分类`)
       return
     }
@@ -402,13 +405,13 @@ async function handleSave() {
 function categoryBadgeClass(category: string): string {
   const map: Record<string, string> = {
     '局改': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
-    '硬装': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-    '家私': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+    '全屋定制': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
     '家电': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-    '全屋智能': 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
-    '其他': 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+    '家私': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+    '油漆': 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
+    '美缝': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
   }
-  return map[category] || map['其他']
+  return map[category] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
 }
 
 // ====== SEO ======
