@@ -223,6 +223,7 @@ func registerRoutes(api *gin.RouterGroup) {
 	// ========== 踩坑日记 ==========
 	pitfallGroup := api.Group("/renovation/pitfall")
 	{
+		pitfallGroup.GET("/categories", pitfall.GetCategories)
 		pitfallGroup.GET("/items", pitfall.GetItems)
 		pitfallGroup.POST("/items/batch", authMW, pitfall.BatchEditItems)
 	}

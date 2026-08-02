@@ -14,14 +14,22 @@ import (
 	"gorm.io/gorm"
 )
 
-// 分类白名单
+// 分类白名单（有序）
 var allowedCategories = map[string]bool{
 	"局改":   true,
-	"硬装":   true,
-	"家私":   true,
+	"全屋定制": true,
 	"家电":   true,
-	"全屋智能": true,
-	"其他":   true,
+	"家私":   true,
+	"油漆":   true,
+	"美缝":   true,
+}
+
+// AllowedCategoryList 有序分类列表（展示顺序）
+var AllowedCategoryList = []string{"局改", "全屋定制", "家电", "家私", "油漆", "美缝"}
+
+// GetCategories GET /api/renovation/pitfall/categories — 获取踩坑日记分类列表
+func GetCategories(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"categories": AllowedCategoryList})
 }
 
 // GetItems GET /api/renovation/pitfall/items — 获取所有踩坑日记条目
@@ -177,7 +185,7 @@ func validateItem(category, pitfall, solution, remark, prefix string) string {
 		return fmt.Sprintf("%s: category 不能为空", prefix)
 	}
 	if !allowedCategories[cat] {
-		return fmt.Sprintf("%s: category 不在允许范围内，允许值: 局改/硬装/家私/家电/全屋智能/其他", prefix)
+		return fmt.Sprintf("%s: category 不在允许范围内，允许值: 局改/全屋定制/家电/家私/油漆/美缝", prefix)
 	}
 
 	pit := strings.TrimSpace(pitfall)
