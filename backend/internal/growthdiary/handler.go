@@ -41,21 +41,58 @@ func GetMonths(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"months": months})
 }
 
+// flexStrings 兼容两种 JSON 输入格式：
+// 1. 数组: ["url1", "url2"]
+// 2. 字符串（JSON 序列化后的数组）: "[\"url1\", \"url2\"]"
+// 解析后统一返回 []string
+type flexStrings []string
+
+func (f *flexStrings) UnmarshalJSON(data []byte) error {
+	// 先尝试按数组解析
+	var arr []string
+	if err := json.Unmarshal(data, &arr); err == nil {
+		*f = arr
+		return nil
+	}
+	// 再尝试按字符串解析（前端 JSON.stringify 后的结果）
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		// 空字符串视为空数组
+		if s == "" || s == "[]" {
+			*f = []string{}
+			return nil
+		}
+		// 尝试将字符串内容解析为数组
+		var inner []string
+		if err := json.Unmarshal([]byte(s), &inner); err == nil {
+			*f = inner
+			return nil
+		}
+		return fmt.Errorf("images/videos 字符串内容不是有效的 JSON 数组: %s", s)
+	}
+	// null 视为空数组
+	if string(data) == "null" {
+		*f = []string{}
+		return nil
+	}
+	return fmt.Errorf("images/videos 格式无效，期望数组或 JSON 字符串")
+}
+
 // batchCreateItem 批量新增请求项
 type batchCreateItem struct {
-	Content    string   `json:"content"`
-	Images     []string `json:"images"`
-	Videos     []string `json:"videos"`
-	HappenedAt string   `json:"happened_at"`
+	Content    string      `json:"content"`
+	Images     flexStrings `json:"images"`
+	Videos     flexStrings `json:"videos"`
+	HappenedAt string      `json:"happened_at"`
 }
 
 // batchUpdateItem 批量更新请求项
 type batchUpdateItem struct {
-	ID         int64    `json:"id"`
-	Content    string   `json:"content"`
-	Images     []string `json:"images"`
-	Videos     []string `json:"videos"`
-	HappenedAt string   `json:"happened_at"`
+	ID         int64       `json:"id"`
+	Content    string      `json:"content"`
+	Images     flexStrings `json:"images"`
+	Videos     flexStrings `json:"videos"`
+	HappenedAt string      `json:"happened_at"`
 }
 
 // batchRequest 批量编辑请求体
@@ -69,7 +106,7 @@ type batchRequest struct {
 func BatchEditItems(c *gin.Context) {
 	var body batchRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "参数解析失败"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": fmt.Sprintf("参数解析失败: %s", err.Error())})
 		return
 	}
 
@@ -121,8 +158,8 @@ func BatchEditItems(c *gin.Context) {
 
 		// 2. 更新
 		for _, u := range body.Updates {
-			imagesJSON, _ := json.Marshal(u.Images)
-			videosJSON, _ := json.Marshal(u.Videos)
+			imagesJSON, _ := json.Marshal([]string(u.Images))
+			videosJSON, _ := json.Marshal([]string(u.Videos))
 			happenedAt := parseHappenedAt(u.HappenedAt)
 
 			result := tx.Model(&models.GrowthDiaryItem{}).Where("id = ?", u.ID).Updates(map[string]interface{}{
@@ -141,8 +178,8 @@ func BatchEditItems(c *gin.Context) {
 
 		// 3. 新增
 		for _, cr := range body.Creates {
-			imagesJSON, _ := json.Marshal(cr.Images)
-			videosJSON, _ := json.Marshal(cr.Videos)
+			imagesJSON, _ := json.Marshal([]string(cr.Images))
+			videosJSON, _ := json.Marshal([]string(cr.Videos))
 			happenedAt := parseHappenedAt(cr.HappenedAt)
 
 			item := models.GrowthDiaryItem{
@@ -233,6 +270,7 @@ func parseHappenedAt(s string) time.Time {
 		"2006-01-02T15:04:05Z",
 		"2006-01-02T15:04:05",
 		"2006-01-02 15:04:05",
+		"2006-01-02T15:04",
 		"2006-01-02",
 	}
 	for _, f := range formats {
