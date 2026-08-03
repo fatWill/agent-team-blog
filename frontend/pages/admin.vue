@@ -45,7 +45,7 @@
             :class="activeTab === child.key
               ? 'bg-white/[0.08] text-white'
               : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'"
-            @click="activeTab = child.key; sidebarOpen = false"
+            @click="handleNavClick(child)"
           >
             <!-- 激活指示器 -->
             <span
@@ -1894,6 +1894,7 @@ interface AdminNavChild {
   key: string
   label: string
   icon: string // SVG path (Heroicons outline, 24x24 viewBox)
+  href?: string // 外部跳转路径（点击时 navigateTo 而非切换 Tab）
 }
 interface AdminNavGroup {
   key: string
@@ -1910,11 +1911,28 @@ const adminNavGroups: AdminNavGroup[] = [
       { key: 'wechat', label: '微信', icon: 'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z' },
     ],
   },
+  {
+    key: 'life',
+    label: '生活',
+    children: [
+      { key: 'growth-diary', label: '成长日记', icon: 'M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25', href: '/life/growth-diary' },
+    ],
+  },
 ]
 // 向后兼容：扁平化所有 Tab（用于 v-if 切换内容区域）
 const adminTabs = adminNavGroups.flatMap(g => g.children)
 const activeTab = ref('wechat')
 const sidebarOpen = ref(false) // 移动端侧边栏展开状态
+
+function handleNavClick(child: AdminNavChild) {
+  if (child.href) {
+    navigateTo(child.href)
+  } else {
+    activeTab.value = child.key
+    sidebarOpen.value = false
+  }
+}
+
 const activeGroup = computed(() => {
   // write Tab 属于内容管理组（虽然不在导航中显示）
   if (activeTab.value === 'write') return adminNavGroups[0]

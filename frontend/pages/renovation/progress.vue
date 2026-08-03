@@ -50,6 +50,30 @@
     </header>
 
     <main class="mx-auto w-full max-w-4xl flex-1 px-4 py-6">
+      <!-- 分类筛选 Tab（仅非编辑态展示） -->
+      <div v-if="!editing && CATEGORIES.length > 0" class="mb-5 flex flex-wrap gap-2">
+        <button
+          class="rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200"
+          :class="activeCategory === '全部'
+            ? 'bg-indigo-500 text-white shadow-sm'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+          @click="activeCategory = '全部'"
+        >
+          全部
+        </button>
+        <button
+          v-for="cat in CATEGORIES"
+          :key="cat"
+          class="rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200"
+          :class="activeCategory === cat
+            ? 'bg-indigo-500 text-white shadow-sm'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+          @click="activeCategory = cat"
+        >
+          {{ cat }}
+        </button>
+      </div>
+
       <!-- 加载态 -->
       <div v-if="loading" class="space-y-4">
         <div v-for="i in 3" :key="i" class="animate-pulse rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
@@ -251,10 +275,18 @@ onMounted(async () => {
   loading.value = false
 })
 
+// ====== 分类筛选（仅前台展示，编辑态不过滤） ======
+const activeCategory = ref('全部')
+
 // ====== computed ======
 const displayItems = computed<DraftItem[]>(() => {
   const source = editing.value ? draftItems.value : originalItems.value
-  return [...source].sort((a, b) => a.sortOrder - b.sortOrder)
+  let items = [...source].sort((a, b) => a.sortOrder - b.sortOrder)
+  // 前台展示态下按分类筛选
+  if (!editing.value && activeCategory.value !== '全部') {
+    items = items.filter(i => i.category === activeCategory.value)
+  }
+  return items
 })
 
 // ====== 编辑操作 ======
@@ -410,6 +442,7 @@ function categoryBadgeClass(category: string): string {
     '家私': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
     '油漆': 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
     '美缝': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
+    '闲谈': 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
   }
   return map[category] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
 }

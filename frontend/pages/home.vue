@@ -368,6 +368,19 @@
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">📷 生活</h2>
             <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">用镜头定格美好的瞬间</p>
           </div>
+
+          <!-- 快捷入口 -->
+          <div class="mb-6">
+            <NuxtLink
+              to="/life/growth-diary"
+              class="group inline-flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-4 py-3 transition-all duration-200 hover:border-pink-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-pink-700"
+            >
+              <span class="text-xl transition-transform duration-200 group-hover:scale-110">👶</span>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">阳阳的成长日记</span>
+              <svg class="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+            </NuxtLink>
+          </div>
+
           <!-- 加载中 -->
           <div v-if="albumsLoading" class="flex items-center justify-center py-20">
             <AppLoading tip="加载中..." />
