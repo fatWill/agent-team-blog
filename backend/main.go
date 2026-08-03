@@ -12,6 +12,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/budget"
 	"github.com/fatWill/agent-team-blog/backend/internal/changelog"
 	"github.com/fatWill/agent-team-blog/backend/internal/download"
+	"github.com/fatWill/agent-team-blog/backend/internal/growthdiary"
 	"github.com/fatWill/agent-team-blog/backend/internal/guestbook"
 	"github.com/fatWill/agent-team-blog/backend/internal/material"
 	"github.com/fatWill/agent-team-blog/backend/internal/perf"
@@ -226,6 +227,14 @@ func registerRoutes(api *gin.RouterGroup) {
 		pitfallGroup.GET("/categories", pitfall.GetCategories)
 		pitfallGroup.GET("/items", pitfall.GetItems)
 		pitfallGroup.POST("/items/batch", authMW, pitfall.BatchEditItems)
+	}
+
+	// ========== 成长日记 ==========
+	growthGroup := api.Group("/growth-diary")
+	{
+		growthGroup.GET("/items", growthdiary.GetItems)
+		growthGroup.GET("/months", growthdiary.GetMonths)
+		growthGroup.POST("/items/batch", authMW, growthdiary.BatchEditItems)
 	}
 
 	// ========== 材料清单 ==========

@@ -245,6 +245,18 @@ func autoMigrate() error {
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+
+		// 成长日记表
+		`CREATE TABLE IF NOT EXISTS growth_diary_items (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			content TEXT NOT NULL DEFAULT '',
+			images TEXT NOT NULL DEFAULT '[]',
+			videos TEXT NOT NULL DEFAULT '[]',
+			happened_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_growth_diary_happened_at ON growth_diary_items (happened_at)`,
 	}
 
 	for _, sql := range ddl {

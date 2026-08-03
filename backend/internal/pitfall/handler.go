@@ -22,10 +22,11 @@ var allowedCategories = map[string]bool{
 	"家私":   true,
 	"油漆":   true,
 	"美缝":   true,
+	"闲谈":   true,
 }
 
 // AllowedCategoryList 有序分类列表（展示顺序）
-var AllowedCategoryList = []string{"局改", "全屋定制", "家电", "家私", "油漆", "美缝"}
+var AllowedCategoryList = []string{"局改", "全屋定制", "家电", "家私", "油漆", "美缝", "闲谈"}
 
 // GetCategories GET /api/renovation/pitfall/categories — 获取踩坑日记分类列表
 func GetCategories(c *gin.Context) {
@@ -185,7 +186,7 @@ func validateItem(category, pitfall, solution, remark, prefix string) string {
 		return fmt.Sprintf("%s: category 不能为空", prefix)
 	}
 	if !allowedCategories[cat] {
-		return fmt.Sprintf("%s: category 不在允许范围内，允许值: 局改/全屋定制/家电/家私/油漆/美缝", prefix)
+		return fmt.Sprintf("%s: category 不在允许范围内，允许值: 局改/全屋定制/家电/家私/油漆/美缝/闲谈", prefix)
 	}
 
 	pit := strings.TrimSpace(pitfall)

@@ -132,6 +132,9 @@ func uploadToCOS(data []byte, key string) (string, error) {
 // cosMultipartChunkSize COS 分片上传每片大小（1MB）
 const cosMultipartChunkSize = 1 * 1024 * 1024
 
+// maxVideoSize 视频文件大小上限（100MB）
+const maxVideoSize = 100 * 1024 * 1024
+
 // multipartUploadToCOS 使用 COS 原生分片上传（适用于 >2MB 大文件）
 // 流程：InitiateMultipartUpload → UploadPart → CompleteMultipartUpload
 func multipartUploadToCOS(data []byte, key string) (string, error) {
@@ -269,6 +272,12 @@ func Upload(c *gin.Context) {
 		return
 	}
 
+	// 视频文件大小限制：100MB
+	if allowedVideoExtensions[ext] && len(data) > maxVideoSize {
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "视频文件不能超过 100MB"})
+		return
+	}
+
 	// 通过 folder 表单字段决定 COS 路径前缀
 	folder := strings.TrimSpace(c.PostForm("folder"))
 	key := cosKey(ext, folder)
@@ -376,6 +385,13 @@ func MergeChunks(c *gin.Context) {
 			return
 		}
 		merged = append(merged, data...)
+	}
+
+	// 视频文件大小限制：100MB
+	if allowedVideoExtensions[ext] && len(merged) > maxVideoSize {
+		os.RemoveAll(tmpDir)
+		c.JSON(http.StatusBadRequest, gin.H{"error": true, "statusCode": 400, "statusMessage": "视频文件不能超过 100MB"})
+		return
 	}
 
 	// 上传到 COS（根据大小智能选择直传或分片上传）
