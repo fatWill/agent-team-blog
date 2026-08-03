@@ -5,14 +5,23 @@
 export default defineNuxtPlugin(() => {
   const router = useRouter()
 
-  // 获取或生成设备唯一 ID
+  // 获取或生成设备唯一 ID（兼容 sandbox iframe 无 localStorage 的场景）
+  let memoryDeviceId: string | null = null
   function getDeviceId(): string {
-    let id = localStorage.getItem('_did')
-    if (!id) {
-      id = crypto.randomUUID()
-      localStorage.setItem('_did', id)
+    try {
+      let id = localStorage.getItem('_did')
+      if (!id) {
+        id = crypto.randomUUID()
+        localStorage.setItem('_did', id)
+      }
+      return id
+    } catch {
+      // sandbox iframe 中 localStorage 不可用，回退到内存 ID
+      if (!memoryDeviceId) {
+        memoryDeviceId = crypto.randomUUID()
+      }
+      return memoryDeviceId
     }
-    return id
   }
 
   // 上报函数（fire and forget，不阻塞）
