@@ -1,6 +1,8 @@
 # 编译产物
 backend
 blog-backend
+blog-backend-*
+dist/
 *.exe
 
 # 依赖
