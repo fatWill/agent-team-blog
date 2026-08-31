@@ -66,21 +66,34 @@
 ## imageUrl.ts
 
 - **路径**：`utils/imageUrl.ts`
-- **职责**：图片 CDN URL 转换
+- **职责**：图片 CDN URL 转换（assets 域名由 runtimeConfig 运行时注入，非硬编码）
 
 ### 导出
 
 | 函数 | 签名 | 说明 |
 |------|------|------|
 | `toCdnUrl` | `(url: string \| null \| undefined) => string` | 将 `/uploads/xxx` 转为 CDN 完整 URL |
+| `toThumbUrl` | `(url: string \| null \| undefined, width?: number) => string` | 缩略图 URL（默认 800px + WebP + 80% 质量） |
+| `toWebpUrl` | `(url: string \| null \| undefined) => string` | WebP 大图 URL（原尺寸 + 85% 质量） |
+| `createImageUrlHelper` | `(assetsHost: string) => ImageUrlHelper` | 工厂函数，返回绑定指定 host 的纯计算转换函数组 |
+| `setImageUrlAssetsHost` | `(assetsHost: string) => void` | 注入运行时 assets host，由 `plugins/0.image-url-host.ts` 调用 |
+
+### 域名来源
+
+assets host 优先取 `runtimeConfig.public.assetsUrl`（环境变量 `NUXT_PUBLIC_ASSETS_URL`），
+由 `plugins/0.image-url-host.ts` 在应用启动最早期注入；未注入时回退内置默认值
+`https://assets.fatwill.cloud`。详见 `AGENTS.md` →「域名/站点 URL 配置」。
 
 ### 转换规则
+
+假设 `assetsUrl = https://assets.fatwill.cloud`（默认值）：
 
 | 输入 | 输出 |
 |------|------|
 | `null` / `undefined` / `''` | `''` |
 | `http://...` / `https://...` | 原样返回 |
-| `/uploads/xxx.jpg` | `https://cdn.fatwill.cloud/uploads/xxx.jpg` |
+| `/uploads/xxx.jpg` | `https://assets.fatwill.cloud/uploads/xxx.jpg` |
+| `upload/xxx.jpg` | `https://assets.fatwill.cloud/upload/xxx.jpg` |
 | 其他 | 原样返回 |
 
 ---

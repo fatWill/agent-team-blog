@@ -102,15 +102,15 @@
 文件 ≤ 1.5MB ──▶ POST /api/upload ──▶ sharp 压缩 ──▶ /uploads/xxx
                                                       │
 文件 > 1.5MB ──▶ 分片上传                              ▼
-                 ├─ POST /api/upload/chunk (逐片)    CDN: cdn.fatwill.cloud/uploads/xxx
-                 ├─ POST /api/upload/merge (合并)
+                 ├─ POST /api/upload/chunk (逐片)    CDN: ${NUXT_PUBLIC_ASSETS_URL}/uploads/xxx
+                 ├─ POST /api/upload/merge (合并)      (默认 assets.fatwill.cloud)
                  └─ DELETE /api/upload/chunk (失败清理)
 ```
 
 - 前端工具：`utils/chunkedUpload.ts`
 - 分片大小：1.5MB
 - 进度回调：`onProgress({ loaded, total, percent })`
-- CDN 转换：`utils/imageUrl.ts` 的 `toCdnUrl()` 在前端渲染时转换
+- CDN 转换：`utils/imageUrl.ts` 的 `toCdnUrl()` 在前端渲染时转换，域名读 `runtimeConfig.public.assetsUrl`（可通过 `NUXT_PUBLIC_ASSETS_URL` 覆盖，详见 `AGENTS.md` →「域名/站点 URL 配置」）
 
 ## 跨端 UI 适配
 

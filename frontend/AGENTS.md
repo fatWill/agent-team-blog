@@ -183,6 +183,7 @@ frontend/
 |------|---------|------------------|------|
 | 主题切换 | `shared/composables/useTheme.ts` | `composables/useTheme.ts` | Dark/Light 切换，Cookie 持久化，SSR 零闪烁 |
 | 设备检测 | `shared/composables/useDevice.ts` | `composables/useDevice.ts` | 响应式 `isMobile` ref + 命令式 `isMobileDevice()` 函数 |
+| 站点 URL | `composables/useSiteUrl.ts` | `composables/useSiteUrl.ts` | 域名配置统一入口：`siteUrl`/`assetsUrl`/`cdnUrl` + `articleUrl()`/`pageUrl()`/`defaultOgImage()`/`assetUrl()` |
 
 ### Stores（`stores/`）
 
@@ -223,6 +224,7 @@ frontend/
 | Pinia Hydration Fix | `plugins/pinia-hydration-fix.ts` | 仅服务端 | JSON 往返清洗 payload，修复 SSR hydration 原型链问题 |
 | Virtual Scroller | `plugins/vue-virtual-scroller.client.ts` | 仅客户端 | 注册 vue-virtual-scroller 全局组件 |
 | PV Tracker | `plugins/pv-tracker.client.ts` | 仅客户端 | 路由变化时自动上报 PV/UV（fire and forget） |
+| ImageUrl Host | `plugins/0.image-url-host.ts` | 服务端 + 客户端 | 启动最早期把 `runtimeConfig.public.assetsUrl` 注入 `shared/utils/imageUrl.ts`（工具模块无法用 composable） |
 
 ## 页面路由映射
 
@@ -345,6 +347,51 @@ frontend/
 |------|------|--------|
 | `BACKEND_URL` | Go 后端 API 地址 | `http://127.0.0.1:8080` |
 
+### 域名/站点 URL 配置
+
+所有对外绝对 URL（canonical、OG、sitemap、robots、分享链接、CDN 素材）均不再硬编码，
+统一由 `runtimeConfig.public` 提供，可通过环境变量覆盖：
+
+| 变量 | 作用 | 默认值 | 生效方式 |
+|------|------|--------|---------|
+| `NUXT_PUBLIC_SITE_URL` | 站点主域名：canonical / OG / sitemap.xml / robots.txt / 分享文案 | `https://fatwill.cloud` | 运行时 |
+| `NUXT_PUBLIC_ASSETS_URL` | 图片素材 CDN（COS 自定义域名）：文章封面、相册、SBTI 人格图、装修头像 | `https://assets.fatwill.cloud` | 运行时 |
+| `NUXT_PUBLIC_CDN_URL` | Nuxt 构建产物 CDN（`app.cdnURL`） | `https://cdn.fatwill.cloud` | ⚠️ **构建期** |
+
+**统一读取入口**：`composables/useSiteUrl.ts`
+
+```ts
+const { siteUrl, assetsUrl, cdnUrl, articleUrl, pageUrl, defaultOgImage, assetUrl } = useSiteUrl()
+
+articleUrl('abc')            // https://fatwill.cloud/articles/abc
+pageUrl('/toys/sbti')        // https://fatwill.cloud/toys/sbti
+defaultOgImage()             // https://fatwill.cloud/og-default.png
+assetUrl('/toys/sbti/x.png') // https://assets.fatwill.cloud/toys/sbti/x.png
+```
+
+**如何换域名**：
+
+1. 在部署环境的 `.env` 中设置三个变量（参考 `.env.example`）
+2. **必须重新 `npm run build`**——因为 `NUXT_PUBLIC_CDN_URL` 对应的 `app.cdnURL` 是 Nuxt 构建期常量，只改运行时变量对静态资源路径无效
+3. `NUXT_PUBLIC_SITE_URL` / `NUXT_PUBLIC_ASSETS_URL` 支持纯运行时切换（改环境变量 + 重启即可）
+4. 手动 `sed` 替换静态测试页 `public/test/wj-jspsych-test/index.html`（详见文件顶部注释）
+
+**例外说明（有意保留的硬编码）**：
+
+| 位置 | 原因 |
+|------|------|
+| `nuxt.config.ts` → `app.cdnURL` | Nuxt 构建期常量，官方不支持运行时注入；已读 `process.env.NUXT_PUBLIC_CDN_URL`，需 build 时注入 |
+| `nuxt.config.ts` / `imageUrl.ts` 中的默认值字符串 | 环境变量未设置时的兜底默认值，保证行为不变 |
+| `public/test/wj-jspsych-test/index.html` | `public/` 下纯静态 HTML，不经 Nuxt 渲染，无法读 runtimeConfig |
+| `scripts/migrate-image-urls.ts` | 一次性历史数据迁移脚本，非运行时代码 |
+
+### 非 Nuxt 渲染层的 SEO 路由
+
+| 路由 | 文件 | 说明 |
+|------|------|------|
+| `/robots.txt` | `server/routes/robots.txt.ts` | 由静态 `public/robots.txt` 改为 Nitro 动态生成，Sitemap 行读 `siteUrl` |
+| `/sitemap.xml` | `server/routes/sitemap.xml.ts` | 动态生成，`baseUrl` 读 `siteUrl` |
+
 ## 版本号规范
 
 格式：`X.Y.Z`（Semantic Versioning）
@@ -363,20 +410,23 @@ frontend/
 
 ## SEO 规范
 
-### robots.txt 规则（`public/robots.txt`）
+### robots.txt 规则（`server/routes/robots.txt.ts` — 动态生成）
 - **策略**：默认拒绝，只显式 Allow 公开页面
 - **允许抓取**：`/`（首页）、`/home`（博客主页）、`/articles/`（文章详情页）
 - **禁止抓取**：`/admin`（管理后台）、`/login`（登录页）、`/api/`（接口）、其余所有路径（兜底 `Disallow: /`）
-- **新增页面时**：如果是需要登录才能访问的页面，必须在 `robots.txt` 中添加对应的 `Disallow` 规则；如果是公开页面，需添加 `Allow` 规则并同步更新 `server/routes/sitemap.xml.ts`
+- **Sitemap 行**：域名从 `runtimeConfig.public.siteUrl` 读取（原静态文件无法运行时换域名，故改为 Nitro 路由）
+- **新增页面时**：如果是需要登录才能访问的页面，必须在 `server/routes/robots.txt.ts` 中添加对应的 `Disallow` 规则；如果是公开页面，需添加 `Allow` 规则并同步更新 `server/routes/sitemap.xml.ts`
 
 ### sitemap.xml（`server/routes/sitemap.xml.ts`）
 - 动态生成，自动从后端 API 拉取所有文章列表
 - 静态页面：`/`（priority 1.0）、`/home`（priority 0.9）
 - 文章页面：`/articles/:id`（priority 0.8，含 lastmod）
 - 缓存：`Cache-Control: public, max-age=3600`（1小时）
-- 访问地址：`https://fatwill.cloud/sitemap.xml`
+- 访问地址：`{NUXT_PUBLIC_SITE_URL}/sitemap.xml`（默认 `https://fatwill.cloud/sitemap.xml`）
 
 ## 变更日志（最近重要变更）
+
+- 2026-08-31: 域名配置化改造（新增 `NUXT_PUBLIC_SITE_URL` / `NUXT_PUBLIC_ASSETS_URL` / `NUXT_PUBLIC_CDN_URL` 三个 runtimeConfig 公共字段 + `composables/useSiteUrl.ts` 统一入口；`imageUrl.ts` 改为 factory + plugin 运行时注入 assets host；`public/robots.txt` 静态文件改为 `server/routes/robots.txt.ts` 动态生成；canonical/preconnect/dns-prefetch 从 nuxt.config.ts 迁至 app.vue 动态注入；默认值保持不变，线上行为一致）
 
 - 2026-04-22: 实现装修成本预算页面（会计报表风格表格，5 大分类色块区分，汇总统计卡片+进度条，支持 Dark/Light 主题）
 - 2026-04-16: 新增「装修」Tab 页（功能按钮 + Markdown 知识文章列表）+ 后台管理导航重构（面包屑二级导航）+ 新增装修 feature 模块
