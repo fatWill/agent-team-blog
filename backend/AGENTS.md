@@ -256,6 +256,7 @@ backend/
 |--------|--------|------|
 | `SERVER_PORT` | `8080` | 服务监听端口 |
 | `CORS_ORIGIN` | `https://fatwill.cloud` | 允许跨域来源 |
+| `SITE_URL` | `https://fatwill.cloud` | 站点根 URL，后端拼接对外绝对页面链接使用（微信同步原文链接等） |
 | `DB_PATH` | `/root/blog-data/blog.db` | SQLite 数据库文件路径 |
 | `REDIS_HOST` | `127.0.0.1` | Redis 主机 |
 | `REDIS_PORT` | `6379` | Redis 端口 |
@@ -270,6 +271,9 @@ backend/
 | `COS_CUSTOM_DOMAIN` | `https://assets.fatwill.cloud` | 自定义域名（返回给前端的图片 URL） |
 | `WECHAT_APP_ID` | *(必填)* | 微信公众号 AppID |
 | `WECHAT_APP_SECRET` | *(必填)* | 微信公众号 AppSecret |
+| `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔 |
+
+> 域名相关配置全部走环境变量注入，换域名只需修改 systemd `Environment=`，无需改代码。涉及域名的变量：`CORS_ORIGIN`、`SITE_URL`、`COS_BUCKET`、`COS_BASE_URL`、`COS_CUSTOM_DOMAIN`、`DOWNLOAD_ALLOWED_HOSTS`。
 
 ## 部署信息
 

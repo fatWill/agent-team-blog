@@ -23,6 +23,7 @@
 |------|--------|------|
 | `SERVER_PORT` | `8080` | 服务监听端口 |
 | `CORS_ORIGIN` | `https://fatwill.cloud` | 允许的跨域来源 |
+| `SITE_URL` | `https://fatwill.cloud` | 站点根 URL，后端拼接绝对页面链接使用（如微信同步原文链接） |
 | `DB_HOST` | `127.0.0.1` | MySQL 地址 |
 | `DB_PORT` | `3306` | MySQL 端口 |
 | `DB_USER` | `root` | MySQL 用户名 |
@@ -40,6 +41,9 @@
 | `COS_BUCKET` | `fatwill-cloud-1253664788` | COS 存储桶名称 |
 | `COS_REGION` | `ap-guangzhou` | COS 地域 |
 | `COS_BASE_URL` | `https://assets.fatwill.cloud` | COS CDN 访问域名 |
+| `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔 |
+
+> 所有域名相关配置均通过环境变量注入，换域名只需调整 systemd `Environment=`，无需改动代码。
 
 ### 启动
 

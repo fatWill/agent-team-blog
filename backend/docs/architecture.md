@@ -112,6 +112,21 @@ c.JSON(statusCode, gin.H{...})               ← 响应
 | **UUID** | 文章 ID 使用 UUID v4，避免自增 ID 被遍历 |
 | **内存 Map 限频** | 单实例部署，无需 Redis 限频，内存 Map 性能更好 |
 | **环境变量配置** | 通过 systemd `Environment=` 注入，无需配置文件管理 |
+| **域名零硬编码** | 所有对外域名（站点、COS、下载白名单）均从环境变量读取，默认值保持线上现状；换域名只需改 systemd `Environment=` 并重启，不动代码 |
+
+## 域名配置（运行时注入）
+
+后端不在代码中硬编码任何对外域名，统一由 `config.Load()` 从环境变量读取：
+
+| 变量 | 作用域 | 消费方 |
+|------|--------|--------|
+| `CORS_ORIGIN` | 浏览器跨域来源白名单 | `main.go` CORS 中间件 |
+| `SITE_URL` | 站点根 URL，拼接绝对页面链接 | `internal/wechat`（`wechat.SetSiteURL`） |
+| `COS_BUCKET` / `COS_REGION` / `COS_BASE_URL` | COS SDK 与原始访问域名 | `internal/upload`（`upload.SetCOSConfig`） |
+| `COS_CUSTOM_DOMAIN` | 返回给前端的图片 URL 域名 | `internal/upload` |
+| `DOWNLOAD_ALLOWED_HOSTS` | 下载代理域名白名单（逗号分隔） | `internal/download`（`download.SetDownloadConfig`） |
+
+注入方式沿用项目既有的**包级 setter** 风格（与 `upload.SetCOSConfig` 一致）：`main()` 加载 `cfg` 后显式调用各领域包的 `Set*` 函数，包内保留与线上一致的默认值兜底，避免忘记注入导致行为突变。
 
 ## 连接配置（针对 2 核 2G 服务器优化）
 
