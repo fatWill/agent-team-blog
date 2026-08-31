@@ -328,34 +328,38 @@ const questions: Question[] = [
 ]
 
 // ====== 27 种人格 ======
+// 人格图片统一挂在 assets CDN，基址由 runtimeConfig 注入（支持换域名）
+const { assetUrl, pageUrl } = useSiteUrl()
+const SBTI_ASSETS_BASE = assetUrl('/toys/sbti')
+
 const personalities: Record<string, Personality> = {
-  CTRL: { name: 'CTRL', title: '拿捏者', tagline: '怎么样，被我拿捏了吧？', description: '行走的人形自走任务管理器，宇宙熵增定律的天然反抗者。全世界所谓成功人士里，99.99%都是你的拙劣模仿者。', vector: 'HHH-HMH-MHH-HHH-MHM', image: 'https://assets.fatwill.cloud/toys/sbti/ctrl.png' },
-  'ATM-er': { name: 'ATM-er', title: '送钱者', tagline: '你以为我很有钱吗？', description: '像一部老旧但坚固的ATM机，用磐石般的可靠承受瀑布般的索取。', vector: 'MHH-HHM-HHM-LMM-HMH', image: 'https://assets.fatwill.cloud/toys/sbti/atm-er.png' },
-  'Dior-s': { name: 'Dior-s', title: '屌丝', tagline: '等着我屌丝逆袭。', description: '犬儒主义先贤第欧根尼失散多年的精神传人。', vector: 'LLM-MLM-LLM-LLM-LLM', image: 'https://assets.fatwill.cloud/toys/sbti/dior-s.jpg' },
-  BOSS: { name: 'BOSS', title: '领导者', tagline: '把方向盘给我，我来开。', description: '手里永远拿着方向盘的人，拥有独立的物理法则——永恒向上定律。', vector: 'HHH-MMM-HHH-HHH-HMM', image: 'https://assets.fatwill.cloud/toys/sbti/boss.png' },
-  'THAN-K': { name: 'THAN-K', title: '感恩者', tagline: '感谢上天！感谢大地！', description: '拥有温润如玉的性格和海纳百川的胸怀，看不见坏人，只有还没被感化的朋友。', vector: 'HMH-HHM-HMH-MMM-HHH', image: 'https://assets.fatwill.cloud/toys/sbti/than-k.png' },
-  'OH-NO': { name: 'OH-NO', title: '哦不人', tagline: '哦不！我怎么会是这个人格！', description: '"哦不"是一种顶级智慧，秩序的守护神。当普通人看到杯子放在桌沿，哦不人看到的是一场世界末日。', vector: 'MMH-HMM-HHH-LLM-MMH', image: 'https://assets.fatwill.cloud/toys/sbti/oh-no.png' },
-  GOGO: { name: 'GOGO', title: '行者', tagline: 'gogogo，走起！', description: '活在极致的"所见即所得"世界里，人生信条简单粗暴：能做的事情立刻做，不能做的事情想办法做。', vector: 'MHH-MMM-MMH-HHH-HMM', image: 'https://assets.fatwill.cloud/toys/sbti/gogo.png' },
-  SEXY: { name: 'SEXY', title: '尤物', tagline: '您就是天生的尤物！', description: '天生的魅力能量发射器，当你走进一个房间，照明系统会自动将你识别为天生的尤物。', vector: 'HMH-HHH-HMM-MMH-HHM', image: 'https://assets.fatwill.cloud/toys/sbti/sexy.png' },
-  'LOVE-R': { name: 'LOVE-R', title: '多情者', tagline: '爱意太满，现实显得有点贫瘠。', description: '这个钢铁森林时代最后的吟游诗人。因为你的情感处理器不是二进制的，而是彩虹制的。', vector: 'MHH-HHM-HMH-MMM-HMH', image: 'https://assets.fatwill.cloud/toys/sbti/love-r.png' },
-  MUM: { name: 'MUM', title: '妈妈', tagline: '或许...我可以叫你妈妈吗？', description: '擅长感知情绪，具有超强共情力，治愈系人格。', vector: 'HHH-HHM-HHM-MMM-HHH', image: 'https://assets.fatwill.cloud/toys/sbti/mum.png' },
-  FAKE: { name: 'FAKE', title: '伪人', tagline: '已经，没有人类了。', description: '切换人格面具比切换手机输入法还快。', vector: 'MHM-MMM-MMM-MMM-HLM', image: 'https://assets.fatwill.cloud/toys/sbti/fake.png' },
-  OJBK: { name: 'OJBK', title: '无所谓人', tagline: '我说随便，是真的随便。', description: '不是没主见，是批阅奏章般的淡然。已然超脱，把鸡毛蒜皮的选择题当成蝼蚁。', vector: 'MML-MMM-MMM-LMM-MLM', image: 'https://assets.fatwill.cloud/toys/sbti/ojbk.png' },
-  MALO: { name: 'MALO', title: '吗喽', tagline: '人生是个副本，而我只是一只吗喽。', description: '灵魂还停留在挂在树上荡秋千的快乐时代，对世界的期待值已归零，但还是会在截止日期前爆发。', vector: 'LML-MLM-LLM-LMM-MLM', image: 'https://assets.fatwill.cloud/toys/sbti/malo.png' },
-  'JOKE-R': { name: 'JOKE-R', title: '小丑', tagline: '原来我们都是小丑。', description: '社交场合的气氛组组长兼唯一指定火力输出。', vector: 'MHM-MMH-MMM-MMH-HMH', image: 'https://assets.fatwill.cloud/toys/sbti/joke-r.jpg' },
-  'WOC!': { name: 'WOC!', title: '握草人', tagline: '握草，我怎么是这个人格？！', description: '拥有"表面系统"和"后台系统"两种完全独立的操作系统。', vector: 'MHM-MMM-HMM-MHM-HMM', image: 'https://assets.fatwill.cloud/toys/sbti/woc.png' },
-  'THIN-K': { name: 'THIN-K', title: '思考者', tagline: '已深度思考100s。', description: '大脑长时间处于思考状态，信息审判专家。', vector: 'HHM-MMM-HHH-MHM-MMH', image: 'https://assets.fatwill.cloud/toys/sbti/thin-k.png' },
-  SHIT: { name: 'SHIT', title: '愤世者', tagline: '这个世界，构石一坨。', description: '嘴上"构石一坨"，手上默默收拾烂摊子。', vector: 'MLM-MLM-LMM-HMH-LMM', image: 'https://assets.fatwill.cloud/toys/sbti/shit.png' },
-  ZZZZ: { name: 'ZZZZ', title: '装死者', tagline: '我没死，我只是在睡觉。', description: '直到"死线"出现才爆发，不鸣则已一鸣惊人。', vector: 'LML-LMM-MLM-LLM-LMM', image: 'https://assets.fatwill.cloud/toys/sbti/zzzz.png' },
-  POOR: { name: 'POOR', title: '贫困者', tagline: '我穷，但我很专。', description: '不是资源少，是把资源全部灌进了一个坑里。', vector: 'MLH-LMM-MLH-HLM-LMM', image: 'https://assets.fatwill.cloud/toys/sbti/poor.png' },
-  MONK: { name: 'MONK', title: '僧人', tagline: '没有那种世俗的欲望。', description: '已然看破红尘，个人空间是绝对领域。', vector: 'MLM-LLM-MML-LMM-LHM', image: 'https://assets.fatwill.cloud/toys/sbti/monk.png' },
-  IMSB: { name: 'IMSB', title: '傻者', tagline: '我是个傻逼吗？', description: '大脑里住着"我他妈冲了"和"我是个傻逼"两个究极战士。', vector: 'LMH-MHM-LMM-HLM-MML', image: 'https://assets.fatwill.cloud/toys/sbti/imsb.png' },
-  SOLO: { name: 'SOLO', title: '孤儿', tagline: '我哭了，我怎么是孤儿？', description: '在灵魂外围建起了"莫挨老子"的万里长城。', vector: 'LLM-LLM-LMM-LMM-LHL', image: 'https://assets.fatwill.cloud/toys/sbti/solo.png' },
-  FUCK: { name: 'FUCK', title: '草者', tagline: '这是什么人格？！', description: '无法被任何除草剂杀死的人形野草。', vector: 'HMH-MLM-LHM-HMH-HMM', image: 'https://assets.fatwill.cloud/toys/sbti/fuck.png' },
-  DEAD: { name: 'DEAD', title: '死者', tagline: '我还活着吗？', description: 'Don\'t Expect Any Drives，超越欲望和目标的终极贤者。', vector: 'LLL-LLL-LLL-LLL-LLL', image: 'https://assets.fatwill.cloud/toys/sbti/dead.png' },
-  IMFW: { name: 'IMFW', title: '废物', tagline: '我真的...是废物吗？', description: '不是真废，只是太没防备、太容易认真。', vector: 'LMM-HMM-HMM-LLM-MHH', image: 'https://assets.fatwill.cloud/toys/sbti/imfw.png' },
-  HHHH: { name: 'HHHH', title: '傻乐者', tagline: '哈哈哈哈哈哈哈哈。', description: '系统兜底人格，思维回路过于清奇时强制匹配。你的个性已经超出了所有分类的边界。', vector: 'special-fallback', image: 'https://assets.fatwill.cloud/toys/sbti/hhhh.png' },
-  DRUNK: { name: 'DRUNK', title: '酒鬼', tagline: '烈酒烧喉，不得不醉。', description: '隐藏人格，仅在触发特定饮酒题目时激活。你的系统已被酒精完全接管。', vector: 'special-hidden', image: 'https://assets.fatwill.cloud/toys/sbti/drunk.png' },
+  CTRL: { name: 'CTRL', title: '拿捏者', tagline: '怎么样，被我拿捏了吧？', description: '行走的人形自走任务管理器，宇宙熵增定律的天然反抗者。全世界所谓成功人士里，99.99%都是你的拙劣模仿者。', vector: 'HHH-HMH-MHH-HHH-MHM', image: `${SBTI_ASSETS_BASE}/ctrl.png` },
+  'ATM-er': { name: 'ATM-er', title: '送钱者', tagline: '你以为我很有钱吗？', description: '像一部老旧但坚固的ATM机，用磐石般的可靠承受瀑布般的索取。', vector: 'MHH-HHM-HHM-LMM-HMH', image: `${SBTI_ASSETS_BASE}/atm-er.png` },
+  'Dior-s': { name: 'Dior-s', title: '屌丝', tagline: '等着我屌丝逆袭。', description: '犬儒主义先贤第欧根尼失散多年的精神传人。', vector: 'LLM-MLM-LLM-LLM-LLM', image: `${SBTI_ASSETS_BASE}/dior-s.jpg` },
+  BOSS: { name: 'BOSS', title: '领导者', tagline: '把方向盘给我，我来开。', description: '手里永远拿着方向盘的人，拥有独立的物理法则——永恒向上定律。', vector: 'HHH-MMM-HHH-HHH-HMM', image: `${SBTI_ASSETS_BASE}/boss.png` },
+  'THAN-K': { name: 'THAN-K', title: '感恩者', tagline: '感谢上天！感谢大地！', description: '拥有温润如玉的性格和海纳百川的胸怀，看不见坏人，只有还没被感化的朋友。', vector: 'HMH-HHM-HMH-MMM-HHH', image: `${SBTI_ASSETS_BASE}/than-k.png` },
+  'OH-NO': { name: 'OH-NO', title: '哦不人', tagline: '哦不！我怎么会是这个人格！', description: '"哦不"是一种顶级智慧，秩序的守护神。当普通人看到杯子放在桌沿，哦不人看到的是一场世界末日。', vector: 'MMH-HMM-HHH-LLM-MMH', image: `${SBTI_ASSETS_BASE}/oh-no.png` },
+  GOGO: { name: 'GOGO', title: '行者', tagline: 'gogogo，走起！', description: '活在极致的"所见即所得"世界里，人生信条简单粗暴：能做的事情立刻做，不能做的事情想办法做。', vector: 'MHH-MMM-MMH-HHH-HMM', image: `${SBTI_ASSETS_BASE}/gogo.png` },
+  SEXY: { name: 'SEXY', title: '尤物', tagline: '您就是天生的尤物！', description: '天生的魅力能量发射器，当你走进一个房间，照明系统会自动将你识别为天生的尤物。', vector: 'HMH-HHH-HMM-MMH-HHM', image: `${SBTI_ASSETS_BASE}/sexy.png` },
+  'LOVE-R': { name: 'LOVE-R', title: '多情者', tagline: '爱意太满，现实显得有点贫瘠。', description: '这个钢铁森林时代最后的吟游诗人。因为你的情感处理器不是二进制的，而是彩虹制的。', vector: 'MHH-HHM-HMH-MMM-HMH', image: `${SBTI_ASSETS_BASE}/love-r.png` },
+  MUM: { name: 'MUM', title: '妈妈', tagline: '或许...我可以叫你妈妈吗？', description: '擅长感知情绪，具有超强共情力，治愈系人格。', vector: 'HHH-HHM-HHM-MMM-HHH', image: `${SBTI_ASSETS_BASE}/mum.png` },
+  FAKE: { name: 'FAKE', title: '伪人', tagline: '已经，没有人类了。', description: '切换人格面具比切换手机输入法还快。', vector: 'MHM-MMM-MMM-MMM-HLM', image: `${SBTI_ASSETS_BASE}/fake.png` },
+  OJBK: { name: 'OJBK', title: '无所谓人', tagline: '我说随便，是真的随便。', description: '不是没主见，是批阅奏章般的淡然。已然超脱，把鸡毛蒜皮的选择题当成蝼蚁。', vector: 'MML-MMM-MMM-LMM-MLM', image: `${SBTI_ASSETS_BASE}/ojbk.png` },
+  MALO: { name: 'MALO', title: '吗喽', tagline: '人生是个副本，而我只是一只吗喽。', description: '灵魂还停留在挂在树上荡秋千的快乐时代，对世界的期待值已归零，但还是会在截止日期前爆发。', vector: 'LML-MLM-LLM-LMM-MLM', image: `${SBTI_ASSETS_BASE}/malo.png` },
+  'JOKE-R': { name: 'JOKE-R', title: '小丑', tagline: '原来我们都是小丑。', description: '社交场合的气氛组组长兼唯一指定火力输出。', vector: 'MHM-MMH-MMM-MMH-HMH', image: `${SBTI_ASSETS_BASE}/joke-r.jpg` },
+  'WOC!': { name: 'WOC!', title: '握草人', tagline: '握草，我怎么是这个人格？！', description: '拥有"表面系统"和"后台系统"两种完全独立的操作系统。', vector: 'MHM-MMM-HMM-MHM-HMM', image: `${SBTI_ASSETS_BASE}/woc.png` },
+  'THIN-K': { name: 'THIN-K', title: '思考者', tagline: '已深度思考100s。', description: '大脑长时间处于思考状态，信息审判专家。', vector: 'HHM-MMM-HHH-MHM-MMH', image: `${SBTI_ASSETS_BASE}/thin-k.png` },
+  SHIT: { name: 'SHIT', title: '愤世者', tagline: '这个世界，构石一坨。', description: '嘴上"构石一坨"，手上默默收拾烂摊子。', vector: 'MLM-MLM-LMM-HMH-LMM', image: `${SBTI_ASSETS_BASE}/shit.png` },
+  ZZZZ: { name: 'ZZZZ', title: '装死者', tagline: '我没死，我只是在睡觉。', description: '直到"死线"出现才爆发，不鸣则已一鸣惊人。', vector: 'LML-LMM-MLM-LLM-LMM', image: `${SBTI_ASSETS_BASE}/zzzz.png` },
+  POOR: { name: 'POOR', title: '贫困者', tagline: '我穷，但我很专。', description: '不是资源少，是把资源全部灌进了一个坑里。', vector: 'MLH-LMM-MLH-HLM-LMM', image: `${SBTI_ASSETS_BASE}/poor.png` },
+  MONK: { name: 'MONK', title: '僧人', tagline: '没有那种世俗的欲望。', description: '已然看破红尘，个人空间是绝对领域。', vector: 'MLM-LLM-MML-LMM-LHM', image: `${SBTI_ASSETS_BASE}/monk.png` },
+  IMSB: { name: 'IMSB', title: '傻者', tagline: '我是个傻逼吗？', description: '大脑里住着"我他妈冲了"和"我是个傻逼"两个究极战士。', vector: 'LMH-MHM-LMM-HLM-MML', image: `${SBTI_ASSETS_BASE}/imsb.png` },
+  SOLO: { name: 'SOLO', title: '孤儿', tagline: '我哭了，我怎么是孤儿？', description: '在灵魂外围建起了"莫挨老子"的万里长城。', vector: 'LLM-LLM-LMM-LMM-LHL', image: `${SBTI_ASSETS_BASE}/solo.png` },
+  FUCK: { name: 'FUCK', title: '草者', tagline: '这是什么人格？！', description: '无法被任何除草剂杀死的人形野草。', vector: 'HMH-MLM-LHM-HMH-HMM', image: `${SBTI_ASSETS_BASE}/fuck.png` },
+  DEAD: { name: 'DEAD', title: '死者', tagline: '我还活着吗？', description: 'Don\'t Expect Any Drives，超越欲望和目标的终极贤者。', vector: 'LLL-LLL-LLL-LLL-LLL', image: `${SBTI_ASSETS_BASE}/dead.png` },
+  IMFW: { name: 'IMFW', title: '废物', tagline: '我真的...是废物吗？', description: '不是真废，只是太没防备、太容易认真。', vector: 'LMM-HMM-HMM-LLM-MHH', image: `${SBTI_ASSETS_BASE}/imfw.png` },
+  HHHH: { name: 'HHHH', title: '傻乐者', tagline: '哈哈哈哈哈哈哈哈。', description: '系统兜底人格，思维回路过于清奇时强制匹配。你的个性已经超出了所有分类的边界。', vector: 'special-fallback', image: `${SBTI_ASSETS_BASE}/hhhh.png` },
+  DRUNK: { name: 'DRUNK', title: '酒鬼', tagline: '烈酒烧喉，不得不醉。', description: '隐藏人格，仅在触发特定饮酒题目时激活。你的系统已被酒精完全接管。', vector: 'special-hidden', image: `${SBTI_ASSETS_BASE}/drunk.png` },
 }
 
 // 预览用人格名称列表
@@ -558,7 +562,7 @@ function handleImageError(e: Event) {
 
 async function shareResult() {
   if (!result.value) return
-  const text = `我在 SBTI 人格测试中测出了【${result.value.personality.name} · ${result.value.personality.title}】！匹配度 ${result.value.matchPercent}%\n"${result.value.personality.tagline}"\n快来测测你是什么人格 👉 https://fatwill.cloud/toys/sbti`
+  const text = `我在 SBTI 人格测试中测出了【${result.value.personality.name} · ${result.value.personality.title}】！匹配度 ${result.value.matchPercent}%\n"${result.value.personality.tagline}"\n快来测测你是什么人格 👉 ${pageUrl('/toys/sbti')}`
 
   try {
     await navigator.clipboard.writeText(text)
@@ -579,7 +583,7 @@ useSeoMeta({
   ogTitle: 'SBTI 人格测试 · 超大型沙雕人格测试',
   ogDescription: '31道题 · 15个维度 · 27种人格 · 3分钟测出你的沙雕人格！',
   ogType: 'website',
-  ogUrl: 'https://fatwill.cloud/toys/sbti',
+  ogUrl: pageUrl('/toys/sbti'),
 })
 </script>
 

@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+<!--
+  ⚠️ 静态测试页面，与主站域名解耦。
+  本文件为 public/ 下的纯静态 HTML，不经过 Nuxt 渲染，无法使用 runtimeConfig，
+  因此下方 assets.fatwill.cloud 相关地址为有意保留的硬编码。
+  如需换域名，请对本文件单独执行 sed 替换：
+    sed -i '' 's#https://assets.fatwill.cloud#https://assets.example.com#g' index.html
+  参考：frontend/.env.example 中的 NUXT_PUBLIC_ASSETS_URL
+-->
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />

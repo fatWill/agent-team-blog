@@ -500,8 +500,9 @@ const previewUrl = ref<string | null>(null)
 function closePreview() { previewVisible.value = false; previewUrl.value = null }
 
 // ====== Canvas 绘制 ======
-const AVATAR_URL = 'https://assets.fatwill.cloud/uploads/1775045182650-e9d2upw9.jpeg'
-const QR_URL = 'https://fatwill.cloud/renovation/budget'
+const { assetUrl, pageUrl } = useSiteUrl()
+const AVATAR_URL = assetUrl('/uploads/1775045182650-e9d2upw9.jpeg')
+const QR_URL = pageUrl('/renovation/budget')
 const IMG_WIDTH = 900
 const DPR = 2
 const categoryColorsMap: Record<string, { main: string; light: string; text: string }> = { partial: { main: '#3b82f6', light: '#eff6ff', text: '#1e40af' }, hard: { main: '#f97316', light: '#fff7ed', text: '#9a3412' }, furniture: { main: '#10b981', light: '#ecfdf5', text: '#065f46' }, appliance: { main: '#8b5cf6', light: '#f5f3ff', text: '#5b21b6' }, smart: { main: '#f43f5e', light: '#fff1f2', text: '#9f1239' }, other: { main: '#f59e0b', light: '#fffbeb', text: '#92400e' }, extra: { main: '#06b6d4', light: '#ecfeff', text: '#155e75' } }

@@ -1,7 +1,7 @@
 import { defineEventHandler } from 'h3'
 
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
+  const config = useRuntimeConfig(event)
   const backendUrl = config.backendUrl || 'http://127.0.0.1:8080'
 
   // 获取所有文章列表
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     articles = []
   }
 
-  const baseUrl = 'https://fatwill.cloud'
+  const baseUrl = config.public.siteUrl
   const now = new Date().toISOString()
 
   const urls = [

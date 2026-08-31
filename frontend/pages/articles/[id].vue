@@ -272,8 +272,9 @@ const previewItems = ref<MediaItem[]>([])
 const previewIndex = ref(0)
 
 // ====== OG Meta 标签（SSR 阶段即可输出，兜底微信分享卡片） ======
-const defaultOgImage = 'https://fatwill.cloud/og-default.png'
-const articleUrl = computed(() => `https://fatwill.cloud/articles/${route.params.id}`)
+const { siteUrl, cdnUrl, articleUrl: buildArticleUrl, defaultOgImage: buildDefaultOgImage } = useSiteUrl()
+const defaultOgImage = buildDefaultOgImage()
+const articleUrl = computed(() => buildArticleUrl(route.params.id as string))
 
 useSeoMeta({
   title: () => articleData.value?.title ? `${articleData.value.title} - fatwill 的小屋` : 'fatwill 的小屋',
@@ -512,27 +513,27 @@ useSeoMeta({
   ogTitle: () => articleData.value?.title || 'fatwill 的小屋',
   ogDescription: () => articleData.value?.summary || articleData.value?.title || '',
   ogType: 'article',
-  ogUrl: () => `https://fatwill.cloud/articles/${route.params.id}`,
+  ogUrl: () => buildArticleUrl(route.params.id as string),
   ogSiteName: 'fatwill',
   ogImage: () => articleData.value?.coverImage
     ? articleData.value.coverImage.startsWith('http')
       ? articleData.value.coverImage
-      : `https://cdn.fatwill.cloud${articleData.value.coverImage}`
-    : 'https://fatwill.cloud/og-default.png',
+      : `${cdnUrl}${articleData.value.coverImage}`
+    : defaultOgImage,
   twitterCard: 'summary_large_image',
   twitterTitle: () => articleData.value?.title || 'fatwill 的小屋',
   twitterDescription: () => articleData.value?.summary || '',
   twitterImage: () => articleData.value?.coverImage
     ? articleData.value.coverImage.startsWith('http')
       ? articleData.value.coverImage
-      : `https://cdn.fatwill.cloud${articleData.value.coverImage}`
-    : 'https://fatwill.cloud/og-default.png',
+      : `${cdnUrl}${articleData.value.coverImage}`
+    : defaultOgImage,
 })
 
 // canonical + JSON-LD 结构化数据
 useHead({
   link: [
-    { rel: 'canonical', href: () => `https://fatwill.cloud/articles/${route.params.id}` },
+    { rel: 'canonical', href: () => buildArticleUrl(route.params.id as string) },
   ],
   script: [
     {
@@ -545,17 +546,17 @@ useHead({
         author: {
           '@type': 'Person',
           name: 'fatwill',
-          url: 'https://fatwill.cloud',
+          url: siteUrl,
         },
         publisher: {
           '@type': 'Person',
           name: 'fatwill',
-          url: 'https://fatwill.cloud',
+          url: siteUrl,
         },
         datePublished: articleData.value.createdAt,
         dateModified: articleData.value.updatedAt || articleData.value.createdAt,
-        url: `https://fatwill.cloud/articles/${route.params.id}`,
-        mainEntityOfPage: `https://fatwill.cloud/articles/${route.params.id}`,
+        url: buildArticleUrl(route.params.id as string),
+        mainEntityOfPage: buildArticleUrl(route.params.id as string),
       }) : '{}',
     },
   ],

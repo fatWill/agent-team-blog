@@ -5,6 +5,15 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Go 后端地址（同一台服务器内网直连）
     backendUrl: process.env.BACKEND_URL || 'http://127.0.0.1:8080',
+
+    public: {
+      // 站点主域名（用于 canonical / OG / sitemap / robots 等绝对 URL 拼接）
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://fatwill.cloud',
+      // 图片/静态素材 CDN（腾讯云 COS 自定义域名）
+      assetsUrl: process.env.NUXT_PUBLIC_ASSETS_URL || 'https://assets.fatwill.cloud',
+      // Nuxt 构建产物 CDN
+      cdnUrl: process.env.NUXT_PUBLIC_CDN_URL || 'https://cdn.fatwill.cloud',
+    },
   },
 
   nitro: {
@@ -42,7 +51,10 @@ export default defineNuxtConfig({
   ],
 
   app: {
-    cdnURL: 'https://cdn.fatwill.cloud',
+    // ⚠️ Nuxt 构建期常量：cdnURL 在 build 时被内联进产物路径，Nuxt 官方不支持运行时注入。
+    // 如需换域名，必须在「构建时」设置 NUXT_PUBLIC_CDN_URL 并重新 build，
+    // 仅改运行时环境变量对本项无效。同步参考 .env.example。
+    cdnURL: process.env.NUXT_PUBLIC_CDN_URL || 'https://cdn.fatwill.cloud',
     head: {
       title: 'fatwill 的小屋',
       htmlAttrs: {
@@ -58,18 +70,16 @@ export default defineNuxtConfig({
         { name: 'twitter:card', content: 'summary' },
         { name: 'robots', content: 'index, follow' },
       ],
+      // 注意：canonical / preconnect / dns-prefetch 已迁移到 app.vue，
+      // 通过 useHead + useRuntimeConfig 运行时动态注入（支持 NUXT_PUBLIC_SITE_URL /
+      // NUXT_PUBLIC_ASSETS_URL / NUXT_PUBLIC_CDN_URL 换域名）。此处只保留与域名无关的静态项。
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/site.webmanifest' },
-        { rel: 'canonical', href: 'https://fatwill.cloud' },
         { rel: 'sitemap', type: 'application/xml', href: '/sitemap.xml' },
-        { rel: 'preconnect', href: 'https://assets.fatwill.cloud', crossorigin: '' },
-        { rel: 'dns-prefetch', href: 'https://assets.fatwill.cloud' },
-        { rel: 'preconnect', href: 'https://cdn.fatwill.cloud', crossorigin: '' },
-        { rel: 'dns-prefetch', href: 'https://cdn.fatwill.cloud' },
       ],
     },
   },

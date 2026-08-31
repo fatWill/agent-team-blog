@@ -1229,11 +1229,12 @@ const router = useRouter()
 const route = useRoute()
 
 // ====== 首页 OG Meta 标签（静态，兜底微信分享卡片） ======
+const { pageUrl, defaultOgImage: buildDefaultOgImage } = useSiteUrl()
 useSeoMeta({
   ogTitle: 'fatwill 的小屋',
   ogDescription: 'fatwill 的小屋 — 分享技术与生活',
-  ogImage: 'https://fatwill.cloud/og-default.png',
-  ogUrl: 'https://fatwill.cloud/articles',
+  ogImage: buildDefaultOgImage(),
+  ogUrl: pageUrl('/articles'),
   ogType: 'website',
 })
 
@@ -1596,7 +1597,7 @@ const siteDescription = computed(() => `${profile.value.name} 的小屋 — 分�
 // SEO meta（放在 profileData 初始化之后，避免客户端 TDZ 错误）
 const seoTitle = computed(() => `${profileData.value?.name || 'fatwill'} 的小屋`)
 const seoDescription = computed(() => `${profileData.value?.name || 'fatwill'} 的小屋 — 分享技术文章与生活记录。`)
-const canonicalUrl = computed(() => `https://fatwill.cloud${tabToPath[activeTab.value] || '/articles'}`)
+const canonicalUrl = computed(() => pageUrl(tabToPath[activeTab.value] || '/articles'))
 
 useSeoMeta({
   title: seoTitle,
