@@ -107,7 +107,7 @@ func syncArticleToWechat(articleID string) error {
 		Author:           "fatwill",
 		Digest:           digest,
 		Content:          htmlContent,
-		ContentSourceURL: fmt.Sprintf("https://fatwill.cloud/articles/%s", articleID),
+		ContentSourceURL: articleURL(articleID),
 		ThumbMediaID:     thumbMediaID,
 		NeedOpenComment:  0,
 		OnlyFansComment:  0,

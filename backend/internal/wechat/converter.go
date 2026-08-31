@@ -49,9 +49,10 @@ func TiptapToWechatHTML(contentJSON []byte, articleID string) (*ConvertResult, e
 	}
 
 	// 末尾追加博客原文链接
+	link := articleURL(articleID)
 	sb.WriteString(fmt.Sprintf(
-		`<p style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:14px;color:#999;">📖 本文同步发布于博客：<a href="https://fatwill.cloud/articles/%s">https://fatwill.cloud/articles/%s</a></p>`,
-		articleID, articleID,
+		`<p style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:14px;color:#999;">📖 本文同步发布于博客：<a href="%s">%s</a></p>`,
+		html.EscapeString(link), html.EscapeString(link),
 	))
 	sb.WriteString(`<p style="font-size:14px;color:#999;">欢迎关注公众号，获取更多技术分享 🎉</p>`)
 

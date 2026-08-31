@@ -60,6 +60,12 @@ func main() {
 	upload.SetUploadConfig(&cfg.Upload)
 	upload.SetCOSConfig(&cfg.COS)
 
+	// 设置站点根 URL（微信同步等场景拼接绝对页面链接）
+	wechat.SetSiteURL(cfg.Server.SiteURL)
+
+	// 设置下载代理域名白名单
+	download.SetDownloadConfig(&cfg.Download)
+
 	// 初始化 IP 地理位置解析（非关键服务，失败不阻塞启动）
 	ip2regionPath := cfg.Server.IP2RegionPath
 	if ip2regionPath == "" {

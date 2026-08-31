@@ -7,14 +7,32 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatWill/agent-team-blog/backend/config"
 	"github.com/gin-gonic/gin"
 )
 
-// 允许代理下载的域名白名单
+// allowedHosts 允许代理下载的域名白名单，由 main 在启动时通过 SetDownloadConfig 注入
+// 默认值保持线上现状，避免未配置环境变量时行为变化
 var allowedHosts = map[string]bool{
 	"assets.fatwill.cloud": true,
 	"pic.fatwill.cloud":    true,
 	"fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com": true,
+}
+
+// SetDownloadConfig 设置下载代理配置（域名白名单），空白名单则保留默认值
+func SetDownloadConfig(cfg *config.DownloadConfig) {
+	if cfg == nil || len(cfg.AllowedHosts) == 0 {
+		return
+	}
+	hosts := make(map[string]bool, len(cfg.AllowedHosts))
+	for _, h := range cfg.AllowedHosts {
+		if h = strings.ToLower(strings.TrimSpace(h)); h != "" {
+			hosts[h] = true
+		}
+	}
+	if len(hosts) > 0 {
+		allowedHosts = hosts
+	}
 }
 
 // 代理请求超时时间

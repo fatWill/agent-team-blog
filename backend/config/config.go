@@ -1,20 +1,25 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 // Config 应用配置
 type Config struct {
-	Server ServerConfig
-	DB     DBConfig
-	Redis  RedisConfig
-	Upload UploadConfig
-	COS    COSConfig
+	Server   ServerConfig
+	DB       DBConfig
+	Redis    RedisConfig
+	Upload   UploadConfig
+	COS      COSConfig
+	Download DownloadConfig
 }
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
 	Port          string
 	CORSOrigin    string
+	SiteURL       string // 站点根 URL（用于拼接对外可访问的绝对页面链接）
 	IP2RegionPath string // ip2region.xdb 数据文件路径
 }
 
@@ -46,12 +51,18 @@ type UploadConfig struct {
 	TmpDir string // 分片临时目录
 }
 
+// DownloadConfig 下载代理配置
+type DownloadConfig struct {
+	AllowedHosts []string // 允许代理下载的域名白名单
+}
+
 // Load 从环境变量加载配置，提供默认值
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
 			Port:          getEnv("SERVER_PORT", "8080"),
 			CORSOrigin:    getEnv("CORS_ORIGIN", "https://fatwill.cloud"),
+			SiteURL:       getEnv("SITE_URL", "https://fatwill.cloud"),
 			IP2RegionPath: getEnv("IP2REGION_PATH", "data/ip2region.xdb"),
 		},
 		DB: DBConfig{
@@ -74,6 +85,10 @@ func Load() *Config {
 			BaseURL:      getEnv("COS_BASE_URL", "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
 			CustomDomain: getEnv("COS_CUSTOM_DOMAIN", "https://assets.fatwill.cloud"),
 		},
+		Download: DownloadConfig{
+			AllowedHosts: getEnvList("DOWNLOAD_ALLOWED_HOSTS",
+				"assets.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
+		},
 	}
 }
 
@@ -82,4 +97,17 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// getEnvList 读取逗号分隔的环境变量并切分为字符串切片，自动去除空白项
+func getEnvList(key, fallback string) []string {
+	raw := getEnv(key, fallback)
+	parts := strings.Split(raw, ",")
+	list := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if v := strings.TrimSpace(p); v != "" {
+			list = append(list, v)
+		}
+	}
+	return list
 }
