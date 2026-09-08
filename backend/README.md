@@ -22,8 +22,8 @@
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `SERVER_PORT` | `8080` | 服务监听端口 |
-| `CORS_ORIGIN` | `https://fatwill.cloud` | 允许的跨域来源 |
-| `SITE_URL` | `https://fatwill.cloud` | 站点根 URL，后端拼接绝对页面链接使用（如微信同步原文链接） |
+| `CORS_ORIGIN` | `https://fatwill.cn,https://www.fatwill.cn,https://fatwill.cloud,https://www.fatwill.cloud` | 允许的跨域来源，逗号分隔多值（域名迁移过渡期新旧并存） |
+| `SITE_URL` | `https://fatwill.cn` | 站点根 URL，后端拼接绝对页面链接使用（如微信同步原文链接） |
 | `DB_HOST` | `127.0.0.1` | MySQL 地址 |
 | `DB_PORT` | `3306` | MySQL 端口 |
 | `DB_USER` | `root` | MySQL 用户名 |
@@ -40,10 +40,13 @@
 | `COS_KEY` | *(必填)* | 腾讯云 COS SecretKey |
 | `COS_BUCKET` | `fatwill-cloud-1253664788` | COS 存储桶名称 |
 | `COS_REGION` | `ap-guangzhou` | COS 地域 |
-| `COS_BASE_URL` | `https://assets.fatwill.cloud` | COS CDN 访问域名 |
-| `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔 |
+| `COS_BASE_URL` | `https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | COS 原始域名（SDK 内部使用） |
+| `COS_CUSTOM_DOMAIN` | `https://assets.fatwill.cn` | COS CDN 访问域名（新上传资源返回此域名） |
+| `COS_LEGACY_DOMAINS` | `https://assets.fatwill.cloud,https://cdn.fatwill.cloud,https://cdn.fatwill.cn` | 历史 CDN 域名，仅用于删除存量资源时反解 COS key |
+| `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,assets.fatwill.cloud,cdn.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔 |
 
 > 所有域名相关配置均通过环境变量注入，换域名只需调整 systemd `Environment=`，无需改动代码。
+> 主域自 2026-09-08 起为 `fatwill.cn`，`fatwill.cloud` 为过渡期旧域名；`COS_BUCKET` 名中的 `fatwill-cloud` 是存储桶标识，与站点域名无关，不需修改。
 
 ### 启动
 

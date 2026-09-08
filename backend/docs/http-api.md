@@ -4,7 +4,7 @@
 
 | 项目 | 值 |
 |------|------|
-| Base URL | `https://fatwill.cloud/api`（域名由 `SITE_URL` / `CORS_ORIGIN` 环境变量决定，此处为默认值） |
+| Base URL | `https://fatwill.cn/api`（域名由 `SITE_URL` / `CORS_ORIGIN` 环境变量决定，此处为默认值） |
 | 协议 | HTTPS（Nginx SSL 终端） |
 | 内容类型 | `application/json`（除文件上传外） |
 | 字符编码 | UTF-8 |
@@ -146,7 +146,7 @@
 
 ```go
 cors.Config{
-    AllowOrigins:     []string{cfg.Server.CORSOrigin}, // 来自 CORS_ORIGIN，默认 https://fatwill.cloud
+    AllowOrigins:     cfg.Server.CORSOrigins, // 来自 CORS_ORIGIN（逗号分隔多值），默认含 https://fatwill.cn 与过渡期 https://fatwill.cloud
     AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
     AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Cookie"},
     ExposeHeaders:    []string{"Set-Cookie"},
@@ -154,7 +154,7 @@ cors.Config{
 }
 ```
 
-> CORS 白名单来源于 `CORS_ORIGIN` 环境变量，不做硬编码。另有 `SITE_URL`（默认同为 `https://fatwill.cloud`）用于后端拼接对外绝对页面链接（如微信同步原文链接），两者独立配置：`CORS_ORIGIN` 控制浏览器跨域来源，`SITE_URL` 控制生成的链接域名。换域名时需同时更新。
+> CORS 白名单来源于 `CORS_ORIGIN` 环境变量（**逗号分隔支持多值**，域名迁移过渡期同时放行 `fatwill.cn` 与 `fatwill.cloud`），不做硬编码。另有 `SITE_URL`（默认 `https://fatwill.cn`）用于后端拼接对外绝对页面链接（如微信同步原文链接），两者独立配置：`CORS_ORIGIN` 控制浏览器跨域来源，`SITE_URL` 控制生成的链接域名。换域名时需同时更新。
 
 ## 文件上传
 
@@ -164,7 +164,7 @@ cors.Config{
 - 字段名: `file`
 - 支持格式: jpg, jpeg, png, gif, webp
 - 双重校验: MIME 类型 + 文件扩展名
-- 返回: `{"url": "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/xxx.jpg"}`
+- 返回: `{"url": "https://assets.fatwill.cn/upload/xxx.jpg"}`
 - 存储后端: 腾讯云 COS 对象存储
 - 上传策略: ≤2MB PutObject 直传，>2MB COS 原生分片上传
 

@@ -255,8 +255,8 @@ backend/
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
 | `SERVER_PORT` | `8080` | 服务监听端口 |
-| `CORS_ORIGIN` | `https://fatwill.cloud` | 允许跨域来源 |
-| `SITE_URL` | `https://fatwill.cloud` | 站点根 URL，后端拼接对外绝对页面链接使用（微信同步原文链接等） |
+| `CORS_ORIGIN` | `https://fatwill.cn,https://www.fatwill.cn,https://fatwill.cloud,https://www.fatwill.cloud` | 允许跨域来源，**逗号分隔多值**（域名迁移期新旧并存，旧域名下线后可精简为 `.cn`） |
+| `SITE_URL` | `https://fatwill.cn` | 站点根 URL，后端拼接对外绝对页面链接使用（微信同步原文链接等） |
 | `DB_PATH` | `/root/blog-data/blog.db` | SQLite 数据库文件路径 |
 | `REDIS_HOST` | `127.0.0.1` | Redis 主机 |
 | `REDIS_PORT` | `6379` | Redis 端口 |
@@ -268,12 +268,15 @@ backend/
 | `COS_BUCKET` | `fatwill-cloud-1253664788` | COS Bucket 名称 |
 | `COS_REGION` | `ap-guangzhou` | COS 地域 |
 | `COS_BASE_URL` | `https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | COS 原始域名（SDK 内部使用） |
-| `COS_CUSTOM_DOMAIN` | `https://assets.fatwill.cloud` | 自定义域名（返回给前端的图片 URL） |
+| `COS_CUSTOM_DOMAIN` | `https://assets.fatwill.cn` | 自定义域名（返回给前端的图片 URL，新写入资源使用此域名） |
+| `COS_LEGACY_DOMAINS` | `https://assets.fatwill.cloud,https://cdn.fatwill.cloud,https://cdn.fatwill.cn` | 历史自定义域名，逗号分隔；仅用于 `DeleteFromCOS` 反解存量 URL 的 key，不用于生成新 URL |
 | `WECHAT_APP_ID` | *(必填)* | 微信公众号 AppID |
 | `WECHAT_APP_SECRET` | *(必填)* | 微信公众号 AppSecret |
-| `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔 |
+| `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,assets.fatwill.cloud,cdn.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔；旧域名保留以兼容存量文章图片 |
 
-> 域名相关配置全部走环境变量注入，换域名只需修改 systemd `Environment=`，无需改代码。涉及域名的变量：`CORS_ORIGIN`、`SITE_URL`、`COS_BUCKET`、`COS_BASE_URL`、`COS_CUSTOM_DOMAIN`、`DOWNLOAD_ALLOWED_HOSTS`。
+> 域名相关配置全部走环境变量注入，换域名只需修改 systemd `Environment=`，无需改代码。涉及域名的变量：`CORS_ORIGIN`、`SITE_URL`、`COS_BUCKET`、`COS_BASE_URL`、`COS_CUSTOM_DOMAIN`、`COS_LEGACY_DOMAINS`、`DOWNLOAD_ALLOWED_HOSTS`。
+>
+> **主域为 `fatwill.cn`（2026-09-08 起）**，`fatwill.cloud` 为过渡期旧域名。`CORS_ORIGIN` 与 `SITE_URL` 语义不同必须同步改：前者管浏览器跨域（支持多值），后者决定微信同步原文链接等生成的域名；只改一个会出现「页面能访问但微信链接指向旧域名」的半坏状态。`COS_BUCKET` 名 `fatwill-cloud-*` 是腾讯云存储桶标识，与站点域名无关，**不要改**。
 
 ## 部署信息
 
@@ -313,6 +316,8 @@ refactor(backend agent): 简要描述
 - `logs`：JSON 数组，每条 ≤20 字，最多 5 条
 
 ## 变更日志
+
+- 2026-09-08: **主域切换 fatwill.cloud → fatwill.cn** — `SITE_URL` 默认 `https://fatwill.cn`；`CORS_ORIGIN` 改为**逗号分隔多值**（`ServerConfig.CORSOrigins []string`），过渡期同时放行 `.cn` 与 `.cloud`；`COS_CUSTOM_DOMAIN` 默认 `https://assets.fatwill.cn`（新上传资源 URL 使用新域名）；新增 `COS_LEGACY_DOMAINS`，`DeleteFromCOS` 可反解旧域名存量 URL；`DOWNLOAD_ALLOWED_HOSTS` 新增 `assets/cdn/pic.fatwill.cn` 并保留旧域名。**数据库存量图片 URL 不迁移**（COS 侧 CDN 域名切换后旧域名继续解析）
 
 - 2026-06-29: **新增微信公众号草稿同步功能** — 文章发布/更新后异步同步到公众号草稿箱；Tiptap JSON→公众号HTML转换器；图片自动上传到微信；管理API（手动同步、同步日志、token状态、服务器IP）；articles表新增5个微信同步字段；新建wechat_sync_logs表
 
