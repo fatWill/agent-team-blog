@@ -1,9 +1,9 @@
 /**
  * 数据库旧图片 URL 迁移脚本
  *
- * 将数据库中 /uploads/xxx 格式的 URL 更新为 https://assets.fatwill.cloud/uploads/xxx
+ * 将数据库中 /uploads/xxx 格式的 URL 更新为 https://assets.fatwill.cn/uploads/xxx
  * 注意：旧图片文件仍在 /root/blog-uploads/，需要单独上传到 COS
- * 这里只更新 URL 前缀，让旧图片通过 assets.fatwill.cloud 访问
+ * 这里只更新 URL 前缀，让旧图片通过 assets.fatwill.cn 访问
  *
  * 使用方式（在服务器上运行）：
  *   npx tsx scripts/migrate-image-urls.ts
@@ -20,7 +20,7 @@ async function migrate() {
   })
 
   const oldPrefix = '/uploads/'
-  const newPrefix = 'https://assets.fatwill.cloud/uploads/'
+  const newPrefix = 'https://assets.fatwill.cn/uploads/'
 
   console.log('开始迁移数据库中的图片 URL ...')
   console.log(`旧前缀: ${oldPrefix}`)

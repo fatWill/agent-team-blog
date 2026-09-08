@@ -2,9 +2,9 @@
 <!--
   ⚠️ 静态测试页面，与主站域名解耦。
   本文件为 public/ 下的纯静态 HTML，不经过 Nuxt 渲染，无法使用 runtimeConfig，
-  因此下方 assets.fatwill.cloud 相关地址为有意保留的硬编码。
+  因此下方 assets.fatwill.cn 相关地址为有意保留的硬编码。
   如需换域名，请对本文件单独执行 sed 替换：
-    sed -i '' 's#https://assets.fatwill.cloud#https://assets.example.com#g' index.html
+    sed -i '' 's#https://assets.fatwill.cn#https://assets.example.com#g' index.html
   参考：frontend/.env.example 中的 NUXT_PUBLIC_ASSETS_URL
 -->
 <html lang="zh-CN">
@@ -14,7 +14,7 @@
     <title>素材测试</title>
     <script>
       // === CDN 资源基础路径 ===
-      window.__ASSETS_BASE__ = 'https://assets.fatwill.cloud/test/wj-jspsych-test';
+      window.__ASSETS_BASE__ = 'https://assets.fatwill.cn/test/wj-jspsych-test';
 
       // === onCredamoEndTrialFinish 空实现兜底（原 block1/2/3.js 会调用） ===
       window.onCredamoEndTrialFinish = window.onCredamoEndTrialFinish || function (csv) {
@@ -68,16 +68,16 @@
         }
       })();
     </script>
-    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/jspsych@7.1.2.js"></script>
-    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/plugin-html-keyboard-response@1.1.0.js"></script>
-    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/plugin-preload@1.1.0.js"></script>
-    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/Orientation.js"></script>
-    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/resource.js"></script>
-    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/formatDate.js"></script>
-    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/block1.js"></script>
-    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/block2.js"></script>
-    <script src="https://assets.fatwill.cloud/test/wj-jspsych-test/js/block3.js"></script>
-    <link href="https://assets.fatwill.cloud/test/wj-jspsych-test/js/jspsych.css" rel="stylesheet" type="text/css" />
+    <script src="https://assets.fatwill.cn/test/wj-jspsych-test/js/jspsych@7.1.2.js"></script>
+    <script src="https://assets.fatwill.cn/test/wj-jspsych-test/js/plugin-html-keyboard-response@1.1.0.js"></script>
+    <script src="https://assets.fatwill.cn/test/wj-jspsych-test/js/plugin-preload@1.1.0.js"></script>
+    <script src="https://assets.fatwill.cn/test/wj-jspsych-test/js/Orientation.js"></script>
+    <script src="https://assets.fatwill.cn/test/wj-jspsych-test/js/resource.js"></script>
+    <script src="https://assets.fatwill.cn/test/wj-jspsych-test/js/formatDate.js"></script>
+    <script src="https://assets.fatwill.cn/test/wj-jspsych-test/js/block1.js"></script>
+    <script src="https://assets.fatwill.cn/test/wj-jspsych-test/js/block2.js"></script>
+    <script src="https://assets.fatwill.cn/test/wj-jspsych-test/js/block3.js"></script>
+    <link href="https://assets.fatwill.cn/test/wj-jspsych-test/js/jspsych.css" rel="stylesheet" type="text/css" />
     <style>
       body {
         background-color: #f5f7fa;

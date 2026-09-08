@@ -354,19 +354,19 @@ frontend/
 
 | 变量 | 作用 | 默认值 | 生效方式 |
 |------|------|--------|---------|
-| `NUXT_PUBLIC_SITE_URL` | 站点主域名：canonical / OG / sitemap.xml / robots.txt / 分享文案 | `https://fatwill.cloud` | 运行时 |
-| `NUXT_PUBLIC_ASSETS_URL` | 图片素材 CDN（COS 自定义域名）：文章封面、相册、SBTI 人格图、装修头像 | `https://assets.fatwill.cloud` | 运行时 |
-| `NUXT_PUBLIC_CDN_URL` | Nuxt 构建产物 CDN（`app.cdnURL`） | `https://cdn.fatwill.cloud` | ⚠️ **构建期** |
+| `NUXT_PUBLIC_SITE_URL` | 站点主域名：canonical / OG / sitemap.xml / robots.txt / 分享文案 | `https://fatwill.cn` | 运行时 |
+| `NUXT_PUBLIC_ASSETS_URL` | 图片素材 CDN（COS 自定义域名）：文章封面、相册、SBTI 人格图、装修头像 | `https://assets.fatwill.cn` | 运行时 |
+| `NUXT_PUBLIC_CDN_URL` | Nuxt 构建产物 CDN（`app.cdnURL`） | `https://cdn.fatwill.cn` | ⚠️ **构建期** |
 
 **统一读取入口**：`composables/useSiteUrl.ts`
 
 ```ts
 const { siteUrl, assetsUrl, cdnUrl, articleUrl, pageUrl, defaultOgImage, assetUrl } = useSiteUrl()
 
-articleUrl('abc')            // https://fatwill.cloud/articles/abc
-pageUrl('/toys/sbti')        // https://fatwill.cloud/toys/sbti
-defaultOgImage()             // https://fatwill.cloud/og-default.png
-assetUrl('/toys/sbti/x.png') // https://assets.fatwill.cloud/toys/sbti/x.png
+articleUrl('abc')            // https://fatwill.cn/articles/abc
+pageUrl('/toys/sbti')        // https://fatwill.cn/toys/sbti
+defaultOgImage()             // https://fatwill.cn/og-default.png
+assetUrl('/toys/sbti/x.png') // https://assets.fatwill.cn/toys/sbti/x.png
 ```
 
 **如何换域名**：
@@ -422,9 +422,11 @@ assetUrl('/toys/sbti/x.png') // https://assets.fatwill.cloud/toys/sbti/x.png
 - 静态页面：`/`（priority 1.0）、`/home`（priority 0.9）
 - 文章页面：`/articles/:id`（priority 0.8，含 lastmod）
 - 缓存：`Cache-Control: public, max-age=3600`（1小时）
-- 访问地址：`{NUXT_PUBLIC_SITE_URL}/sitemap.xml`（默认 `https://fatwill.cloud/sitemap.xml`）
+- 访问地址：`{NUXT_PUBLIC_SITE_URL}/sitemap.xml`（默认 `https://fatwill.cn/sitemap.xml`）
 
 ## 变更日志（最近重要变更）
+
+- 2026-09-08: 主域切换 `fatwill.cloud` → `fatwill.cn`（`nuxt.config.ts` runtimeConfig 三项默认值 + `app.cdnURL` 兜底、`shared/utils/imageUrl.ts` 的 `DEFAULT_ASSETS_HOST`、`.env.example`、静态测试页 `public/test/wj-jspsych-test/index.html`、`scripts/migrate-image-urls.ts` 与文档全量替换为 `fatwill.cn` / `assets.fatwill.cn` / `cdn.fatwill.cn`；SSR 结构与 SEO 逻辑不变，canonical / OG / sitemap / robots 仍走 `siteUrl` 运行时读取；⚠️ 部署环境 `.env` 需同步三项变量，且因 `app.cdnURL` 为构建期常量必须重新 build）
 
 - 2026-08-31: 域名配置化改造（新增 `NUXT_PUBLIC_SITE_URL` / `NUXT_PUBLIC_ASSETS_URL` / `NUXT_PUBLIC_CDN_URL` 三个 runtimeConfig 公共字段 + `composables/useSiteUrl.ts` 统一入口；`imageUrl.ts` 改为 factory + plugin 运行时注入 assets host；`public/robots.txt` 静态文件改为 `server/routes/robots.txt.ts` 动态生成；canonical/preconnect/dns-prefetch 从 nuxt.config.ts 迁至 app.vue 动态注入；默认值保持不变，线上行为一致）
 

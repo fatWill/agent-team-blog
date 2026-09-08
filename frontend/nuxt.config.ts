@@ -8,11 +8,11 @@ export default defineNuxtConfig({
 
     public: {
       // 站点主域名（用于 canonical / OG / sitemap / robots 等绝对 URL 拼接）
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://fatwill.cloud',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://fatwill.cn',
       // 图片/静态素材 CDN（腾讯云 COS 自定义域名）
-      assetsUrl: process.env.NUXT_PUBLIC_ASSETS_URL || 'https://assets.fatwill.cloud',
+      assetsUrl: process.env.NUXT_PUBLIC_ASSETS_URL || 'https://assets.fatwill.cn',
       // Nuxt 构建产物 CDN
-      cdnUrl: process.env.NUXT_PUBLIC_CDN_URL || 'https://cdn.fatwill.cloud',
+      cdnUrl: process.env.NUXT_PUBLIC_CDN_URL || 'https://cdn.fatwill.cn',
     },
   },
 
@@ -54,7 +54,7 @@ export default defineNuxtConfig({
     // ⚠️ Nuxt 构建期常量：cdnURL 在 build 时被内联进产物路径，Nuxt 官方不支持运行时注入。
     // 如需换域名，必须在「构建时」设置 NUXT_PUBLIC_CDN_URL 并重新 build，
     // 仅改运行时环境变量对本项无效。同步参考 .env.example。
-    cdnURL: process.env.NUXT_PUBLIC_CDN_URL || 'https://cdn.fatwill.cloud',
+    cdnURL: process.env.NUXT_PUBLIC_CDN_URL || 'https://cdn.fatwill.cn',
     head: {
       title: 'fatwill 的小屋',
       htmlAttrs: {

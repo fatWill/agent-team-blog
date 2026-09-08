@@ -82,18 +82,18 @@
 
 assets host 优先取 `runtimeConfig.public.assetsUrl`（环境变量 `NUXT_PUBLIC_ASSETS_URL`），
 由 `plugins/0.image-url-host.ts` 在应用启动最早期注入；未注入时回退内置默认值
-`https://assets.fatwill.cloud`。详见 `AGENTS.md` →「域名/站点 URL 配置」。
+`https://assets.fatwill.cn`。详见 `AGENTS.md` →「域名/站点 URL 配置」。
 
 ### 转换规则
 
-假设 `assetsUrl = https://assets.fatwill.cloud`（默认值）：
+假设 `assetsUrl = https://assets.fatwill.cn`（默认值）：
 
 | 输入 | 输出 |
 |------|------|
 | `null` / `undefined` / `''` | `''` |
 | `http://...` / `https://...` | 原样返回 |
-| `/uploads/xxx.jpg` | `https://assets.fatwill.cloud/uploads/xxx.jpg` |
-| `upload/xxx.jpg` | `https://assets.fatwill.cloud/upload/xxx.jpg` |
+| `/uploads/xxx.jpg` | `https://assets.fatwill.cn/uploads/xxx.jpg` |
+| `upload/xxx.jpg` | `https://assets.fatwill.cn/upload/xxx.jpg` |
 | 其他 | 原样返回 |
 
 ---

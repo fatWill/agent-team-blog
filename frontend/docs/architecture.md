@@ -103,7 +103,7 @@
                                                       │
 文件 > 1.5MB ──▶ 分片上传                              ▼
                  ├─ POST /api/upload/chunk (逐片)    CDN: ${NUXT_PUBLIC_ASSETS_URL}/uploads/xxx
-                 ├─ POST /api/upload/merge (合并)      (默认 assets.fatwill.cloud)
+                 ├─ POST /api/upload/merge (合并)      (默认 assets.fatwill.cn)
                  └─ DELETE /api/upload/chunk (失败清理)
 ```
 

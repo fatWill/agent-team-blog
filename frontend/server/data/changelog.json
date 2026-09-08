@@ -1,6 +1,17 @@
 {
   "changelog": [
     {
+      "version": "2.15.0",
+      "date": "2026-09-08",
+      "logs": [
+        "🌐 站点主域切换到 fatwill.cn",
+        "🔁 旧域名 fatwill.cloud 自动 301 跳转到新域",
+        "🖼️ 图片与静态资源域名同步切换为 assets.fatwill.cn / cdn.fatwill.cn"
+      ],
+      "createdAt": "2026-09-08T00:00:00.000Z",
+      "updatedAt": "2026-09-08T00:00:00.000Z"
+    },
+    {
       "version": "2.14.0",
       "date": "2026-08-03",
       "logs": [

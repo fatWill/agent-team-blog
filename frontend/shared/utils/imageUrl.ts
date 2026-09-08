@@ -9,7 +9,7 @@
  */
 
 /** 兜底 assets host，与 nuxt.config.ts runtimeConfig.public.assetsUrl 默认值保持一致 */
-const DEFAULT_ASSETS_HOST = 'https://assets.fatwill.cloud'
+const DEFAULT_ASSETS_HOST = 'https://assets.fatwill.cn'
 
 /** 不应追加数据万象参数的文件扩展名 */
 const SKIP_EXTENSIONS = ['.svg', '.gif']
