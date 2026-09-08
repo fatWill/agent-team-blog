@@ -5,7 +5,7 @@ import (
 )
 
 // siteURL 站点根 URL，由 main 在启动时通过 SetSiteURL 注入（默认值保持线上现状）
-var siteURL = "https://fatwill.cloud"
+var siteURL = "https://fatwill.cn"
 
 // SetSiteURL 设置站点根 URL（用于拼接文章原文链接），空值则保留默认值
 func SetSiteURL(u string) {

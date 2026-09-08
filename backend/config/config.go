@@ -18,9 +18,9 @@ type Config struct {
 // ServerConfig 服务器配置
 type ServerConfig struct {
 	Port          string
-	CORSOrigin    string
-	SiteURL       string // 站点根 URL（用于拼接对外可访问的绝对页面链接）
-	IP2RegionPath string // ip2region.xdb 数据文件路径
+	CORSOrigins   []string // 允许的跨域来源列表（逗号分隔注入，域名迁移期可新旧并存）
+	SiteURL       string   // 站点根 URL（用于拼接对外可访问的绝对页面链接）
+	IP2RegionPath string   // ip2region.xdb 数据文件路径
 }
 
 // DBConfig SQLite 配置
@@ -37,12 +37,13 @@ type RedisConfig struct {
 
 // COSConfig 腾讯云 COS 配置
 type COSConfig struct {
-	SecretID     string
-	SecretKey    string
-	Bucket       string
-	Region       string
-	BaseURL      string // COS 原始域名（SDK 内部使用）
-	CustomDomain string // 自定义域名（返回给前端的图片 URL）
+	SecretID      string
+	SecretKey     string
+	Bucket        string
+	Region        string
+	BaseURL       string   // COS 原始域名（SDK 内部使用）
+	CustomDomain  string   // 自定义域名（返回给前端的图片 URL）
+	LegacyDomains []string // 历史自定义域名（仅用于解析存量 URL，不用于生成新 URL）
 }
 
 // UploadConfig 上传配置
@@ -60,9 +61,11 @@ type DownloadConfig struct {
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port:          getEnv("SERVER_PORT", "8080"),
-			CORSOrigin:    getEnv("CORS_ORIGIN", "https://fatwill.cloud"),
-			SiteURL:       getEnv("SITE_URL", "https://fatwill.cloud"),
+			Port: getEnv("SERVER_PORT", "8080"),
+			// 域名迁移期（fatwill.cloud → fatwill.cn）默认同时放行新旧域名，待旧域名下线后可精简
+			CORSOrigins: getEnvList("CORS_ORIGIN",
+				"https://fatwill.cn,https://www.fatwill.cn,https://fatwill.cloud,https://www.fatwill.cloud"),
+			SiteURL:       getEnv("SITE_URL", "https://fatwill.cn"),
 			IP2RegionPath: getEnv("IP2REGION_PATH", "data/ip2region.xdb"),
 		},
 		DB: DBConfig{
@@ -83,11 +86,15 @@ func Load() *Config {
 			Bucket:       getEnv("COS_BUCKET", "fatwill-cloud-1253664788"),
 			Region:       getEnv("COS_REGION", "ap-guangzhou"),
 			BaseURL:      getEnv("COS_BASE_URL", "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
-			CustomDomain: getEnv("COS_CUSTOM_DOMAIN", "https://assets.fatwill.cloud"),
+			CustomDomain: getEnv("COS_CUSTOM_DOMAIN", "https://assets.fatwill.cn"),
+			// 存量文章/相册中的图片 URL 仍是旧域名，删除时需能反解出 COS key
+			LegacyDomains: getEnvList("COS_LEGACY_DOMAINS",
+				"https://assets.fatwill.cloud,https://cdn.fatwill.cloud,https://cdn.fatwill.cn"),
 		},
 		Download: DownloadConfig{
+			// 旧域名保留在白名单中，保证存量文章内的图片仍可通过 /api/download 代理下载
 			AllowedHosts: getEnvList("DOWNLOAD_ALLOWED_HOSTS",
-				"assets.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
+				"assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,assets.fatwill.cloud,cdn.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
 		},
 	}
 }

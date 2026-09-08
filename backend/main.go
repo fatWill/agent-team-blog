@@ -84,7 +84,7 @@ func main() {
 
 	// CORS 配置
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{cfg.Server.CORSOrigin},
+		AllowOrigins:     cfg.Server.CORSOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Cookie"},
 		ExposeHeaders:    []string{"Set-Cookie"},

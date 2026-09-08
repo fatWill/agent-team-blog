@@ -201,8 +201,9 @@ func smartUploadToCOS(data []byte, key string) (string, error) {
 }
 
 // DeleteFromCOS 根据完整 URL 删除 COS 对象（导出供其他模块调用）
-// 支持两种 URL 格式：
-//   - 自定义域名：https://assets.fatwill.cloud/upload/xxx.jpg
+// 支持三种 URL 格式：
+//   - 当前自定义域名：https://assets.fatwill.cn/upload/xxx.jpg
+//   - 历史自定义域名：https://assets.fatwill.cloud/upload/xxx.jpg（COS_LEGACY_DOMAINS）
 //   - COS 原始域名：https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/xxx.jpg
 func DeleteFromCOS(fileURL string) error {
 	if cosClient == nil {
@@ -211,20 +212,24 @@ func DeleteFromCOS(fileURL string) error {
 	if fileURL == "" {
 		return nil
 	}
-	// 尝试从自定义域名或 COS 原始域名中提取 key
+	// 尝试从自定义域名（含历史域名）或 COS 原始域名中提取 key
 	var key string
-	customBase := strings.TrimRight(cosCfg.CustomDomain, "/") + "/"
-	cosBase := strings.TrimRight(cosCfg.BaseURL, "/") + "/"
-	switch {
-	case strings.HasPrefix(fileURL, customBase):
-		key = strings.TrimPrefix(fileURL, customBase)
-	case strings.HasPrefix(fileURL, cosBase):
-		key = strings.TrimPrefix(fileURL, cosBase)
-	default:
-		// 非 COS 管理的 URL，跳过删除
-		return nil
+	bases := make([]string, 0, len(cosCfg.LegacyDomains)+2)
+	bases = append(bases, strings.TrimRight(cosCfg.CustomDomain, "/")+"/")
+	bases = append(bases, strings.TrimRight(cosCfg.BaseURL, "/")+"/")
+	for _, d := range cosCfg.LegacyDomains {
+		if d = strings.TrimRight(strings.TrimSpace(d), "/"); d != "" {
+			bases = append(bases, d+"/")
+		}
+	}
+	for _, base := range bases {
+		if base != "/" && strings.HasPrefix(fileURL, base) {
+			key = strings.TrimPrefix(fileURL, base)
+			break
+		}
 	}
 	if key == "" {
+		// 非 COS 管理的 URL，跳过删除
 		return nil
 	}
 	_, err := cosClient.Object.Delete(context.Background(), key)

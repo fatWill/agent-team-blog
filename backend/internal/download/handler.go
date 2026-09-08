@@ -12,9 +12,13 @@ import (
 )
 
 // allowedHosts 允许代理下载的域名白名单，由 main 在启动时通过 SetDownloadConfig 注入
-// 默认值保持线上现状，避免未配置环境变量时行为变化
+// 默认值覆盖新域名（fatwill.cn）并保留旧域名（fatwill.cloud），避免存量文章图片下载失败
 var allowedHosts = map[string]bool{
+	"assets.fatwill.cn":    true,
+	"cdn.fatwill.cn":       true,
+	"pic.fatwill.cn":       true,
 	"assets.fatwill.cloud": true,
+	"cdn.fatwill.cloud":    true,
 	"pic.fatwill.cloud":    true,
 	"fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com": true,
 }

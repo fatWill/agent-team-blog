@@ -14,7 +14,7 @@ func TestArticleURLUsesConfiguredSiteURL(t *testing.T) {
 		siteURL string
 		want    string
 	}{
-		{"默认域名", "https://fatwill.cloud", "https://fatwill.cloud/articles/abc123"},
+		{"默认域名", "https://fatwill.cn", "https://fatwill.cn/articles/abc123"},
 		{"自定义域名", "https://test.example.com", "https://test.example.com/articles/abc123"},
 		{"结尾斜杠自动去除", "https://test.example.com/", "https://test.example.com/articles/abc123"},
 	}
@@ -43,7 +43,7 @@ func TestConverterEmbedsConfiguredSiteURL(t *testing.T) {
 	if !strings.Contains(result.HTML, `href="https://test.example.com/articles/abc123"`) {
 		t.Fatalf("HTML 未使用配置的 SiteURL:\n%s", result.HTML)
 	}
-	if strings.Contains(result.HTML, "fatwill.cloud") {
+	if strings.Contains(result.HTML, "fatwill.cn") {
 		t.Fatalf("HTML 仍包含硬编码域名:\n%s", result.HTML)
 	}
 }
