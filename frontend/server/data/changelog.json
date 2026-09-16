@@ -2,7 +2,7 @@
   "changelog": [
     {
       "version": "2.15.0",
-      "date": "2026-09-08",
+      "date": "2026-09-16",
       "logs": [
         "🌐 站点主域切换到 fatwill.cn",
         "🔁 旧域名 fatwill.cloud 自动 301 跳转到新域",
