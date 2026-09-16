@@ -319,5 +319,10 @@ func autoMigrate() error {
 			renovationSeedTitle, renovationSeedContent)
 	}
 
+	// 幂等补齐更新日志条目（依赖 version 唯一索引，不覆盖已有行）
+	if err := seedChangelogs(); err != nil {
+		return err
+	}
+
 	return nil
 }
