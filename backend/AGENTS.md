@@ -68,6 +68,7 @@ backend/
 ├── pkg/                   # 🔗 基础设施层（可跨领域引用）
 │   ├── db/
 │   │   └── db.go          # SQLite 连接初始化 + 自动建表（MaxOpen=1, WAL 模式）
+│   │   └── changelog_seed.go  # 更新日志幂等播种（INSERT OR IGNORE by version）
 │   ├── rds/
 │   │   └── rds.go         # Redis 客户端初始化
 │   └── middleware/
@@ -316,6 +317,8 @@ refactor(backend agent): 简要描述
 - `logs`：JSON 数组，每条 ≤20 字，最多 5 条
 
 ## 变更日志
+
+- 2026-09-16: **changelog 启动幂等播种机制** — 新增 `pkg/db/changelog_seed.go`，`autoMigrate()` 末尾调用 `seedChangelogs()`，依赖 `uk_changelogs_version` 唯一索引 + `INSERT OR IGNORE` 幂等补齐更新日志条目；本次补录 `2.15.0`（域名迁移，date=2026-09-16）。后续发版只需在 `changelogSeeds` 追加条目，无需人工连生产库执行 SQL。兜底脚本 `scripts/seed_changelog_2.15.0.sql`；生产环境变量清单 `deploy/env.production.template`
 
 - 2026-09-08: **主域切换 fatwill.cloud → fatwill.cn** — `SITE_URL` 默认 `https://fatwill.cn`；`CORS_ORIGIN` 改为**逗号分隔多值**（`ServerConfig.CORSOrigins []string`），过渡期同时放行 `.cn` 与 `.cloud`；`COS_CUSTOM_DOMAIN` 默认 `https://assets.fatwill.cn`（新上传资源 URL 使用新域名）；新增 `COS_LEGACY_DOMAINS`，`DeleteFromCOS` 可反解旧域名存量 URL；`DOWNLOAD_ALLOWED_HOSTS` 新增 `assets/cdn/pic.fatwill.cn` 并保留旧域名。**数据库存量图片 URL 不迁移**（COS 侧 CDN 域名切换后旧域名继续解析）
 
