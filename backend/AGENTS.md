@@ -318,9 +318,11 @@ refactor(backend agent): 简要描述
 
 ## 变更日志
 
+- 2026-09-16: **存量图片 URL 域名迁移（DB 全量替换）** — 旧资源域名 `assets.fatwill.cloud` 走 EdgeOne CNAME，主域切换后已无 DNS 解析，导致存量文章/相册裂图，故推翻 2026-09-08「存量图片 URL 不迁移」的决策，改为 DB 全量替换为 `assets.fatwill.cn`。全库扫描（17 张业务表逐列）确认命中 6 表 6 字段共 31 行：`albums.cover_url`(1)、`articles.cover_image`(15)、`articles.content`(9)、`photos.url`(3)、`growth_diary_items.images`(1)、`material_items.attachments`(2)；`cdn/pic/img/static.fatwill.cloud` 命中均为 0；**裸主域 `fatwill.cloud` 不替换**（115 处引用为站内链接/changelog 文案/referer）。交付脚本 `scripts/migrate_assets_domain_20260916.sh`（服务停止校验 + 自动备份 + 单事务 + 幂等 + 裸域守卫 + integrity_check），执行说明 `docs/migration/20260916-assets-domain-replace.md`。**遗留阻断项：`assets.fatwill.cn` 当前返回 403（COS 桶非公有读，nginx 匿名反代被拒），需先在腾讯云控制台修桶权限，否则替换后仍裂图**
+
 - 2026-09-16: **changelog 启动幂等播种机制** — 新增 `pkg/db/changelog_seed.go`，`autoMigrate()` 末尾调用 `seedChangelogs()`，依赖 `uk_changelogs_version` 唯一索引 + `INSERT OR IGNORE` 幂等补齐更新日志条目；本次补录 `2.15.0`（域名迁移，date=2026-09-16）。后续发版只需在 `changelogSeeds` 追加条目，无需人工连生产库执行 SQL。兜底脚本 `scripts/seed_changelog_2.15.0.sql`；生产环境变量清单 `deploy/env.production.template`
 
-- 2026-09-08: **主域切换 fatwill.cloud → fatwill.cn** — `SITE_URL` 默认 `https://fatwill.cn`；`CORS_ORIGIN` 改为**逗号分隔多值**（`ServerConfig.CORSOrigins []string`），过渡期同时放行 `.cn` 与 `.cloud`；`COS_CUSTOM_DOMAIN` 默认 `https://assets.fatwill.cn`（新上传资源 URL 使用新域名）；新增 `COS_LEGACY_DOMAINS`，`DeleteFromCOS` 可反解旧域名存量 URL；`DOWNLOAD_ALLOWED_HOSTS` 新增 `assets/cdn/pic.fatwill.cn` 并保留旧域名。**数据库存量图片 URL 不迁移**（COS 侧 CDN 域名切换后旧域名继续解析）
+- 2026-09-08: **主域切换 fatwill.cloud → fatwill.cn** — `SITE_URL` 默认 `https://fatwill.cn`；`CORS_ORIGIN` 改为**逗号分隔多值**（`ServerConfig.CORSOrigins []string`），过渡期同时放行 `.cn` 与 `.cloud`；`COS_CUSTOM_DOMAIN` 默认 `https://assets.fatwill.cn`（新上传资源 URL 使用新域名）；新增 `COS_LEGACY_DOMAINS`，`DeleteFromCOS` 可反解旧域名存量 URL；`DOWNLOAD_ALLOWED_HOSTS` 新增 `assets/cdn/pic.fatwill.cn` 并保留旧域名。~~**数据库存量图片 URL 不迁移**（COS 侧 CDN 域名切换后旧域名继续解析）~~ → **该假设有误，已于 2026-09-16 推翻**：`assets.fatwill.cloud` 走 EdgeOne CNAME，旧域名下线后不再解析，存量 URL 已做 DB 全量替换，详见 2026-09-16 条目
 
 - 2026-06-29: **新增微信公众号草稿同步功能** — 文章发布/更新后异步同步到公众号草稿箱；Tiptap JSON→公众号HTML转换器；图片自动上传到微信；管理API（手动同步、同步日志、token状态、服务器IP）；articles表新增5个微信同步字段；新建wechat_sync_logs表
 
