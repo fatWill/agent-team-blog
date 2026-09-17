@@ -8,7 +8,6 @@
 - **访问域名**：`https://assets.fatwill.cn`（由 `COS_CUSTOM_DOMAIN` 决定，新上传资源返回此域名；`COS_BASE_URL` 为 SDK 内部使用的 COS 原始域名）
 - **存储路径规范**：`upload/时间戳-随机串.ext`
 - **完整 URL 示例**：`https://assets.fatwill.cn/upload/1743811200000-a1b2c3d4.jpg`
-- **历史域名**：存量数据中的 `https://assets.fatwill.cloud/...` 不做迁移，删除时由 `COS_LEGACY_DOMAINS` 反解 COS key
 - **支持格式**：jpg / jpeg / png / gif / webp
 - **上传策略**：≤2MB 使用 PutObject 直传；>2MB 使用 COS 原生分片上传（InitiateMultipartUpload → UploadPart → CompleteMultipartUpload）
 
@@ -209,6 +208,6 @@
 | `COS_REGION` | `ap-guangzhou` | COS 地域 |
 | `COS_BASE_URL` | `https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | COS 原始域名（SDK 内部使用） |
 | `COS_CUSTOM_DOMAIN` | `https://assets.fatwill.cn` | 自定义 CDN 域名，上传返回 URL 使用此域名 |
-| `COS_LEGACY_DOMAINS` | `https://assets.fatwill.cloud,https://cdn.fatwill.cloud,https://cdn.fatwill.cn` | 历史 CDN 域名，仅用于删除存量资源时反解 key |
+| `COS_LEGACY_DOMAINS` | `https://cdn.fatwill.cn` | 历史 CDN 域名，仅用于删除存量资源时反解 key |
 | `UPLOAD_DIR` | `/root/blog-uploads` | 分片临时文件存储目录 |
 | `UPLOAD_TMP_DIR` | `/root/blog-uploads/tmp` | 分片临时目录 |

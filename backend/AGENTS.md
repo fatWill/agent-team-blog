@@ -256,7 +256,7 @@ backend/
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
 | `SERVER_PORT` | `8080` | 服务监听端口 |
-| `CORS_ORIGIN` | `https://fatwill.cn,https://www.fatwill.cn,https://fatwill.cloud,https://www.fatwill.cloud` | 允许跨域来源，**逗号分隔多值**（域名迁移期新旧并存，旧域名下线后可精简为 `.cn`） |
+| `CORS_ORIGIN` | `https://fatwill.cn,https://www.fatwill.cn` | 允许跨域来源，**逗号分隔多值**（默认放行主域及 www 子域） |
 | `SITE_URL` | `https://fatwill.cn` | 站点根 URL，后端拼接对外绝对页面链接使用（微信同步原文链接等） |
 | `DB_PATH` | `/root/blog-data/blog.db` | SQLite 数据库文件路径 |
 | `REDIS_HOST` | `127.0.0.1` | Redis 主机 |
@@ -270,14 +270,14 @@ backend/
 | `COS_REGION` | `ap-guangzhou` | COS 地域 |
 | `COS_BASE_URL` | `https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | COS 原始域名（SDK 内部使用） |
 | `COS_CUSTOM_DOMAIN` | `https://assets.fatwill.cn` | 自定义域名（返回给前端的图片 URL，新写入资源使用此域名） |
-| `COS_LEGACY_DOMAINS` | `https://assets.fatwill.cloud,https://cdn.fatwill.cloud,https://cdn.fatwill.cn` | 历史自定义域名，逗号分隔；仅用于 `DeleteFromCOS` 反解存量 URL 的 key，不用于生成新 URL |
+| `COS_LEGACY_DOMAINS` | `https://cdn.fatwill.cn` | 历史自定义域名，逗号分隔；仅用于 `DeleteFromCOS` 反解存量 URL 的 key，不用于生成新 URL |
 | `WECHAT_APP_ID` | *(必填)* | 微信公众号 AppID |
 | `WECHAT_APP_SECRET` | *(必填)* | 微信公众号 AppSecret |
-| `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,assets.fatwill.cloud,cdn.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔；旧域名保留以兼容存量文章图片 |
+| `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔；覆盖站点资源子域与 COS 原始 endpoint |
 
 > 域名相关配置全部走环境变量注入，换域名只需修改 systemd `Environment=`，无需改代码。涉及域名的变量：`CORS_ORIGIN`、`SITE_URL`、`COS_BUCKET`、`COS_BASE_URL`、`COS_CUSTOM_DOMAIN`、`COS_LEGACY_DOMAINS`、`DOWNLOAD_ALLOWED_HOSTS`。
 >
-> **主域为 `fatwill.cn`（2026-09-08 起）**，`fatwill.cloud` 为过渡期旧域名。`CORS_ORIGIN` 与 `SITE_URL` 语义不同必须同步改：前者管浏览器跨域（支持多值），后者决定微信同步原文链接等生成的域名；只改一个会出现「页面能访问但微信链接指向旧域名」的半坏状态。`COS_BUCKET` 名 `fatwill-cloud-*` 是腾讯云存储桶标识，与站点域名无关，**不要改**。
+> **主域为 `fatwill.cn`**。`CORS_ORIGIN` 与 `SITE_URL` 语义不同必须同步改：前者管浏览器跨域（支持多值），后者决定微信同步原文链接等生成的域名；只改一个会出现「页面能访问但微信链接指向旧域名」的半坏状态。`COS_BUCKET` 名 `fatwill-cloud-*` 是腾讯云存储桶标识，与站点域名无关，**不要改**。
 
 ## 部署信息
 
@@ -318,20 +318,18 @@ refactor(backend agent): 简要描述
 
 ## 变更日志
 
-- 2026-09-16: **域名迁移脚本扩展：一并清掉早期 `fatwill.cloud/uploads/` 图片 URL** — 在原脚本 `scripts/migrate_assets_domain_20260916.sh` 上扩展为**组 A + 组 B 两组映射、同一个 `BEGIN IMMEDIATE` 事务**（不拆脚本，只停服一次）：组 A `assets.fatwill.cloud → assets.fatwill.cn`（31 行/37 处），组 B `https://fatwill.cloud/uploads/ → https://fatwill.cn/uploads/`（`articles.cover_image` 13 行 + `articles.content` 12 行 = 25 行/40 处）。**合计 56 行 / 77 处，6 表 6 字段**，两组命中行无交集。组 B 用完整前缀而非裸域，以避开 79 处文案/站内链接/referer。**守卫口径修正**：上一轮的行数守卫（基线 89）已失效——它把组 B 要替换的 uploads 行也计入，且 `page_views.referer` 随访问增长使行数基线天生漂移；改为**出现次数级不变量** `prose = occ(裸域) - occ(assets 前缀) - occ(uploads 前缀)`，实测替换前后恒为 **79**，并做过反向验证（故意改成裸域替换时守卫检出 79→76 并 `exit 1`）。新增 Phase 0 变体写法断言（`http://` / `www.` / 转义 `\/` / 无协议头，均为 0）与 Phase 4 组 B 二次扫描。本地三条路径（首次 56 行 / 幂等 0 变更 / 回滚逐字节一致）+ 生产环境（bash 4.4、**sqlite 3.26**）对 `.backup` 快照干跑均通过，生产库全程只读。组 B 目标 URL 已实测 **13/13 返回 200**，不依赖 COS 权限修复即可生效
-
-- 2026-09-16: **存量图片 URL 域名迁移（DB 全量替换）** — 旧资源域名 `assets.fatwill.cloud` 走 EdgeOne CNAME，主域切换后已无 DNS 解析，导致存量文章/相册裂图，故推翻 2026-09-08「存量图片 URL 不迁移」的决策，改为 DB 全量替换为 `assets.fatwill.cn`。全库扫描（17 张业务表逐列）确认命中 6 表 6 字段共 31 行：`albums.cover_url`(1)、`articles.cover_image`(15)、`articles.content`(9)、`photos.url`(3)、`growth_diary_items.images`(1)、`material_items.attachments`(2)；`cdn/pic/img/static.fatwill.cloud` 命中均为 0；**裸主域 `fatwill.cloud` 不替换**（站内链接/changelog 文案/referer；当时记的「115 处」为行数口径且已随 referer 增长失效，准确口径见 2026-09-16 扩展条目：纯文案 79 处）。交付脚本 `scripts/migrate_assets_domain_20260916.sh`（服务停止校验 + 自动备份 + 单事务 + 幂等 + 裸域守卫 + integrity_check），执行说明 `docs/migration/20260916-assets-domain-replace.md`。**遗留阻断项：`assets.fatwill.cn` 当前返回 403（COS 桶非公有读，nginx 匿名反代被拒），需先在腾讯云控制台修桶权限，否则替换后 assets 类仍裂图**
+- 2026-09-16: **存量图片 URL 域名统一为 `assets.fatwill.cn`（DB 全量替换，已执行完毕）** — 全库扫描 17 张业务表逐列后确认命中 6 表 6 字段（`albums.cover_url`、`articles.cover_image`、`articles.content`、`photos.url`、`growth_diary_items.images`、`material_items.attachments`），通过单事务 + 备份 + 幂等 + 出现次数级守卫 + `integrity_check` 的一次性脚本完成替换，生产已生效。一次性迁移脚本与执行说明已归档删除（可从 git 历史追溯）
 
 - 2026-09-16: **changelog 启动幂等播种机制** — 新增 `pkg/db/changelog_seed.go`，`autoMigrate()` 末尾调用 `seedChangelogs()`，依赖 `uk_changelogs_version` 唯一索引 + `INSERT OR IGNORE` 幂等补齐更新日志条目；本次补录 `2.15.0`（域名迁移，date=2026-09-16）。后续发版只需在 `changelogSeeds` 追加条目，无需人工连生产库执行 SQL。兜底脚本 `scripts/seed_changelog_2.15.0.sql`；生产环境变量清单 `deploy/env.production.template`
 
-- 2026-09-08: **主域切换 fatwill.cloud → fatwill.cn** — `SITE_URL` 默认 `https://fatwill.cn`；`CORS_ORIGIN` 改为**逗号分隔多值**（`ServerConfig.CORSOrigins []string`），过渡期同时放行 `.cn` 与 `.cloud`；`COS_CUSTOM_DOMAIN` 默认 `https://assets.fatwill.cn`（新上传资源 URL 使用新域名）；新增 `COS_LEGACY_DOMAINS`，`DeleteFromCOS` 可反解旧域名存量 URL；`DOWNLOAD_ALLOWED_HOSTS` 新增 `assets/cdn/pic.fatwill.cn` 并保留旧域名。~~**数据库存量图片 URL 不迁移**（COS 侧 CDN 域名切换后旧域名继续解析）~~ → **该假设有误，已于 2026-09-16 推翻**：`assets.fatwill.cloud` 走 EdgeOne CNAME，旧域名下线后不再解析，存量 URL 已做 DB 全量替换，详见 2026-09-16 条目
+- 2026-09-08: **主域切换为 `fatwill.cn`** — `SITE_URL` 默认 `https://fatwill.cn`；`CORS_ORIGIN` 改为**逗号分隔多值**（`ServerConfig.CORSOrigins []string`）；`COS_CUSTOM_DOMAIN` 默认 `https://assets.fatwill.cn`（新上传资源 URL 使用新域名）；新增 `COS_LEGACY_DOMAINS`，`DeleteFromCOS` 可反解历史域名存量 URL；`DOWNLOAD_ALLOWED_HOSTS` 新增 `assets/cdn/pic.fatwill.cn`。存量图片 URL 的 DB 全量替换详见 2026-09-16 条目
 
 - 2026-06-29: **新增微信公众号草稿同步功能** — 文章发布/更新后异步同步到公众号草稿箱；Tiptap JSON→公众号HTML转换器；图片自动上传到微信；管理API（手动同步、同步日志、token状态、服务器IP）；articles表新增5个微信同步字段；新建wechat_sync_logs表
 
 - 2026-05-13: **新增微信 JS-SDK 签名接口** — `GET /api/wechat/jssdk-config`，Redis 缓存 access_token 和 jsapi_ticket（7000s TTL），SHA1 签名生成；服务器环境变量新增 `WECHAT_APP_ID` / `WECHAT_APP_SECRET`
 
 - 2026-04-06: **新增 PV/UV 统计功能** — 上报访问记录、趋势查询、Top5 页面、访问日志列表、统计概览；Redis 60s 防刷；UA 解析设备/浏览器/OS
-- 2026-04-05: **图片 URL 切换为自定义域名** — 新增 `COS_CUSTOM_DOMAIN` 环境变量，上传返回 URL 使用 `assets.fatwill.cloud`；`DeleteFromCOS` 兼容两种域名
+- 2026-04-05: **图片 URL 切换为自定义域名** — 新增 `COS_CUSTOM_DOMAIN` 环境变量，上传返回 URL 使用自定义 CDN 域名；`DeleteFromCOS` 兼容自定义域名与 COS 原始域名两种 URL
 - 2026-04-05: **数据库从 MySQL 迁移至 SQLite** — 使用 modernc.org/sqlite 纯 Go 驱动，无 CGO 依赖；自动建表；WAL 模式优化性能
 - 2026-04-05: **图片存储迁移至腾讯云 COS** — 上传直接写入 COS，删除照片/相册时异步清理 COS 对象；新增 `docs/api/upload.md` 接口文档
 - 2026-04-04: 创建 AGENTS.md，补全后端项目中枢索引文档

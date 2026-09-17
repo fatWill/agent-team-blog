@@ -146,7 +146,7 @@
 
 ```go
 cors.Config{
-    AllowOrigins:     cfg.Server.CORSOrigins, // 来自 CORS_ORIGIN（逗号分隔多值），默认含 https://fatwill.cn 与过渡期 https://fatwill.cloud
+    AllowOrigins:     cfg.Server.CORSOrigins, // 来自 CORS_ORIGIN（逗号分隔多值），默认含 https://fatwill.cn 与 https://www.fatwill.cn
     AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
     AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Cookie"},
     ExposeHeaders:    []string{"Set-Cookie"},
@@ -154,7 +154,7 @@ cors.Config{
 }
 ```
 
-> CORS 白名单来源于 `CORS_ORIGIN` 环境变量（**逗号分隔支持多值**，域名迁移过渡期同时放行 `fatwill.cn` 与 `fatwill.cloud`），不做硬编码。另有 `SITE_URL`（默认 `https://fatwill.cn`）用于后端拼接对外绝对页面链接（如微信同步原文链接），两者独立配置：`CORS_ORIGIN` 控制浏览器跨域来源，`SITE_URL` 控制生成的链接域名。换域名时需同时更新。
+> CORS 白名单来源于 `CORS_ORIGIN` 环境变量（**逗号分隔支持多值**，默认放行主域 `fatwill.cn` 及 `www` 子域），不做硬编码。另有 `SITE_URL`（默认 `https://fatwill.cn`）用于后端拼接对外绝对页面链接（如微信同步原文链接），两者独立配置：`CORS_ORIGIN` 控制浏览器跨域来源，`SITE_URL` 控制生成的链接域名。换域名时需同时更新。
 
 ## 文件上传
 
