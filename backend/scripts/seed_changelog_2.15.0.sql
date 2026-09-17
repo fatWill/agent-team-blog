@@ -29,7 +29,7 @@ INSERT OR IGNORE INTO changelogs (version, date, logs, created_at, updated_at)
 VALUES (
     '2.15.0',
     '2026-09-16',
-    '["🌐 站点主域切换到 fatwill.cn","🔁 旧域名 fatwill.cloud 自动 301 跳转到新域","🖼️ 图片与静态资源域名同步切换为 assets.fatwill.cn / cdn.fatwill.cn"]',
+    '["🌐 站点主域切换到 fatwill.cn","🖼️ 图片与静态资源域名同步切换为 assets.fatwill.cn / cdn.fatwill.cn"]',
     '2026-09-16 00:00:00',
     '2026-09-16 00:00:00'
 );

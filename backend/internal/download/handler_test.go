@@ -19,7 +19,7 @@ func TestSetDownloadConfig(t *testing.T) {
 		{
 			name:     "nil 配置保留默认白名单",
 			cfg:      nil,
-			allow:    []string{"assets.fatwill.cn", "cdn.fatwill.cn", "assets.fatwill.cloud"},
+			allow:    []string{"assets.fatwill.cn", "cdn.fatwill.cn", "pic.fatwill.cn"},
 			disallow: []string{"evil.example.com"},
 		},
 		{
@@ -32,7 +32,7 @@ func TestSetDownloadConfig(t *testing.T) {
 			name:     "自定义白名单覆盖默认值",
 			cfg:      &config.DownloadConfig{AllowedHosts: []string{" Assets.Test.Com ", "cdn.test.com"}},
 			allow:    []string{"assets.test.com", "cdn.test.com"},
-			disallow: []string{"assets.fatwill.cn", "assets.fatwill.cloud"},
+			disallow: []string{"assets.fatwill.cn", "pic.fatwill.cn"},
 		},
 	}
 
@@ -66,8 +66,6 @@ func TestDefaultAllowedHostsFromConfig(t *testing.T) {
 		"assets.fatwill.cn",
 		"cdn.fatwill.cn",
 		"pic.fatwill.cn",
-		"assets.fatwill.cloud",
-		"pic.fatwill.cloud",
 		"fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com",
 	} {
 		if !allowedHosts[h] {

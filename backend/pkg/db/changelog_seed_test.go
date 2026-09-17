@@ -29,8 +29,8 @@ func TestSeedChangelogIdempotent(t *testing.T) {
 	if err := json.Unmarshal(got.Logs, &logs); err != nil {
 		t.Fatalf("logs 不是合法 JSON 数组: %v (raw=%s)", err, string(got.Logs))
 	}
-	if len(logs) != 3 {
-		t.Errorf("logs 期望 3 条，实际 %d 条: %v", len(logs), logs)
+	if len(logs) != 2 {
+		t.Errorf("logs 期望 2 条，实际 %d 条: %v", len(logs), logs)
 	}
 	t.Logf("✅ 播种成功 id=%d version=%s date=%s logs=%v", got.ID, got.Version, got.Date, logs)
 

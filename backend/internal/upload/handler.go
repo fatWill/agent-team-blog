@@ -203,7 +203,7 @@ func smartUploadToCOS(data []byte, key string) (string, error) {
 // DeleteFromCOS 根据完整 URL 删除 COS 对象（导出供其他模块调用）
 // 支持三种 URL 格式：
 //   - 当前自定义域名：https://assets.fatwill.cn/upload/xxx.jpg
-//   - 历史自定义域名：https://assets.fatwill.cloud/upload/xxx.jpg（COS_LEGACY_DOMAINS）
+//   - 历史自定义域名：由 COS_LEGACY_DOMAINS 配置，如 https://cdn.fatwill.cn/upload/xxx.jpg
 //   - COS 原始域名：https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com/upload/xxx.jpg
 func DeleteFromCOS(fileURL string) error {
 	if cosClient == nil {

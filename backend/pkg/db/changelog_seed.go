@@ -23,7 +23,6 @@ var changelogSeeds = []changelogSeedItem{
 		Version: "2.15.0",
 		Date:    "2026-09-16",
 		Logs: `["🌐 站点主域切换到 fatwill.cn",` +
-			`"🔁 旧域名 fatwill.cloud 自动 301 跳转到新域",` +
 			`"🖼️ 图片与静态资源域名同步切换为 assets.fatwill.cn / cdn.fatwill.cn"]`,
 	},
 }

@@ -62,9 +62,9 @@ func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
 			Port: getEnv("SERVER_PORT", "8080"),
-			// 域名迁移期（fatwill.cloud → fatwill.cn）默认同时放行新旧域名，待旧域名下线后可精简
+			// 默认放行主域及 www 子域
 			CORSOrigins: getEnvList("CORS_ORIGIN",
-				"https://fatwill.cn,https://www.fatwill.cn,https://fatwill.cloud,https://www.fatwill.cloud"),
+				"https://fatwill.cn,https://www.fatwill.cn"),
 			SiteURL:       getEnv("SITE_URL", "https://fatwill.cn"),
 			IP2RegionPath: getEnv("IP2REGION_PATH", "data/ip2region.xdb"),
 		},
@@ -87,14 +87,14 @@ func Load() *Config {
 			Region:       getEnv("COS_REGION", "ap-guangzhou"),
 			BaseURL:      getEnv("COS_BASE_URL", "https://fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
 			CustomDomain: getEnv("COS_CUSTOM_DOMAIN", "https://assets.fatwill.cn"),
-			// 存量文章/相册中的图片 URL 仍是旧域名，删除时需能反解出 COS key
+			// 存量资源 URL 可能使用历史 CDN 子域，删除时需能反解出 COS key
 			LegacyDomains: getEnvList("COS_LEGACY_DOMAINS",
-				"https://assets.fatwill.cloud,https://cdn.fatwill.cloud,https://cdn.fatwill.cn"),
+				"https://cdn.fatwill.cn"),
 		},
 		Download: DownloadConfig{
-			// 旧域名保留在白名单中，保证存量文章内的图片仍可通过 /api/download 代理下载
+			// 白名单覆盖站点资源子域与 COS 原始 endpoint，保证文章内图片可通过 /api/download 代理下载
 			AllowedHosts: getEnvList("DOWNLOAD_ALLOWED_HOSTS",
-				"assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,assets.fatwill.cloud,cdn.fatwill.cloud,pic.fatwill.cloud,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
+				"assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
 		},
 	}
 }

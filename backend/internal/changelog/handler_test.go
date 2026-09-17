@@ -48,8 +48,8 @@ func TestGetChangelogReturnsSeeded215(t *testing.T) {
 			if item.Date != "2026-09-16" {
 				t.Errorf("date 期望 2026-09-16，实际 %s", item.Date)
 			}
-			if len(item.Logs) != 3 {
-				t.Errorf("logs 期望 3 条，实际 %d", len(item.Logs))
+			if len(item.Logs) != 2 {
+				t.Errorf("logs 期望 2 条，实际 %d", len(item.Logs))
 			}
 			t.Logf("✅ 接口返回 2.15.0：date=%s logs=%v", item.Date, item.Logs)
 		}
