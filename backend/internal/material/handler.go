@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fatWill/agent-team-blog/backend/models"
 	"github.com/fatWill/agent-team-blog/backend/internal/upload"
+	"github.com/fatWill/agent-team-blog/backend/models"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
 	"github.com/gin-gonic/gin"
 )
@@ -57,10 +57,10 @@ func GetMaterial(c *gin.Context) {
 // CreateMaterial POST /api/materials — 新建条目
 func CreateMaterial(c *gin.Context) {
 	var body struct {
-		Title       string                     `json:"title"`
-		Tags        []string                   `json:"tags"`
+		Title       string                      `json:"title"`
+		Tags        []string                    `json:"tags"`
 		Attachments []models.MaterialAttachment `json:"attachments"`
-		SortOrder   int                        `json:"sortOrder"`
+		SortOrder   int                         `json:"sortOrder"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -108,10 +108,10 @@ func UpdateMaterial(c *gin.Context) {
 	}
 
 	var body struct {
-		Title       *string                     `json:"title,omitempty"`
-		Tags        *[]string                   `json:"tags,omitempty"`
+		Title       *string                      `json:"title,omitempty"`
+		Tags        *[]string                    `json:"tags,omitempty"`
 		Attachments *[]models.MaterialAttachment `json:"attachments,omitempty"`
-		SortOrder   *int                        `json:"sortOrder,omitempty"`
+		SortOrder   *int                         `json:"sortOrder,omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {

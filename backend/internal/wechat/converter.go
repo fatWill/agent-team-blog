@@ -9,10 +9,10 @@ import (
 
 // TiptapNode Tiptap JSON 节点结构
 type TiptapNode struct {
-	Type    string            `json:"type"`
-	Content []TiptapNode      `json:"content,omitempty"`
-	Text    string            `json:"text,omitempty"`
-	Marks   []TiptapMark      `json:"marks,omitempty"`
+	Type    string                 `json:"type"`
+	Content []TiptapNode           `json:"content,omitempty"`
+	Text    string                 `json:"text,omitempty"`
+	Marks   []TiptapMark           `json:"marks,omitempty"`
 	Attrs   map[string]interface{} `json:"attrs,omitempty"`
 }
 

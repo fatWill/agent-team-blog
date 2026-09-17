@@ -14,14 +14,14 @@ func (Profile) TableName() string { return "profile" }
 
 // Message 留言表
 type Message struct {
-	ID               uint64     `json:"id" gorm:"primaryKey;autoIncrement"`
-	DeviceID         string     `json:"-" gorm:"column:device_id;type:varchar(64);uniqueIndex"`
-	Nickname         *string    `json:"nickname" gorm:"column:nickname;type:varchar(100)"`
-	Content          string     `json:"content" gorm:"column:content;type:text"`
-	LastModifiedDate *string    `json:"-" gorm:"column:last_modified_date;type:date"`
-	IP               *string    `json:"-" gorm:"column:ip;type:varchar(45)"`
-	CreatedAt        time.Time  `json:"createdAt" gorm:"column:created_at"`
-	UpdatedAt        time.Time  `json:"updatedAt" gorm:"column:updated_at"`
+	ID               uint64    `json:"id" gorm:"primaryKey;autoIncrement"`
+	DeviceID         string    `json:"-" gorm:"column:device_id;type:varchar(64);uniqueIndex"`
+	Nickname         *string   `json:"nickname" gorm:"column:nickname;type:varchar(100)"`
+	Content          string    `json:"content" gorm:"column:content;type:text"`
+	LastModifiedDate *string   `json:"-" gorm:"column:last_modified_date;type:date"`
+	IP               *string   `json:"-" gorm:"column:ip;type:varchar(45)"`
+	CreatedAt        time.Time `json:"createdAt" gorm:"column:created_at"`
+	UpdatedAt        time.Time `json:"updatedAt" gorm:"column:updated_at"`
 }
 
 func (Message) TableName() string { return "messages" }
