@@ -25,6 +25,12 @@ var changelogSeeds = []changelogSeedItem{
 		Logs: `["🌐 站点主域切换到 fatwill.cn",` +
 			`"🖼️ 图片与静态资源域名同步切换为 assets.fatwill.cn / cdn.fatwill.cn"]`,
 	},
+	{
+		Version: "2.15.1",
+		Date:    "2026-09-17",
+		Logs: `["🖼️ 13 篇早期文章的封面与正文插图从服务器本地直供迁移至腾讯云 COS，并接入 EdgeOne CDN",` +
+			`"⚡ 全站图片资源统一走 assets.fatwill.cn 加速域名，首屏与图片加载体验一致提升"]`,
+	},
 }
 
 // seedChangelogs 幂等补齐 changelogSeeds 中声明的更新日志条目。
