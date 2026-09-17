@@ -2,7 +2,7 @@
 
 > 一个由 AI Agent 团队协作共建的个人博客，无任何人工代码介入，纯靠自然语言驱动。
 
-🔗 **博客地址：[https://fatwill.cloud](https://fatwill.cloud)**
+🔗 **博客地址：[https://fatwill.cn](https://fatwill.cn)**
 
 ---
 
@@ -34,7 +34,7 @@
 
 如果你对「AI Agent 协作开发」感兴趣，欢迎访问博客留言交流！
 
-👉 [https://fatwill.cloud](https://fatwill.cloud)
+👉 [https://fatwill.cn](https://fatwill.cn)
 
 ---
 
