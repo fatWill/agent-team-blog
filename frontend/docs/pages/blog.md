@@ -118,7 +118,9 @@ useHead({
 ## 底部 Footer
 
 ```
-© 2025 fatwill. All rights reserved. 粤ICP备2025475180号
+粤ICP备2025475180号 | 粤公网安备44030002017383号 | © 2026 fatwill. All rights reserved.
 ```
 
-ICP 备案号可点击跳转工信部备案查询页面。
+ICP 备案号可点击跳转工信部备案查询页面（`https://beian.miit.gov.cn/`）。
+公安备案号可点击跳转全国互联网安全管理服务平台（`https://beian.mps.gov.cn/#/query/webSearch?code=44030002017383`）。
+两者均为 `target="_blank"` + `rel="noopener noreferrer"`，hover 样式一致。

@@ -830,6 +830,13 @@
           class="transition-colors duration-200 hover:text-gray-600 dark:hover:text-gray-400"
         >粤ICP备2025475180号</a>
         <span class="mx-2">|</span>
+        <a
+          href="https://beian.mps.gov.cn/#/query/webSearch?code=44030002017383"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="transition-colors duration-200 hover:text-gray-600 dark:hover:text-gray-400"
+        >粤公网安备44030002017383号</a>
+        <span class="mx-2">|</span>
         <span>© 2026 fatwill. All rights reserved.</span>
       </p>
     </footer>
