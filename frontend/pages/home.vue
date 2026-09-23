@@ -834,8 +834,18 @@
           href="https://beian.mps.gov.cn/#/query/webSearch?code=44030002017383"
           target="_blank"
           rel="noopener noreferrer"
-          class="transition-colors duration-200 hover:text-gray-600 dark:hover:text-gray-400"
-        >粤公网安备44030002017383号</a>
+          class="inline-flex items-center gap-1 transition-colors duration-200 hover:text-gray-600 dark:hover:text-gray-400"
+        >
+          <img
+            src="https://assets.fatwill.cn/assets/icons/beian-gongan.png"
+            alt=""
+            aria-hidden="true"
+            class="h-3.5 w-auto"
+            loading="lazy"
+            decoding="async"
+          >
+          <span>粤公网安备44030002017383号</span>
+        </a>
         <span class="mx-2">|</span>
         <span>© 2026 fatwill. All rights reserved.</span>
       </p>
