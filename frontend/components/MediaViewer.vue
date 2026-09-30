@@ -22,7 +22,11 @@
         </div>
 
         <!-- 图片预览（Swiper 容器） -->
-        <div v-if="currentItem?.type === 'image'" class="absolute inset-0 overflow-hidden">
+        <div
+          v-if="currentItem?.type === 'image'"
+          class="absolute inset-0 overflow-hidden"
+          @dblclick="onDesktopDblClick"
+        >
           <div
             class="flex h-full"
             :style="{
@@ -96,6 +100,26 @@
             </div>
           </Transition>
         </div>
+
+        <!-- 桌面端左右切换按钮（触屏设备隐藏，移动端用滑动） -->
+        <template v-if="items.length > 1">
+          <button
+            v-show="currentIndex > 0"
+            class="media-viewer-nav absolute left-4 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20"
+            aria-label="上一张"
+            @click.stop="prev"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <button
+            v-show="currentIndex < items.length - 1"
+            class="media-viewer-nav absolute right-4 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20"
+            aria-label="下一张"
+            @click.stop="next"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </template>
 
         <!-- 右下角操作按钮 -->
         <div class="absolute bottom-8 right-4 z-20 flex flex-row items-center gap-2">
@@ -233,8 +257,10 @@ watch(() => props.visible, (v) => {
     document.body.style.overflow = 'hidden'
     pushHistoryState()
     window.addEventListener('popstate', onPopState)
+    window.addEventListener('keydown', onKeydown)
   } else {
     window.removeEventListener('popstate', onPopState)
+    window.removeEventListener('keydown', onKeydown)
     document.body.style.overflow = ''
     resetVideoState()
     if (historyPushed) {
@@ -262,6 +288,29 @@ function resetVideoState() {
 function close() {
   emit('close')
 }
+
+// ====== 桌面端交互：左右切换 / 键盘 / 鼠标双击缩放 ======
+function prev() {
+  if (currentIndex.value > 0) currentIndex.value--
+}
+
+function next() {
+  if (currentIndex.value < props.items.length - 1) currentIndex.value++
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'ArrowLeft') prev()
+  else if (e.key === 'ArrowRight') next()
+  else if (e.key === 'Escape') close()
+}
+
+function onDesktopDblClick() {
+  // 触屏设备由 onTouchEnd 的双击检测处理，这里只响应鼠标
+  if (isTouchDevice) return
+  handleDoubleTap()
+}
+
+const isTouchDevice = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
 
 function rotateImage() {
   imgRotation.value += 90
@@ -488,6 +537,7 @@ async function handleDownload() {
 
 onBeforeUnmount(() => {
   window.removeEventListener('popstate', onPopState)
+  window.removeEventListener('keydown', onKeydown)
   if (tapTimer) clearTimeout(tapTimer)
   if (controlsTimer) clearTimeout(controlsTimer)
   document.body.style.overflow = ''
@@ -504,6 +554,11 @@ onBeforeUnmount(() => {
 .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from,
 .fade-leave-to { opacity: 0; }
+
+/* 左右切换按钮只给鼠标设备（桌面端），触屏设备保持滑动切换 */
+@media (hover: hover) and (pointer: fine) {
+  .media-viewer-nav { display: flex; }
+}
 
 .video-progress {
   -webkit-appearance: none;

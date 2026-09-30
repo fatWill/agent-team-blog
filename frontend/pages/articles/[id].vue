@@ -131,8 +131,12 @@
             {{ article.summary }}
           </p>
 
-          <!-- Tiptap 渲染区域 -->
-          <div ref="articleContentRef" class="tiptap-renderer mt-8">
+          <!-- Tiptap 渲染区域（图片点击预览通过容器事件委托，SSR v-html 与 EditorContent 两阶段通用） -->
+          <div
+            ref="articleContentRef"
+            class="tiptap-renderer mt-8"
+            @click.capture="handleContentClick"
+          >
             <!-- SSR / 编辑器未就绪时：直接输出静态 HTML -->
             <div
               v-if="!editorReady && ssrHtml"
@@ -233,7 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import { useEditor, EditorContent } from '@tiptap/vue-3'
+import { useEditor, EditorContent, mergeAttributes } from '@tiptap/vue-3'
 import { generateHTML } from '@tiptap/html'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
@@ -292,10 +296,30 @@ useSeoMeta({
 // ====== SSR 预渲染 HTML ======
 const editorReady = ref(false)
 
+/**
+ * 文章正文图片：在渲染阶段（renderHTML）完成 WebP 替换，SSR generateHTML 与客户端编辑器共用同一份输出，
+ * 不再事后改 ProseMirror 管理的 DOM。
+ * - src：原尺寸 WebP（toWebpUrl 不带 thumbnail 参数）
+ * - data-preview-src：预览大图地址，供 MediaViewer 使用
+ */
+const ArticleImage = Image.extend({
+  renderHTML({ HTMLAttributes }) {
+    const rawSrc = typeof HTMLAttributes.src === 'string' ? HTMLAttributes.src : ''
+    const webpSrc = toWebpUrl(rawSrc) || rawSrc
+    return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+      src: webpSrc,
+      'data-preview-src': webpSrc,
+      loading: 'lazy',
+      decoding: 'async',
+      class: 'article-img-previewable',
+    })]
+  },
+})
+
 // Tiptap 扩展配置（SSR generateHTML 和客户端 editor 共用）
 const tiptapExtensions = [
   StarterKit,
-  Image,
+  ArticleImage,
   Link.configure({
     openOnClick: true,
     HTMLAttributes: {
@@ -458,46 +482,33 @@ async function enhanceCodeBlocks() {
   })
 }
 
-// ====== Tiptap 图片 WebP 优化 + 点击预览 ======
-function enhanceImages() {
-  if (!articleContentRef.value) return
-  const images = articleContentRef.value.querySelectorAll('img')
-  images.forEach((img) => {
-    const src = img.getAttribute('src')
-    if (src) {
-      const webpSrc = toWebpUrl(src)
-      if (webpSrc !== src) {
-        img.setAttribute('src', webpSrc)
-      }
-    }
-    // 文章内图片统一懒加载
-    img.setAttribute('loading', 'lazy')
+// ====== 正文图片点击预览（容器事件委托） ======
+// 监听挂在 articleContentRef 容器上（捕获阶段），不依赖具体 <img> 节点：
+// v-html → EditorContent 切换、setContent 重建 DOM 后依然有效，也先于 ProseMirror 自身的点击处理。
+function handleContentClick(e: MouseEvent) {
+  const container = e.currentTarget as HTMLElement | null
+  const img = (e.target as HTMLElement | null)?.closest('img')
+  if (!container || !img || !container.contains(img)) return
+  // 图片外层若有链接，阻止跳转，改为预览
+  e.preventDefault()
+  e.stopPropagation()
+  openImagePreview(img, container)
+}
 
-    // 点击预览绑定（幂等，避免重复绑定）
-    if (!img.dataset.previewBound) {
-      img.dataset.previewBound = '1'
-      img.style.cursor = 'zoom-in'
-      img.addEventListener('click', (e: MouseEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-        // 阻止外层 <a> 标签跳转
-        const anchor = img.closest('a')
-        if (anchor) {
-          e.preventDefault()
-        }
-        openImagePreview(img)
-      })
-    }
-  })
+/** 预览大图地址：优先渲染阶段写入的 data-preview-src，兜底去掉缩略参数后转原尺寸 WebP */
+function getPreviewUrl(img: HTMLImageElement): string {
+  const preset = img.getAttribute('data-preview-src')
+  if (preset) return preset
+  const src = img.getAttribute('src') || ''
+  return toWebpUrl(src.split('?')[0]) || src
 }
 
 /** 打开图片预览：收集当前所有图片，定位被点击的下标 */
-function openImagePreview(clickedImg: HTMLImageElement) {
-  if (!articleContentRef.value) return
-  const allImages = Array.from(articleContentRef.value.querySelectorAll('img'))
+function openImagePreview(clickedImg: HTMLImageElement, container: HTMLElement) {
+  const allImages = Array.from(container.querySelectorAll('img'))
   const items: MediaItem[] = allImages.map((img) => ({
     type: 'image' as const,
-    url: img.getAttribute('src') || '',
+    url: getPreviewUrl(img),
     name: img.getAttribute('alt') || '',
   }))
   const index = allImages.indexOf(clickedImg)
@@ -649,7 +660,6 @@ async function loadArticle() {
       fetchLikeStatus()
       recordView()
       enhanceCodeBlocks()
-      enhanceImages()
       nextTick(() => {
         buildToc()
         nextTick(() => setupTocObserver())
@@ -686,7 +696,6 @@ onMounted(() => {
       fetchLikeStatus()
       recordView()
       enhanceCodeBlocks()
-      enhanceImages()
       nextTick(() => {
         buildToc()
         nextTick(() => setupTocObserver())
@@ -711,18 +720,14 @@ onBeforeUnmount(() => {
   tocObserver?.disconnect()
   window.removeEventListener('scroll', updateReadProgress)
 })
-
-// ====== editorReady 切换后重新绑定图片预览事件 ======
-watch(editorReady, (ready) => {
-  if (ready) {
-    nextTick(() => {
-      enhanceImages()
-    })
-  }
-})
 </script>
 
 <style>
+/* 正文图片可点击预览 */
+.tiptap-renderer img {
+  cursor: zoom-in;
+}
+
 /* 代码块增强样式（全局，因为是 DOM 操作插入） */
 pre {
   overflow-x: auto;
