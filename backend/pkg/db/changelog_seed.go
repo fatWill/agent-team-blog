@@ -31,6 +31,12 @@ var changelogSeeds = []changelogSeedItem{
 		Logs: `["🖼️ 13 篇早期文章的封面与正文插图从服务器本地直供迁移至腾讯云 COS，并接入 EdgeOne CDN",` +
 			`"⚡ 全站图片资源统一走 assets.fatwill.cn 加速域名，首屏与图片加载体验一致提升"]`,
 	},
+	{
+		Version: "2.15.2",
+		Date:    "2026-09-30",
+		Logs: `["🖼️ 修复文章图片点击无法预览",` +
+			`"⌨️ 桌面端预览支持切换与双击缩放"]`,
+	},
 }
 
 // seedChangelogs 幂等补齐 changelogSeeds 中声明的更新日志条目。
