@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -13,6 +14,8 @@ type Config struct {
 	Upload   UploadConfig
 	COS      COSConfig
 	Download DownloadConfig
+	LLM      LLMConfig
+	Tuyile   TuyileConfig
 }
 
 // ServerConfig 服务器配置
@@ -57,6 +60,22 @@ type DownloadConfig struct {
 	AllowedHosts []string // 允许代理下载的域名白名单
 }
 
+// LLMConfig OpenAI 兼容 chat/completions 上游配置（不绑定厂商）
+type LLMConfig struct {
+	BaseURL        string // 如 https://api.deepseek.com/v1，自动拼接 /chat/completions
+	APIKey         string
+	Model          string
+	TimeoutSeconds int // 单次流式请求总超时
+	MaxTokens      int
+}
+
+// TuyileConfig 玩具「图一乐」防刷配置
+type TuyileConfig struct {
+	RatePerMinute  int // 单 IP 每分钟请求上限
+	RatePerDay     int // 单 IP 每天（北京时间自然日）请求上限
+	MaxConcurrency int // 全局并发流上限（2C2G 保护）
+}
+
 // Load 从环境变量加载配置，提供默认值
 func Load() *Config {
 	return &Config{
@@ -96,12 +115,32 @@ func Load() *Config {
 			AllowedHosts: getEnvList("DOWNLOAD_ALLOWED_HOSTS",
 				"assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
 		},
+		LLM: LLMConfig{
+			BaseURL:        strings.TrimRight(getEnv("LLM_BASE_URL", ""), "/"),
+			APIKey:         getEnv("LLM_API_KEY", ""),
+			Model:          getEnv("LLM_MODEL", ""),
+			TimeoutSeconds: getEnvInt("LLM_TIMEOUT_SECONDS", 90),
+			MaxTokens:      getEnvInt("LLM_MAX_TOKENS", 1500),
+		},
+		Tuyile: TuyileConfig{
+			RatePerMinute:  getEnvInt("TUYILE_RATE_PER_MIN", 10),
+			RatePerDay:     getEnvInt("TUYILE_RATE_PER_DAY", 100),
+			MaxConcurrency: getEnvInt("TUYILE_MAX_CONCURRENCY", 8),
+		},
 	}
 }
 
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+// getEnvInt 读取正整数环境变量，非法或非正数时使用默认值
+func getEnvInt(key string, fallback int) int {
+	if n, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key))); err == nil && n > 0 {
+		return n
 	}
 	return fallback
 }

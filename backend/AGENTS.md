@@ -16,6 +16,8 @@ fatwill 个人博客后端服务，基于 Go + Gin + GORM + SQLite + Redis 构�
 | 跨域 | gin-contrib/cors | v1.7.7 |
 | 密码哈希 | golang.org/x/crypto/bcrypt | v0.49.0 |
 | UUID | google/uuid | v1.6.0 |
+| 农历算法 | 6tail/lunar-go | v1.4.6 |
+| HTML 解析（爬虫） | PuerkitoBio/goquery | v1.11.0 |
 | 包管理 | Go Modules | go.mod |
 
 ## 最高优先级读取
@@ -84,6 +86,7 @@ backend/
         ├── album.md       # 相册 + 照片接口
         ├── guestbook.md   # 留言板接口
         ├── profile.md     # 个人资料接口
+        ├── tuyile.md      # 玩具图一乐：黄历 + AG-UI 聊天
         ├── changelog.md   # 更新日志接口
         └── pv.md          # PV/UV 统计接口
 ```
@@ -103,6 +106,8 @@ backend/
 | theme | `internal/theme/` | 主题偏好 | → `upload.RandomString` |
 | pv | `internal/pv/` | PV/UV 统计、访问日志 | → `pkg/middleware.GetClientIP`、`pkg/rds` |
 | wechat | `internal/wechat/` | 微信公众号：JS-SDK 签名、草稿同步、素材管理 | → `pkg/rds`、`pkg/db`、`models` |
+| almanac | `internal/almanac/` | 老黄历查询（单日/月度）、库内缺失时算法现算 | → `pkg/almanac`、`pkg/db` |
+| tuyile | `internal/tuyile/` | 玩具「图一乐」AG-UI 运势聊天（SSE、LLM 流式代理、黄历知识注入、IP 限流） | → `internal/almanac`、`pkg/almanac`、`pkg/middleware.GetClientIP` |
 
 ## 路由注册表（完整 API 清单）
 
@@ -203,6 +208,14 @@ backend/
 | POST | `/api/admin/articles/:id/sync-wechat` | ✅ | `wechat.SyncWechatHandler` | 手动触发文章同步到微信草稿箱 |
 | GET | `/api/admin/articles/:id/wechat-sync-logs` | ✅ | `wechat.GetSyncLogsHandler` | 查看文章同步日志 |
 
+### 玩具：图一乐 (`/api/toys/tuyile`，详见 `docs/api/tuyile.md`)
+
+| 方法 | 路径 | 鉴权 | Handler | 说明 |
+|------|------|------|---------|------|
+| GET | `/api/toys/tuyile/almanac` | ❌ | `almanac.GetDay` | 单日老黄历（`?date=`，默认北京时间今天） |
+| GET | `/api/toys/tuyile/almanac/month` | ❌ | `almanac.GetMonth` | 月度老黄历精简字段（`?month=YYYY-MM`） |
+| POST | `/api/toys/tuyile/chat` | ❌（IP 10/min、100/day） | `tuyile.Chat` | AG-UI 协议 SSE 运势聊天 |
+
 ### PV/UV 统计 (`/api/pv`)
 
 | 方法 | 路径 | 鉴权 | Handler | 说明 |
@@ -228,6 +241,7 @@ backend/
 | `changelogs` | `models/misc.go → Changelog` | `id` uint64 自增 | 更新日志 |
 | `page_views` | `models/pv.go → PageView` | `id` uint64 自增 | 页面访问记录（PV/UV） |
 | `wechat_sync_logs` | `models/article.go → WechatSyncLog` | `id` uint64 自增 | 微信同步操作日志 |
+| `almanac_days` | `models/almanac.go → AlmanacDay` | `id` 自增，`date` 唯一 | 老黄历日表（图一乐知识库，爬虫写入） |
 
 ## 鉴权机制
 
@@ -247,6 +261,8 @@ backend/
 | `wechat:access_token` | 7000 秒 | Redis | 微信 access_token 缓存（加锁防并发、失败重试3次） |
 | `wechat:jsapi_ticket` | 7000 秒 | Redis | 微信 jsapi_ticket 缓存（微信有效期 7200s） |
 
+> 图一乐 chat 的 IP 限流（分钟+自然日双窗口）同样为进程内存实现（`internal/tuyile/ratelimit.go`），不占 Redis。
+>
 > IP 限频使用**内存 Map**（`pkg/middleware/middleware.go`），非 Redis。每 5 分钟清理过期条目。
 
 ## 环境变量配置
@@ -273,6 +289,14 @@ backend/
 | `COS_LEGACY_DOMAINS` | `https://cdn.fatwill.cn` | 历史自定义域名，逗号分隔；仅用于 `DeleteFromCOS` 反解存量 URL 的 key，不用于生成新 URL |
 | `WECHAT_APP_ID` | *(必填)* | 微信公众号 AppID |
 | `WECHAT_APP_SECRET` | *(必填)* | 微信公众号 AppSecret |
+| `LLM_BASE_URL` | *(空)* | 图一乐：OpenAI 兼容上游 base URL（如 `https://api.deepseek.com/v1`，自动拼 `/chat/completions`），禁止 woa.com 内网地址 |
+| `LLM_API_KEY` | *(空)* | 图一乐：上游 API Key；为空时 chat 返回 `RUN_ERROR(LLM_NOT_CONFIGURED)`，服务正常 |
+| `LLM_MODEL` | *(空)* | 图一乐：模型名 |
+| `LLM_TIMEOUT_SECONDS` | `90` | 图一乐：单次流式请求总超时 |
+| `LLM_MAX_TOKENS` | `1500` | 图一乐：单次回复 max_tokens |
+| `TUYILE_RATE_PER_MIN` | `10` | 图一乐：单 IP 每分钟请求上限 |
+| `TUYILE_RATE_PER_DAY` | `100` | 图一乐：单 IP 每天（北京时间）请求上限 |
+| `TUYILE_MAX_CONCURRENCY` | `8` | 图一乐：全局并发 SSE 流上限 |
 | `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔；覆盖站点资源子域与 COS 原始 endpoint |
 
 > 域名相关配置全部走环境变量注入，换域名只需修改 systemd `Environment=`，无需改代码。涉及域名的变量：`CORS_ORIGIN`、`SITE_URL`、`COS_BUCKET`、`COS_BASE_URL`、`COS_CUSTOM_DOMAIN`、`COS_LEGACY_DOMAINS`、`DOWNLOAD_ALLOWED_HOSTS`。
@@ -317,6 +341,8 @@ refactor(backend agent): 简要描述
 - `logs`：JSON 数组，每条 ≤20 字，最多 5 条
 
 ## 变更日志
+
+- 2026-10-12: **玩具「图一乐」后端（v2.16.0）** — 新增 `almanac_days` 表（autoMigrate）；`cmd/almanac-crawler` 抓取 huangli.com（robots 全放行、静态 HTML）并用 `6tail/lunar-go` 交叉校验干支/农历/冲煞/星宿，缺失字段算法补齐并标注 `source`/`algoFields`，限速 ≤1 req/s、重试、断点续爬、按 date upsert；2024-01-01~2027-12-31 共 1461 天全量入库。新增黄历单日/月度公开接口与 AG-UI SSE 运势聊天 `POST /api/toys/tuyile/chat`（OpenAI 兼容上游，环境变量 `LLM_*` 配置，IP 限流、不落库用户信息）。新增依赖 `6tail/lunar-go`、`PuerkitoBio/goquery`
 
 - 2026-09-16: **存量图片 URL 域名统一为 `assets.fatwill.cn`（DB 全量替换，已执行完毕）** — 全库扫描 17 张业务表逐列后确认命中 6 表 6 字段（`albums.cover_url`、`articles.cover_image`、`articles.content`、`photos.url`、`growth_diary_items.images`、`material_items.attachments`），通过单事务 + 备份 + 幂等 + 出现次数级守卫 + `integrity_check` 的一次性脚本完成替换，生产已生效。一次性迁移脚本与执行说明已归档删除（可从 git 历史追溯）
 

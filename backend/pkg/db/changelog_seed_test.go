@@ -44,4 +44,9 @@ func TestSeedChangelogIdempotent(t *testing.T) {
 		t.Errorf("重复播种后期望 1 行，实际 %d 行", count)
 	}
 	t.Logf("✅ 幂等性验证通过，重复执行后仍为 %d 行", count)
+
+	var v216 models.Changelog
+	if err := DB.Where("version = ?", "2.16.0").First(&v216).Error; err != nil || v216.Date != "2026-10-12" {
+		t.Fatalf("2.16.0 播种异常: %v %+v", err, v216)
+	}
 }

@@ -37,6 +37,11 @@ var changelogSeeds = []changelogSeedItem{
 		Logs: `["🖼️ 修复文章图片点击无法预览",` +
 			`"⌨️ 桌面端预览支持切换与双击缩放"]`,
 	},
+	{
+		Version: "2.16.0",
+		Date:    "2026-10-12",
+		Logs:    `["🔮 玩具区上线「图一乐」AI 算命：老黄历 + 运势聊天"]`,
+	},
 }
 
 // seedChangelogs 幂等补齐 changelogSeeds 中声明的更新日志条目。

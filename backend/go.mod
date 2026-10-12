@@ -3,6 +3,8 @@ module github.com/fatWill/agent-team-blog/backend
 go 1.26.1
 
 require (
+	github.com/6tail/lunar-go v1.4.6
+	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
 	github.com/glebarez/sqlite v1.11.0
@@ -15,6 +17,7 @@ require (
 )
 
 require (
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect

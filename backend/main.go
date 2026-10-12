@@ -6,6 +6,7 @@ import (
 
 	"github.com/fatWill/agent-team-blog/backend/config"
 	"github.com/fatWill/agent-team-blog/backend/internal/album"
+	"github.com/fatWill/agent-team-blog/backend/internal/almanac"
 	"github.com/fatWill/agent-team-blog/backend/internal/article"
 	"github.com/fatWill/agent-team-blog/backend/internal/auth"
 	"github.com/fatWill/agent-team-blog/backend/internal/backup"
@@ -22,6 +23,7 @@ import (
 	"github.com/fatWill/agent-team-blog/backend/internal/pv"
 	"github.com/fatWill/agent-team-blog/backend/internal/renovation"
 	"github.com/fatWill/agent-team-blog/backend/internal/theme"
+	"github.com/fatWill/agent-team-blog/backend/internal/tuyile"
 	"github.com/fatWill/agent-team-blog/backend/internal/upload"
 	"github.com/fatWill/agent-team-blog/backend/internal/wechat"
 	"github.com/fatWill/agent-team-blog/backend/pkg/db"
@@ -65,6 +67,9 @@ func main() {
 
 	// 设置下载代理域名白名单
 	download.SetDownloadConfig(&cfg.Download)
+
+	// 玩具「图一乐」：LLM 上游与防刷配置
+	tuyile.Init(cfg.LLM, cfg.Tuyile)
 
 	// 初始化 IP 地理位置解析（非关键服务，失败不阻塞启动）
 	ip2regionPath := cfg.Server.IP2RegionPath
@@ -279,4 +284,12 @@ func registerRoutes(api *gin.RouterGroup) {
 
 	// ========== 文件下载代理 ==========
 	api.GET("/download", download.Proxy)
+
+	// ========== 玩具：图一乐（AI 算命，公开只读 + AG-UI 聊天） ==========
+	tuyileGroup := api.Group("/toys/tuyile")
+	{
+		tuyileGroup.GET("/almanac", almanac.GetDay)
+		tuyileGroup.GET("/almanac/month", almanac.GetMonth)
+		tuyileGroup.POST("/chat", tuyile.Chat)
+	}
 }

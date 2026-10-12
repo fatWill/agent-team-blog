@@ -129,6 +129,32 @@ PRAGMA foreign_keys=ON;      -- 启用外键约束
 
 **索引**：`UNIQUE (version)`
 
+### almanac_days（老黄历日表，图一乐知识库）
+
+每天一条，由 `cmd/almanac-crawler` 写入（按 `date` upsert）。列表类字段以 JSON 文本存储（GORM `serializer:json`），字段语义详见 `docs/api/tuyile.md`。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | INTEGER | PK AUTOINCREMENT | |
+| date | TEXT | NOT NULL, **UNIQUE** `uk_almanac_days_date` | 公历日期 YYYY-MM-DD |
+| week / lunar_year / lunar_month / lunar_day / is_leap_month | TEXT/INTEGER | NOT NULL | 星期、农历数字日期、是否闰月 |
+| lunar_month_cn / lunar_day_cn / lunar_date / lunar_year_cn / zodiac_year | TEXT | NOT NULL DEFAULT '' | 农历中文、生肖年 |
+| gz_year / gz_month / gz_day | TEXT | NOT NULL DEFAULT '' | 年月日柱 |
+| jieqi / current_jieqi / festivals | TEXT | | 当日节气、所处节气、节日 JSON |
+| yi / ji / jishen / xiongsha | TEXT | DEFAULT '[]' | 宜、忌、吉神宜趋、凶神宜忌 JSON |
+| chong_zodiac / chong_gz / chong_age / chong_desc / sha | TEXT/INTEGER | | 冲煞 |
+| nayin_year / nayin_month / nayin_day | TEXT | | 纳音 |
+| zhishen / zhishen_type / jianchu / xiu / xiu_luck / xiu_gong | TEXT | | 值神、黄黑道、建除、二十八宿 |
+| pengzu / taishen | TEXT | | 彭祖百忌、胎神 |
+| xishen / caishen / fushen / yanggui / yingui | TEXT | | 吉神方位 |
+| liuyao / wuhou / yuexiang | TEXT | | 六曜、物候、月相 |
+| hours | TEXT | DEFAULT '[]' | 12 时辰吉凶 JSON |
+| source | TEXT | | `huangli.com+lunar-go` / `lunar-go` |
+| algo_fields / mismatches | TEXT | DEFAULT '[]' | 算法补齐字段、交叉校验不一致项 |
+| created_at / updated_at | DATETIME | NOT NULL | |
+
+**索引**：`UNIQUE (date)`，单日与月度范围查询都走此索引。4 年数据约 1461 行，约 7MB。
+
 ## SQL 兼容性注意事项
 
 ### 与 MySQL 的差异
