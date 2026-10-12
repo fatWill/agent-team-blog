@@ -802,6 +802,31 @@
               </p>
             </div>
           </NuxtLink>
+
+          <!-- 图一乐 AI 算命 -->
+          <NuxtLink
+            to="/toys/tuyile"
+            class="group overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
+          >
+            <div class="relative aspect-video overflow-hidden bg-gradient-to-br from-rose-500/20 via-amber-400/20 to-red-600/20 dark:from-rose-500/10 dark:via-amber-400/10 dark:to-red-600/10">
+              <div class="flex h-full items-center justify-center">
+                <span class="text-5xl font-black tracking-widest">
+                  <span class="bg-gradient-to-r from-rose-600 via-red-500 to-amber-500 bg-clip-text text-transparent">图一乐</span>
+                </span>
+              </div>
+              <div class="absolute bottom-2 right-2 rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-bold text-white">
+                ✨ NEW
+              </div>
+            </div>
+            <div class="p-4">
+              <h3 class="mb-1 text-base font-bold text-gray-900 transition-colors group-hover:text-rose-600 dark:text-gray-100 dark:group-hover:text-rose-400">
+                图一乐 · AI 算命
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                老黄历 · 时辰吉凶 · 运势聊天
+              </p>
+            </div>
+          </NuxtLink>
         </div>
       </div>
 

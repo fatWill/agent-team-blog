@@ -9,6 +9,7 @@ export default <Config>{
     './composables/**/*.ts',
     './plugins/**/*.ts',
     './app.vue',
+    './features/**/*.{vue,ts}',
     './src/**/*.{vue,ts}',
   ],
   theme: {

@@ -172,6 +172,7 @@ frontend/
 | 更新日志 | `features/changelog/` | types.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（更新日志 Tab） |
 | 管理后台 | `features/admin/` | （预留） | 🚧 待拆分 | `pages/admin.vue`（130KB，后续拆分组件） |
 | 装修 | `features/renovation/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（装修 Tab）、`pages/renovation/*` |
+| 图一乐 | `features/tuyile/` | types.ts + api.ts + utils.ts + composables/ + components/ + index.ts（文档 `docs/features/tuyile/`） | ✅ 已实现 | `pages/toys/tuyile.vue` |
 | 酷炫首页 | — | — | ⏸️ 不拆分 | `pages/index.vue`（独立页面，无需 feature 模块） |
 | Agent Team | — | — | ⏸️ 不拆分 | `pages/home.vue`（Agent Team Tab，数据写死在前端） |
 
@@ -242,6 +243,7 @@ frontend/
 | 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（25KB） | useTheme, api, Tiptap | Tiptap 只读渲染 + 点赞 + 代码高亮 |
 | 太空游戏 | `/toys/starfling` | `pages/toys/starfling.vue` | — | 全屏 iframe 嵌入 |
 | SBTI 测试 | `/toys/sbti` | `pages/toys/sbti.vue` | — | SBTI 人格测试 |
+| 图一乐 | `/toys/tuyile` | `pages/toys/tuyile.vue` | features/tuyile, markdown-it | 老黄历 + AG-UI 运势聊天（query `view=almanac|chat`、`date=`），文档 `docs/pages/tuyile.md` |
 | 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /articles |
 | 管理后台 | `/admin` | `pages/admin.vue`（130KB） | auth store, api, Tiptap, antd, chunkedUpload | 面包屑二级导航：内容管理/统计/装修 |
 | 装修-成本预算 | `/renovation/budget` | `pages/renovation/budget.vue` | — | 会计报表风格预算表（5 大分类+汇总统计卡片） |
@@ -321,6 +323,14 @@ frontend/
 | GET | `/api/theme` | ❌ | 获取主题偏好 |
 | POST | `/api/theme` | ❌ | 保存主题偏好 |
 
+### 玩具「图一乐」
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| GET | `/api/toys/tuyile/almanac` | ❌ | 单日老黄历（`?date=YYYY-MM-DD`，缺省北京时间今天） |
+| GET | `/api/toys/tuyile/almanac/month` | ❌ | 月度老黄历（`?month=YYYY-MM`） |
+| POST | `/api/toys/tuyile/chat` | ❌ | AG-UI 运势聊天，SSE 流式（Nitro `sendStream` 逐块透传，不缓冲） |
+
 ### PV/UV 数据统计
 
 | 方法 | 路径 | 鉴权 | 说明 |
@@ -338,6 +348,7 @@ frontend/
 | 文件 | 说明 |
 |------|------|
 | `proxy.ts` | 通用代理工具：`proxyToBackend()`（JSON 请求透传）+ `proxyRawToBackend()`（multipart 原始透传，用于文件上传）。自动透传 Cookie / Set-Cookie / X-Forwarded-For 等 header |
+| `tuyileProxy.ts` | 图一乐专用：`proxyTuyileJson()`（保留后端状态码/错误体/Retry-After/Cache-Control）+ `proxyTuyileStream()`（SSE 流式透传，客户端断开即中止上游） |
 
 ## 环境配置
 
@@ -425,6 +436,8 @@ assetUrl('/toys/sbti/x.png') // https://assets.fatwill.cn/toys/sbti/x.png
 - 访问地址：`{NUXT_PUBLIC_SITE_URL}/sitemap.xml`（默认 `https://fatwill.cn/sitemap.xml`）
 
 ## 变更日志（最近重要变更）
+
+- 2026-10-12: 新增玩具「图一乐」（`/toys/tuyile`，`features/tuyile/`）：老黄历全字段 + 月历/翻日 + 十二时辰，AG-UI 运势聊天（fetch 手写 SSE 解析，流式 Markdown、停止生成、RUN_ERROR/400/429/503 提示，对话仅存内存）；Nitro 新增 `server/api/toys/tuyile/*` 透传与 `server/utils/tuyileProxy.ts`（SSE 不缓冲）；`tailwind.config.ts` content 增加 `features/**`；玩具 Tab 新增图一乐卡片
 
 - 2026-09-08: 主域配置更新为 `fatwill.cn`（`nuxt.config.ts` runtimeConfig 三项默认值 + `app.cdnURL` 兜底、`shared/utils/imageUrl.ts` 的 `DEFAULT_ASSETS_HOST`、`.env.example`、静态测试页 `public/test/wj-jspsych-test/index.html`、`scripts/migrate-image-urls.ts` 与文档全量对齐为 `fatwill.cn` / `assets.fatwill.cn` / `cdn.fatwill.cn`；SSR 结构与 SEO 逻辑不变，canonical / OG / sitemap / robots 仍走 `siteUrl` 运行时读取；⚠️ 部署环境 `.env` 需同步三项变量，且因 `app.cdnURL` 为构建期常量必须重新 build）
 
