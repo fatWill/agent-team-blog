@@ -1,5 +1,8 @@
 <template>
   <div class="mx-auto max-w-3xl px-4 pb-16 pt-16">
+    <!-- 顶部运势 banner -->
+    <FortuneBanner class="mb-4" @click="emit('chat')" />
+
     <!-- 日期切换条 -->
     <div class="mb-4 flex items-center justify-between gap-1.5 sm:gap-2">
       <button
@@ -28,6 +31,27 @@
         >
           今天
         </button>
+        <div class="relative shrink-0">
+          <button
+            type="button"
+            class="flex h-9 items-center gap-1 whitespace-nowrap rounded-lg border border-rose-200 bg-white px-2.5 text-sm text-rose-600 transition-all duration-200 hover:border-rose-400 hover:bg-rose-50 dark:border-rose-500/30 dark:bg-gray-800 dark:text-rose-300 dark:hover:bg-gray-700"
+            aria-label="快速选择年月日"
+            title="快速选择年 / 月 / 日"
+            :aria-expanded="pickerOpen"
+            @click="openPicker"
+          >
+            <span aria-hidden="true">🗓️</span><span class="hidden sm:inline">选日期</span>
+          </button>
+          <ClientOnly>
+            <LazyTuyileDatePicker
+              v-if="pickerMounted"
+              v-model:open="pickerOpen"
+              :model-value="date"
+              :dark="isDark"
+              @update:model-value="pickDate"
+            />
+          </ClientOnly>
+        </div>
       </div>
       <button
         type="button"
@@ -166,16 +190,9 @@
       <!-- 时辰 -->
       <AlmanacHours v-if="data.hours.length" :hours="data.hours" :current-index="currentHourIndex" />
 
-      <!-- 聊运势 -->
+      <!-- 底部声明 -->
       <div class="pt-2 text-center">
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-500 px-8 py-4 text-base font-bold text-white shadow-lg shadow-rose-500/25 transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95"
-          @click="emit('chat')"
-        >
-          🔮 聊一下你的运势
-        </button>
-        <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">🎲 黄历与运势内容仅供娱乐，图一乐～</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">🎲 黄历与运势内容仅供娱乐，图一乐～</p>
       </div>
     </div>
   </div>
@@ -187,6 +204,10 @@ import { useAlmanacDay } from '../composables/useAlmanacDay'
 import { addDays, beijingHour, formatCnDate, hourToShiChenIndex } from '../utils'
 import AlmanacCalendar from './AlmanacCalendar.vue'
 import AlmanacHours from './AlmanacHours.vue'
+import FortuneBanner from './FortuneBanner.vue'
+
+// antd DatePicker 仅在首次点击时异步加载（独立 chunk，不进首屏，不参与 SSR）
+const LazyTuyileDatePicker = defineAsyncComponent(() => import('./AlmanacDatePicker.vue'))
 
 const props = defineProps<{ date: string, today: string }>()
 const emit = defineEmits<{
@@ -194,7 +215,19 @@ const emit = defineEmits<{
   (e: 'chat'): void
 }>()
 
+const { isDark } = useTheme()
 const showCalendar = ref(false)
+const pickerOpen = ref(false)
+const pickerMounted = ref(false)
+
+function openPicker() {
+  showCalendar.value = false
+  pickerMounted.value = true
+  // 首次挂载后再打开，确保弹层定位正确
+  nextTick(() => {
+    pickerOpen.value = !pickerOpen.value
+  })
+}
 const dateRef = computed(() => props.date)
 const { data, pending, errorMessage, refresh } = useAlmanacDay(dateRef)
 
@@ -205,6 +238,7 @@ function shift(delta: number) {
 function pickDate(v: string) {
   emit('update:date', v)
   showCalendar.value = false
+  pickerOpen.value = false
 }
 
 const currentHourIndex = computed(() => (props.date === props.today ? hourToShiChenIndex(beijingHour()) : -1))

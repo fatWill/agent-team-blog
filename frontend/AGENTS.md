@@ -172,7 +172,7 @@ frontend/
 | 更新日志 | `features/changelog/` | types.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（更新日志 Tab） |
 | 管理后台 | `features/admin/` | （预留） | 🚧 待拆分 | `pages/admin.vue`（130KB，后续拆分组件） |
 | 装修 | `features/renovation/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（装修 Tab）、`pages/renovation/*` |
-| 图一乐 | `features/tuyile/` | types.ts + api.ts + utils.ts + composables/ + components/ + index.ts（文档 `docs/features/tuyile/`） | ✅ 已实现 | `pages/toys/tuyile.vue` |
+| 图一乐 | `features/tuyile/` | types.ts + api.ts + utils.ts + composables/ + components/ + index.ts（文档 `docs/features/tuyile/`） | ✅ 已实现（二期） | `pages/toys/tuyile/index.vue`、`pages/toys/tuyile/share/[hash].vue` |
 | 酷炫首页 | — | — | ⏸️ 不拆分 | `pages/index.vue`（独立页面，无需 feature 模块） |
 | Agent Team | — | — | ⏸️ 不拆分 | `pages/home.vue`（Agent Team Tab，数据写死在前端） |
 
@@ -225,6 +225,7 @@ frontend/
 | Pinia Hydration Fix | `plugins/pinia-hydration-fix.ts` | 仅服务端 | JSON 往返清洗 payload，修复 SSR hydration 原型链问题 |
 | Virtual Scroller | `plugins/vue-virtual-scroller.client.ts` | 仅客户端 | 注册 vue-virtual-scroller 全局组件 |
 | PV Tracker | `plugins/pv-tracker.client.ts` | 仅客户端 | 路由变化时自动上报 PV/UV（fire and forget） |
+| 图一乐首次入口 URL | `plugins/tuyile-entry-url.client.ts` | 仅客户端 | 记录首次进入 URL，供 iOS 微信 JS-SDK 签名失败时重签 |
 | ImageUrl Host | `plugins/0.image-url-host.ts` | 服务端 + 客户端 | 启动最早期把 `runtimeConfig.public.assetsUrl` 注入 `shared/utils/imageUrl.ts`（工具模块无法用 composable） |
 
 ## 页面路由映射
@@ -243,7 +244,8 @@ frontend/
 | 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（25KB） | useTheme, api, Tiptap | Tiptap 只读渲染 + 点赞 + 代码高亮 |
 | 太空游戏 | `/toys/starfling` | `pages/toys/starfling.vue` | — | 全屏 iframe 嵌入 |
 | SBTI 测试 | `/toys/sbti` | `pages/toys/sbti.vue` | — | SBTI 人格测试 |
-| 图一乐 | `/toys/tuyile` | `pages/toys/tuyile.vue` | features/tuyile, markdown-it | 老黄历 + AG-UI 运势聊天（query `view=almanac|chat`、`date=`），文档 `docs/pages/tuyile.md` |
+| 图一乐 | `/toys/tuyile` | `pages/toys/tuyile/index.vue` | features/tuyile, markdown-it, antd DatePicker（异步） | 老黄历 + AG-UI 运势聊天（query `view=almanac|chat`、`date=`），文档 `docs/pages/tuyile.md` |
+| 图一乐分享 | `/toys/tuyile/share/:hash` | `pages/toys/tuyile/share/[hash].vue` | features/tuyile | 对话分享只读页（SSR、404、OG、微信卡片、noindex），文档 `docs/pages/tuyile-share.md` |
 | 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /articles |
 | 管理后台 | `/admin` | `pages/admin.vue`（130KB） | auth store, api, Tiptap, antd, chunkedUpload | 面包屑二级导航：内容管理/统计/装修 |
 | 装修-成本预算 | `/renovation/budget` | `pages/renovation/budget.vue` | — | 会计报表风格预算表（5 大分类+汇总统计卡片） |
@@ -330,6 +332,8 @@ frontend/
 | GET | `/api/toys/tuyile/almanac` | ❌ | 单日老黄历（`?date=YYYY-MM-DD`，缺省北京时间今天） |
 | GET | `/api/toys/tuyile/almanac/month` | ❌ | 月度老黄历（`?month=YYYY-MM`） |
 | POST | `/api/toys/tuyile/chat` | ❌ | AG-UI 运势聊天，SSE 流式（Nitro `sendStream` 逐块透传，不缓冲） |
+| POST | `/api/toys/tuyile/share` | ❌ | 创建对话分享快照（原样透传，保留 400/413/429 + Retry-After） |
+| GET | `/api/toys/tuyile/share/:hash` | ❌ | 读取分享（12 位 base62，非法格式 Nitro 直接 404） |
 
 ### PV/UV 数据统计
 
@@ -436,6 +440,8 @@ assetUrl('/toys/sbti/x.png') // https://assets.fatwill.cn/toys/sbti/x.png
 - 访问地址：`{NUXT_PUBLIC_SITE_URL}/sitemap.xml`（默认 `https://fatwill.cn/sitemap.xml`）
 
 ## 变更日志（最近重要变更）
+
+- 2026-10-13: 图一乐二期：老黄历/首页顶部运势 banner（`FortuneBanner`）；「今天」旁加年/月/日快速选择（antd DatePicker 异步 chunk + `<ClientOnly>`，中文 locale，限 1900~2100）；聊天对接 `CUSTOM tuyile.status`/`REASONING_*` 显示思考状态条（querying 显示查询范围），reasoning 不渲染不回传；轻松风 placeholder 轮换 + 快捷提问 chip；对话分享（`ShareDialog` 确认/裁剪/复制/微信卡片+引导蒙层）与只读分享页 `/toys/tuyile/share/:hash`；路由 `pages/toys/tuyile.vue` → `pages/toys/tuyile/index.vue`；`composables/useWechatShare.ts` 的 `initWechatShare` 增加可选 `signUrl` 并返回是否成功（向后兼容）；新增插件 `plugins/tuyile-entry-url.client.ts` 记录首次进入 URL（iOS 重签兜底）；`dayjs` 由传递依赖改为直接依赖
 
 - 2026-10-12: 新增玩具「图一乐」（`/toys/tuyile`，`features/tuyile/`）：老黄历全字段 + 月历/翻日 + 十二时辰，AG-UI 运势聊天（fetch 手写 SSE 解析，流式 Markdown、停止生成、RUN_ERROR/400/429/503 提示，对话仅存内存）；Nitro 新增 `server/api/toys/tuyile/*` 透传与 `server/utils/tuyileProxy.ts`（SSE 不缓冲）；`tailwind.config.ts` content 增加 `features/**`；玩具 Tab 新增图一乐卡片
 

@@ -82,3 +82,65 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
 export function renderMarkdown(src: string): string {
   return md.render(src)
 }
+
+// ====== 分享内容裁剪 ======
+
+export interface SharePlan {
+  messages: { role: 'user' | 'assistant', content: string }[]
+  total: number
+  /** 因条数/体积上限从开头丢弃的条数 */
+  dropped: number
+  /** 被截断到 4000 字的条数 */
+  truncated: number
+}
+
+/**
+ * 按后端限制裁剪待分享消息：只保留 user/assistant 非空消息，单条截断 maxLen 字，
+ * 最多保留最近 maxCount 条，总体积超过 maxBytes 时继续丢最早的；保证首条之后仍含 assistant。
+ */
+export function planShare(
+  source: { role: string, content: string }[],
+  maxCount: number,
+  maxLen: number,
+  maxBytes: number,
+): SharePlan {
+  let truncated = 0
+  const clean = source
+    .filter((m): m is { role: 'user' | 'assistant', content: string } =>
+      (m.role === 'user' || m.role === 'assistant') && m.content.trim() !== '')
+    .map((m) => {
+      const chars = Array.from(m.content)
+      if (chars.length > maxLen) {
+        truncated++
+        return { role: m.role, content: chars.slice(0, maxLen).join('') }
+      }
+      return { role: m.role, content: m.content }
+    })
+  let list = clean.slice(-maxCount)
+  const encoder = new TextEncoder()
+  while (list.length > 1 && encoder.encode(JSON.stringify({ messages: list })).length > maxBytes) {
+    list = list.slice(1)
+  }
+  return { messages: list, total: clean.length, dropped: clean.length - list.length, truncated }
+}
+
+/** Markdown 转纯文本摘要（用于 SEO / 分享卡片描述） */
+export function markdownSummary(src: string, max = 80): string {
+  const text = src
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^\s*[-*_]{3,}\s*$/gm, ' ')
+    .replace(/^\s{0,3}(?:#{1,6}|>+|[-*+]|\d+\.)\s+/gm, '')
+    .replace(/(\*\*|__|~~|`)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const chars = Array.from(text)
+  return chars.length > max ? `${chars.slice(0, max).join('')}…` : text
+}
+
+/** 是否微信内置浏览器 */
+export function isWechatUA(): boolean {
+  if (import.meta.server) return false
+  return /MicroMessenger/i.test(navigator.userAgent)
+}

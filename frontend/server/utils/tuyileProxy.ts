@@ -44,16 +44,23 @@ async function readJsonOrError(res: Response): Promise<unknown> {
   }
 }
 
-export async function proxyTuyileJson(event: H3Event, path: string): Promise<unknown> {
+export async function proxyTuyileJson(event: H3Event, path: string, method: 'GET' | 'POST' = 'GET'): Promise<unknown> {
   const query = getQuery(event)
   const qs = new URLSearchParams()
   for (const [k, v] of Object.entries(query)) {
     if (typeof v === 'string') qs.set(k, v)
   }
   const url = `${backendBase()}${path}${qs.toString() ? `?${qs.toString()}` : ''}`
+  const init: RequestInit = { method, headers: { accept: 'application/json', ...forwardIpHeaders(event) } }
+  if (method === 'POST') {
+    // 原样透传请求体（后端自行做 JSON / 128KB 校验，保留 400/413 语义）
+    const body = await readRawBody(event, false)
+    init.headers = { ...init.headers, 'content-type': 'application/json' }
+    init.body = body ? new Uint8Array(body) : undefined
+  }
   let res: Response
   try {
-    res = await fetch(url, { headers: { accept: 'application/json', ...forwardIpHeaders(event) } })
+    res = await fetch(url, init)
   } catch {
     setResponseStatus(event, 502)
     return { error: true, statusCode: 502, statusMessage: '后端服务不可用' }

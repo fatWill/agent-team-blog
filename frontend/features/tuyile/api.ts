@@ -1,4 +1,4 @@
-import type { AgUiEvent, AlmanacDay, AlmanacMonth, RunAgentInput } from './types'
+import type { AgUiEvent, AlmanacDay, AlmanacMonth, CreateShareResponse, RunAgentInput, ShareDetail, ShareMessage } from './types'
 
 export const TUYILE_API_BASE = '/api/toys/tuyile'
 /** 单条消息最大字数（与后端 MaxMessageRunes 一致） */
@@ -62,6 +62,12 @@ const EVENT_TYPES = new Set([
   'TEXT_MESSAGE_END',
   'RUN_FINISHED',
   'RUN_ERROR',
+  'REASONING_START',
+  'REASONING_END',
+  'REASONING_MESSAGE_START',
+  'REASONING_MESSAGE_CONTENT',
+  'REASONING_MESSAGE_END',
+  'CUSTOM',
 ])
 
 function isAgUiEvent(v: unknown): v is AgUiEvent {
@@ -167,4 +173,46 @@ export async function apiStreamTuyileChat(
   }
 
   await readSseEvents(res.body, onEvent)
+}
+
+// ====== 分享 ======
+
+/** 与后端 share 接口限制一致 */
+export const SHARE_MAX_MESSAGES = 50
+export const SHARE_MAX_CONTENT_LENGTH = 4000
+/** 请求体上限 128KB，留余量 */
+export const SHARE_MAX_BODY_BYTES = 120 * 1024
+
+/** 创建分享：失败抛 TuyileHttpError（400/413/429 带后端文案与 Retry-After） */
+export async function apiCreateTuyileShare(messages: ShareMessage[]): Promise<CreateShareResponse> {
+  const res = await fetch(`${TUYILE_API_BASE}/share`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ messages }),
+  })
+  if (!res.ok) {
+    const raw = res.headers.get('Retry-After')
+    const retryAfter = raw && /^\d+$/.test(raw.trim()) ? Number(raw.trim()) : null
+    let message = ''
+    try {
+      const data: unknown = await res.json()
+      if (isRecord(data) && typeof data.statusMessage === 'string') message = data.statusMessage
+    } catch {
+      // 非 JSON 错误体
+    }
+    const fallback = res.status === 413
+      ? '分享内容太长啦，删减一些再试～'
+      : res.status === 429 ? '分享太频繁啦，歇一会儿再来～' : '分享失败，稍后再试～'
+    throw new TuyileHttpError(res.status, message || fallback, retryAfter)
+  }
+  const data: unknown = await res.json()
+  if (!isRecord(data) || typeof data.hash !== 'string' || typeof data.url !== 'string') {
+    throw new TuyileHttpError(500, '分享失败，稍后再试～', null)
+  }
+  return { hash: data.hash, url: data.url }
+}
+
+/** 读取分享（SSR 可用） */
+export function apiFetchTuyileShare(hash: string): Promise<ShareDetail> {
+  return $fetch<ShareDetail>(`${TUYILE_API_BASE}/share/${encodeURIComponent(hash)}`)
 }

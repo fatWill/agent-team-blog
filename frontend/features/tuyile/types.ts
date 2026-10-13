@@ -153,6 +153,32 @@ export interface RunErrorEvent {
   code?: string
 }
 
+/** REASONING_* 事件：只携带状态摘要，前端不渲染成气泡、不回传 */
+export interface ReasoningEvent {
+  type:
+    | 'REASONING_START'
+    | 'REASONING_END'
+    | 'REASONING_MESSAGE_START'
+    | 'REASONING_MESSAGE_CONTENT'
+    | 'REASONING_MESSAGE_END'
+  messageId?: string
+  delta?: string
+}
+
+/** CUSTOM tuyile.status 的 value */
+export interface TuyileStatusValue {
+  stage: 'thinking' | 'querying' | string
+  text: string
+  tool?: string
+  range?: string
+}
+
+export interface CustomEvent {
+  type: 'CUSTOM'
+  name: string
+  value?: unknown
+}
+
 export type AgUiEvent =
   | RunStartedEvent
   | TextMessageStartEvent
@@ -160,6 +186,8 @@ export type AgUiEvent =
   | TextMessageEndEvent
   | RunFinishedEvent
   | RunErrorEvent
+  | ReasoningEvent
+  | CustomEvent
 
 /** 聊天气泡（前端内存态） */
 export interface ChatBubble {
@@ -167,4 +195,29 @@ export interface ChatBubble {
   role: ChatRole
   content: string
   streaming: boolean
+}
+
+/** 思考状态条 */
+export interface ChatStatus {
+  stage: string
+  text: string
+  range?: string
+}
+
+// ====== 分享 ======
+
+export interface ShareMessage {
+  role: ChatRole
+  content: string
+}
+
+export interface CreateShareResponse {
+  hash: string
+  url: string
+}
+
+export interface ShareDetail {
+  hash: string
+  messages: ShareMessage[]
+  createdAt: string
 }

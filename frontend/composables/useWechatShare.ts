@@ -14,6 +14,14 @@ interface WechatShareConfig {
   imgUrl: string
 }
 
+interface WechatShareOptions {
+  /**
+   * 自定义签名 URL（默认当前地址去掉 # 之后的部分）。
+   * iOS 微信对 SPA pushState 可能以首次进入的地址为准签名，失败时可传首次 URL 重签。
+   */
+  signUrl?: string
+}
+
 interface JsSdkConfigResponse {
   appId: string
   timestamp: number
@@ -32,14 +40,15 @@ function isWechat(): boolean {
  * - 仅在微信内置浏览器中执行
  * - 自动调用后端获取 JS-SDK 签名
  * - 配置「发送给朋友」和「分享到朋友圈」的自定义卡片
+ * @returns 卡片是否设置成功（非微信环境返回 false）；调用方可据此决定是否用其他 URL 重签
  */
-async function initWechatShare(config: WechatShareConfig): Promise<void> {
+async function initWechatShare(config: WechatShareConfig, options?: WechatShareOptions): Promise<boolean> {
   // 1. 非微信浏览器直接返回
-  if (!isWechat()) return
+  if (!isWechat()) return false
 
   try {
-    // 2. 获取当前页面 URL（不含 # 及后面的内容），用于签名
-    const signUrl = window.location.href.split('#')[0]
+    // 2. 签名 URL：默认当前页面 URL（不含 # 及后面的内容）
+    const signUrl = (options?.signUrl || window.location.href).split('#')[0]
 
     // 3. 调用后端接口获取 JS-SDK 签名配置
     const sdkConfig = await $fetch<JsSdkConfigResponse>('/api/wechat/jssdk-config', {
@@ -49,46 +58,62 @@ async function initWechatShare(config: WechatShareConfig): Promise<void> {
     // 4. 动态 import weixin-js-sdk（避免 SSR 报错）
     const wx = (await import('weixin-js-sdk')).default
 
-    // 5. 配置 wx.config
-    wx.config({
-      debug: false,
-      appId: sdkConfig.appId,
-      timestamp: sdkConfig.timestamp,
-      nonceStr: sdkConfig.nonceStr,
-      signature: sdkConfig.signature,
-      jsApiList: ['updateAppMessageShareData', 'updateTimelineShareData'],
-    })
+    return await new Promise<boolean>((resolve) => {
+      let settled = false
+      const done = (ok: boolean) => {
+        if (settled) return
+        settled = true
+        resolve(ok)
+      }
+      // 兜底：微信未回调时不无限等待
+      setTimeout(() => done(false), 8000)
 
-    // 6. wx.ready 中设置分享数据
-    wx.ready(() => {
-      // 分享给朋友
-      wx.updateAppMessageShareData({
-        title: config.title,
-        desc: config.desc,
-        link: config.link,
-        imgUrl: config.imgUrl,
-        success() {
-          // 设置成功，用户点击分享时会使用这些数据
-        },
+      // 5. 配置 wx.config
+      wx.config({
+        debug: false,
+        appId: sdkConfig.appId,
+        timestamp: sdkConfig.timestamp,
+        nonceStr: sdkConfig.nonceStr,
+        signature: sdkConfig.signature,
+        jsApiList: ['updateAppMessageShareData', 'updateTimelineShareData'],
       })
 
-      // 分享到朋友圈
-      wx.updateTimelineShareData({
-        title: config.title,
-        link: config.link,
-        imgUrl: config.imgUrl,
-        success() {
-          // 设置成功
-        },
-      })
-    })
+      // 6. wx.ready 中设置分享数据
+      wx.ready(() => {
+        // 分享给朋友
+        wx.updateAppMessageShareData({
+          title: config.title,
+          desc: config.desc,
+          link: config.link,
+          imgUrl: config.imgUrl,
+          success() {
+            done(true)
+          },
+          fail() {
+            done(false)
+          },
+        })
 
-    // 7. 错误处理
-    wx.error((res: { errMsg: string }) => {
-      console.error('[WeChat JS-SDK] wx.config error:', res)
+        // 分享到朋友圈
+        wx.updateTimelineShareData({
+          title: config.title,
+          link: config.link,
+          imgUrl: config.imgUrl,
+          success() {
+            // 设置成功
+          },
+        })
+      })
+
+      // 7. 错误处理（签名失败等）
+      wx.error((res: { errMsg: string }) => {
+        console.error('[WeChat JS-SDK] wx.config error:', res)
+        done(false)
+      })
     })
   } catch (err) {
     console.error('[WeChat JS-SDK] initWechatShare failed:', err)
+    return false
   }
 }
 

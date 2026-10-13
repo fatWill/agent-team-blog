@@ -12,6 +12,8 @@
       </p>
     </div>
 
+    <FortuneBanner class="mb-5" @click="emit('chat')" />
+
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <button
         v-for="entry in entries"
@@ -50,6 +52,7 @@
 
 <script setup lang="ts">
 import { showInfo } from '~/utils/ui'
+import FortuneBanner from './FortuneBanner.vue'
 
 interface Entry {
   key: 'horoscope' | 'bazi' | 'almanac'
@@ -60,7 +63,10 @@ interface Entry {
   ready: boolean
 }
 
-const emit = defineEmits<{ (e: 'open', key: 'almanac'): void }>()
+const emit = defineEmits<{
+  (e: 'open', key: 'almanac'): void
+  (e: 'chat'): void
+}>()
 
 const entries: Entry[] = [
   { key: 'horoscope', title: '星座运势', desc: '十二星座今日运势', icon: '✨', iconBg: 'bg-indigo-50 dark:bg-indigo-500/10', ready: false },

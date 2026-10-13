@@ -1,6 +1,13 @@
-import type { AgUiEvent, AgUiMessage, ChatBubble } from '../types'
+import type { AgUiEvent, AgUiMessage, ChatBubble, ChatStatus, TuyileStatusValue } from '../types'
 import { apiStreamTuyileChat, TuyileHttpError, TUYILE_MAX_MESSAGE_LENGTH } from '../api'
 import { genId } from '../utils'
+
+function isStatusValue(v: unknown): v is TuyileStatusValue {
+  if (typeof v !== 'object' || v === null) return false
+  const r = v as Record<string, unknown>
+  return typeof r.text === 'string' && r.text !== '' && typeof r.stage === 'string'
+    && (r.range === undefined || typeof r.range === 'string')
+}
 
 /** 请求体安全上限（后端 64KB），超出时从最早的消息开始裁剪 */
 const MAX_BODY_BYTES = 60 * 1024
@@ -23,6 +30,7 @@ export function useTuyileChat() {
   const notice = ref<ChatNotice | null>(null)
   const cooldown = ref(0)
   const started = ref(false)
+  const status = ref<ChatStatus | null>(null)
 
   let controller: AbortController | null = null
   let cooldownTimer: ReturnType<typeof setInterval> | null = null
@@ -71,7 +79,25 @@ export function useTuyileChat() {
 
     const onEvent = (ev: AgUiEvent) => {
       switch (ev.type) {
+        case 'RUN_STARTED': {
+          if (!status.value) status.value = { stage: 'thinking', text: '掐指一算中…' }
+          break
+        }
+        case 'CUSTOM': {
+          if (ev.name === 'tuyile.status' && isStatusValue(ev.value)) {
+            status.value = { stage: ev.value.stage, text: ev.value.text, range: ev.value.range }
+          }
+          break
+        }
+        case 'REASONING_MESSAGE_CONTENT':
+        case 'REASONING_START':
+        case 'REASONING_END':
+        case 'REASONING_MESSAGE_START':
+        case 'REASONING_MESSAGE_END':
+          // 状态摘要统一由 CUSTOM tuyile.status 驱动；reasoning 不渲染、不回传
+          break
         case 'TEXT_MESSAGE_START': {
+          status.value = null
           if (!findBubble(ev.messageId)) {
             bubbles.value.push({ id: ev.messageId, role: 'assistant', content: '', streaming: true })
             touched.push(ev.messageId)
@@ -79,6 +105,7 @@ export function useTuyileChat() {
           break
         }
         case 'TEXT_MESSAGE_CONTENT': {
+          status.value = null
           let b = findBubble(ev.messageId)
           if (!b) {
             bubbles.value.push({ id: ev.messageId, role: 'assistant', content: '', streaming: true })
@@ -97,6 +124,7 @@ export function useTuyileChat() {
           break
         }
         case 'RUN_ERROR': {
+          status.value = null
           notice.value = { kind: 'error', message: ev.message || '图一乐走神了，稍后再试～', retryAfter: null }
           break
         }
@@ -129,6 +157,7 @@ export function useTuyileChat() {
         notice.value = { kind: 'error', message: '网络开小差了，检查一下网络再试～', retryAfter: null }
       }
     } finally {
+      status.value = null
       for (const id of touched) {
         const b = findBubble(id)
         if (b) b.streaming = false
@@ -191,5 +220,5 @@ export function useTuyileChat() {
     if (cooldownTimer) clearInterval(cooldownTimer)
   })
 
-  return { bubbles, isStreaming, notice, cooldown, greet, retryGreet, send, stop, dismissNotice }
+  return { bubbles, isStreaming, notice, cooldown, status, greet, retryGreet, send, stop, dismissNotice }
 }
