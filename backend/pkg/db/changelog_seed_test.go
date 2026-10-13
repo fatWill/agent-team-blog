@@ -49,4 +49,12 @@ func TestSeedChangelogIdempotent(t *testing.T) {
 	if err := DB.Where("version = ?", "2.16.0").First(&v216).Error; err != nil || v216.Date != "2026-10-12" {
 		t.Fatalf("2.16.0 播种异常: %v %+v", err, v216)
 	}
+	var v217 models.Changelog
+	if err := DB.Where("version = ?", "2.17.0").First(&v217).Error; err != nil || v217.Date != "2026-10-13" {
+		t.Fatalf("2.17.0 播种异常: %v %+v", err, v217)
+	}
+	var logs217 []string
+	if err := json.Unmarshal(v217.Logs, &logs217); err != nil || len(logs217) != 5 {
+		t.Fatalf("2.17.0 logs 异常: %v %s", err, string(v217.Logs))
+	}
 }

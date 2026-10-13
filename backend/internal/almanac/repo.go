@@ -89,6 +89,27 @@ func (r *Repo) UpsertBatch(rows []models.AlmanacDay) (int, error) {
 	return len(rows), nil
 }
 
+// RangeOrCompute 查询 [start, end] 每一天（升序）；库内缺失的日期用算法现算补齐（source=lunar-go，不回写）
+func (r *Repo) RangeOrCompute(start, end time.Time) ([]*models.AlmanacDay, error) {
+	rows, err := r.ListRange(start.Format(algo.DateLayout), end.Format(algo.DateLayout))
+	if err != nil {
+		return nil, err
+	}
+	byDate := make(map[string]*models.AlmanacDay, len(rows))
+	for i := range rows {
+		byDate[rows[i].Date] = &rows[i]
+	}
+	out := make([]*models.AlmanacDay, 0, len(rows)+1)
+	for t := start; !t.After(end); t = t.AddDate(0, 0, 1) {
+		if d, ok := byDate[t.Format(algo.DateLayout)]; ok {
+			out = append(out, d)
+		} else {
+			out = append(out, algo.Compute(t))
+		}
+	}
+	return out, nil
+}
+
 // GetOrCompute 优先读库，库里没有则用算法现算（不回写，避免请求路径上的写放大）
 func (r *Repo) GetOrCompute(date string) (*models.AlmanacDay, error) {
 	d, err := r.GetByDate(date)

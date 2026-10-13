@@ -62,18 +62,27 @@ type DownloadConfig struct {
 
 // LLMConfig OpenAI 兼容 chat/completions 上游配置（不绑定厂商）
 type LLMConfig struct {
-	BaseURL        string // 如 https://api.deepseek.com/v1，自动拼接 /chat/completions
-	APIKey         string
-	Model          string
-	TimeoutSeconds int // 单次流式请求总超时
-	MaxTokens      int
+	BaseURL              string // 如 https://open.bigmodel.cn/api/paas/v4，自动拼接 /chat/completions
+	APIKey               string
+	Model                string
+	TimeoutSeconds       int    // 单轮流式请求总超时（含思考）
+	HeaderTimeoutSeconds int    // 等待上游响应头超时（长提示词 + 首轮思考时偏长）
+	MaxTokens            int    // 单轮 max_tokens（思考型模型含 reasoning tokens）
+	ReasoningEffort      string // 非空时透传 reasoning_effort（GLM-5.3 系列支持 low/high/max）
+	ThinkingType         string // 非空时透传 thinking.type（enabled/disabled；GLM-5.3 系列不支持 disabled）
+	DisableTools         bool   // LLM_DISABLE_TOOLS=1 时不下发 query_almanac 工具（上游不支持 tools 时用）
+	ExtraBodyJSON        string // 额外合并进请求体的 JSON 对象（厂商私有参数逃生舱）
+	MaxToolRounds        int    // 单次 run 最多工具调用轮数
 }
 
 // TuyileConfig 玩具「图一乐」防刷配置
 type TuyileConfig struct {
-	RatePerMinute  int // 单 IP 每分钟请求上限
-	RatePerDay     int // 单 IP 每天（北京时间自然日）请求上限
-	MaxConcurrency int // 全局并发流上限（2C2G 保护）
+	RatePerMinute      int    // chat：单 IP 每分钟请求上限
+	RatePerDay         int    // chat：单 IP 每天（北京时间自然日）请求上限
+	MaxConcurrency     int    // chat：全局并发流上限（2C2G 保护）
+	ShareRatePerMinute int    // share 创建：单 IP 每分钟上限
+	ShareRatePerDay    int    // share 创建：单 IP 每天上限
+	SiteURL            string // 分享链接站点根
 }
 
 // Load 从环境变量加载配置，提供默认值
@@ -116,16 +125,25 @@ func Load() *Config {
 				"assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com"),
 		},
 		LLM: LLMConfig{
-			BaseURL:        strings.TrimRight(getEnv("LLM_BASE_URL", ""), "/"),
-			APIKey:         getEnv("LLM_API_KEY", ""),
-			Model:          getEnv("LLM_MODEL", ""),
-			TimeoutSeconds: getEnvInt("LLM_TIMEOUT_SECONDS", 90),
-			MaxTokens:      getEnvInt("LLM_MAX_TOKENS", 1500),
+			BaseURL:              strings.TrimRight(getEnv("LLM_BASE_URL", ""), "/"),
+			APIKey:               getEnv("LLM_API_KEY", ""),
+			Model:                getEnv("LLM_MODEL", ""),
+			TimeoutSeconds:       getEnvInt("LLM_TIMEOUT_SECONDS", 120),
+			HeaderTimeoutSeconds: getEnvInt("LLM_HEADER_TIMEOUT_SECONDS", 90),
+			MaxTokens:            getEnvInt("LLM_MAX_TOKENS", 2000),
+			ReasoningEffort:      strings.TrimSpace(getEnv("LLM_REASONING_EFFORT", "")),
+			ThinkingType:         strings.TrimSpace(getEnv("LLM_THINKING_TYPE", "")),
+			DisableTools:         getEnv("LLM_DISABLE_TOOLS", "") == "1",
+			ExtraBodyJSON:        strings.TrimSpace(getEnv("LLM_EXTRA_BODY", "")),
+			MaxToolRounds:        getEnvInt("LLM_MAX_TOOL_ROUNDS", 3),
 		},
 		Tuyile: TuyileConfig{
-			RatePerMinute:  getEnvInt("TUYILE_RATE_PER_MIN", 10),
-			RatePerDay:     getEnvInt("TUYILE_RATE_PER_DAY", 100),
-			MaxConcurrency: getEnvInt("TUYILE_MAX_CONCURRENCY", 8),
+			RatePerMinute:      getEnvInt("TUYILE_RATE_PER_MIN", 10),
+			RatePerDay:         getEnvInt("TUYILE_RATE_PER_DAY", 100),
+			MaxConcurrency:     getEnvInt("TUYILE_MAX_CONCURRENCY", 8),
+			ShareRatePerMinute: getEnvInt("TUYILE_SHARE_RATE_PER_MIN", 5),
+			ShareRatePerDay:    getEnvInt("TUYILE_SHARE_RATE_PER_DAY", 30),
+			SiteURL:            strings.TrimRight(getEnv("SITE_URL", "https://fatwill.cn"), "/"),
 		},
 	}
 }

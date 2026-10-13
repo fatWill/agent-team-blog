@@ -155,6 +155,19 @@ PRAGMA foreign_keys=ON;      -- 启用外键约束
 
 **索引**：`UNIQUE (date)`，单日与月度范围查询都走此索引。4 年数据约 1461 行，约 7MB。
 
+### tuyile_shares（图一乐对话分享快照）
+
+只有用户主动点分享时才写入，快照不可变、只读。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | INTEGER | PK AUTOINCREMENT | |
+| hash | TEXT | NOT NULL, **UNIQUE** `uk_tuyile_shares_hash` | 12 位 base62（crypto/rand） |
+| messages | TEXT | NOT NULL DEFAULT '[]' | `[{role,content}]` JSON，只含 user/assistant 纯文本，≤50 条、单条 ≤4000 字 |
+| created_at | DATETIME | NOT NULL | |
+
+**索引**：`UNIQUE (hash)`，读取分享走此索引。
+
 ## SQL 兼容性注意事项
 
 ### 与 MySQL 的差异

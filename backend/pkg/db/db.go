@@ -314,6 +314,15 @@ func autoMigrate() error {
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS uk_almanac_days_date ON almanac_days (date)`,
+
+		// 图一乐对话分享快照（只在用户主动分享时写入；messages 为 [{role,content}] JSON）
+		`CREATE TABLE IF NOT EXISTS tuyile_shares (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			hash TEXT NOT NULL,
+			messages TEXT NOT NULL DEFAULT '[]',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS uk_tuyile_shares_hash ON tuyile_shares (hash)`,
 	}
 
 	for _, sql := range ddl {

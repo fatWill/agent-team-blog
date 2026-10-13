@@ -291,5 +291,7 @@ func registerRoutes(api *gin.RouterGroup) {
 		tuyileGroup.GET("/almanac", almanac.GetDay)
 		tuyileGroup.GET("/almanac/month", almanac.GetMonth)
 		tuyileGroup.POST("/chat", tuyile.Chat)
+		tuyileGroup.POST("/share", tuyile.CreateShare)
+		tuyileGroup.GET("/share/:hash", tuyile.GetShare)
 	}
 }

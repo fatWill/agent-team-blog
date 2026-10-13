@@ -156,6 +156,7 @@ type convoFacts struct {
 	Birth      *mentionedDate
 	TargetYear int
 	Mentioned  []mentionedDate // 非生日的日期（按出现顺序去重，最多 3 个）
+	Intent     []string        // 最后一条 user 消息里的择日意图口语词（如 搬家/开业）
 }
 
 func collectFacts(userTexts []string) convoFacts {
@@ -186,6 +187,9 @@ func collectFacts(userTexts []string) convoFacts {
 	}
 	if len(f.Mentioned) > 3 {
 		f.Mentioned = f.Mentioned[len(f.Mentioned)-3:]
+	}
+	if len(userTexts) > 0 {
+		f.Intent = intentKeywords(userTexts[len(userTexts)-1])
 	}
 	return f
 }

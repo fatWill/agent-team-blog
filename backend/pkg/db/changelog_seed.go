@@ -42,6 +42,15 @@ var changelogSeeds = []changelogSeedItem{
 		Date:    "2026-10-12",
 		Logs:    `["🔮 玩具区上线「图一乐」AI 算命：老黄历 + 运势聊天"]`,
 	},
+	{
+		Version: "2.17.0",
+		Date:    "2026-10-13",
+		Logs: `["🔗 图一乐支持分享对话",` +
+			`"📅 老黄历支持年月日快速选择",` +
+			`"🎭 图一乐变身脱口秀算命先生，啥都能算",` +
+			`"🗓️ 修复问未来日期无黄历数据",` +
+			`"📌 图一乐置顶 banner 入口"]`,
+	},
 }
 
 // seedChangelogs 幂等补齐 changelogSeeds 中声明的更新日志条目。

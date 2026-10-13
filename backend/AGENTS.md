@@ -214,7 +214,9 @@ backend/
 |------|------|------|---------|------|
 | GET | `/api/toys/tuyile/almanac` | ❌ | `almanac.GetDay` | 单日老黄历（`?date=`，默认北京时间今天） |
 | GET | `/api/toys/tuyile/almanac/month` | ❌ | `almanac.GetMonth` | 月度老黄历精简字段（`?month=YYYY-MM`） |
-| POST | `/api/toys/tuyile/chat` | ❌（IP 10/min、100/day） | `tuyile.Chat` | AG-UI 协议 SSE 运势聊天 |
+| POST | `/api/toys/tuyile/chat` | ❌（IP 10/min、100/day） | `tuyile.Chat` | AG-UI 协议 SSE 运势聊天（Reasoning + CUSTOM 状态事件，服务端闭环 `query_almanac` 工具） |
+| POST | `/api/toys/tuyile/share` | ❌（IP 5/min、30/day） | `tuyile.CreateShare` | 创建对话分享快照，返回 `{hash,url}` |
+| GET | `/api/toys/tuyile/share/:hash` | ❌ | `tuyile.GetShare` | 读取分享（只读，404 不存在） |
 
 ### PV/UV 统计 (`/api/pv`)
 
@@ -242,6 +244,7 @@ backend/
 | `page_views` | `models/pv.go → PageView` | `id` uint64 自增 | 页面访问记录（PV/UV） |
 | `wechat_sync_logs` | `models/article.go → WechatSyncLog` | `id` uint64 自增 | 微信同步操作日志 |
 | `almanac_days` | `models/almanac.go → AlmanacDay` | `id` 自增，`date` 唯一 | 老黄历日表（图一乐知识库，爬虫写入） |
+| `tuyile_shares` | `models/tuyile_share.go → TuyileShare` | `id` 自增，`hash` 唯一 | 图一乐对话分享快照（用户主动分享才写入） |
 
 ## 鉴权机制
 
@@ -289,14 +292,22 @@ backend/
 | `COS_LEGACY_DOMAINS` | `https://cdn.fatwill.cn` | 历史自定义域名，逗号分隔；仅用于 `DeleteFromCOS` 反解存量 URL 的 key，不用于生成新 URL |
 | `WECHAT_APP_ID` | *(必填)* | 微信公众号 AppID |
 | `WECHAT_APP_SECRET` | *(必填)* | 微信公众号 AppSecret |
-| `LLM_BASE_URL` | *(空)* | 图一乐：OpenAI 兼容上游 base URL（如 `https://api.deepseek.com/v1`，自动拼 `/chat/completions`），禁止 woa.com 内网地址 |
+| `LLM_BASE_URL` | *(空)* | 图一乐：OpenAI 兼容上游 base URL，生产为智谱 `https://open.bigmodel.cn/api/paas/v4`（自动拼 `/chat/completions`），禁止 woa.com |
 | `LLM_API_KEY` | *(空)* | 图一乐：上游 API Key；为空时 chat 返回 `RUN_ERROR(LLM_NOT_CONFIGURED)`，服务正常 |
-| `LLM_MODEL` | *(空)* | 图一乐：模型名 |
-| `LLM_TIMEOUT_SECONDS` | `90` | 图一乐：单次流式请求总超时 |
-| `LLM_MAX_TOKENS` | `1500` | 图一乐：单次回复 max_tokens |
-| `TUYILE_RATE_PER_MIN` | `10` | 图一乐：单 IP 每分钟请求上限 |
-| `TUYILE_RATE_PER_DAY` | `100` | 图一乐：单 IP 每天（北京时间）请求上限 |
-| `TUYILE_MAX_CONCURRENCY` | `8` | 图一乐：全局并发 SSE 流上限 |
+| `LLM_MODEL` | *(空)* | 图一乐：模型名，生产 `glm-5.3-flash` |
+| `LLM_REASONING_EFFORT` | *(空)* | 图一乐：透传 `reasoning_effort`；GLM-5.3 系列强制思考，只支持 `low/high/max`，生产用 `low` |
+| `LLM_THINKING_TYPE` | *(空)* | 图一乐：透传 `thinking.type`（`enabled`/`disabled`）；GLM-5.3 系列传 `disabled` 会返回 400，留空即可 |
+| `LLM_TIMEOUT_SECONDS` | `120` | 图一乐：单轮流式总超时（含思考） |
+| `LLM_HEADER_TIMEOUT_SECONDS` | `90` | 图一乐：等待上游响应头超时（一期为写死的 30s） |
+| `LLM_MAX_TOKENS` | `2000` | 图一乐：单轮 max_tokens（含 reasoning tokens） |
+| `LLM_MAX_TOOL_ROUNDS` | `3` | 图一乐：单次 run 最多工具调用轮数 |
+| `LLM_DISABLE_TOOLS` | *(空)* | 图一乐：设为 `1` 时不下发 `query_almanac`，改为注入未来 30 天黄历兜底 |
+| `LLM_EXTRA_BODY` | *(空)* | 图一乐：合并进请求体的 JSON 对象（厂商私有参数逃生舱） |
+| `TUYILE_RATE_PER_MIN` | `10` | 图一乐 chat：单 IP 每分钟请求上限 |
+| `TUYILE_RATE_PER_DAY` | `100` | 图一乐 chat：单 IP 每天（北京时间）请求上限 |
+| `TUYILE_MAX_CONCURRENCY` | `8` | 图一乐 chat：全局并发 SSE 流上限 |
+| `TUYILE_SHARE_RATE_PER_MIN` | `5` | 图一乐 share 创建：单 IP 每分钟上限 |
+| `TUYILE_SHARE_RATE_PER_DAY` | `30` | 图一乐 share 创建：单 IP 每天上限 |
 | `DOWNLOAD_ALLOWED_HOSTS` | `assets.fatwill.cn,cdn.fatwill.cn,pic.fatwill.cn,fatwill-cloud-1253664788.cos.ap-guangzhou.myqcloud.com` | `/api/download` 代理下载域名白名单，逗号分隔；覆盖站点资源子域与 COS 原始 endpoint |
 
 > 域名相关配置全部走环境变量注入，换域名只需修改 systemd `Environment=`，无需改代码。涉及域名的变量：`CORS_ORIGIN`、`SITE_URL`、`COS_BUCKET`、`COS_BASE_URL`、`COS_CUSTOM_DOMAIN`、`COS_LEGACY_DOMAINS`、`DOWNLOAD_ALLOWED_HOSTS`。
@@ -341,6 +352,8 @@ refactor(backend agent): 简要描述
 - `logs`：JSON 数组，每条 ≤20 字，最多 5 条
 
 ## 变更日志
+
+- 2026-10-13: **图一乐二期（v2.17.0）** — LLM 切换为智谱 `glm-5.3-flash`（强制思考，用 `LLM_REASONING_EFFORT=low` 降低首字延迟），Transport 强制 HTTP/2、响应头超时放宽到 90s，超时统一归类为 `LLM_TIMEOUT`；思考阶段转为 AG-UI `REASONING_*`（只下发摘要）加 `CUSTOM tuyile.status`；新增服务端闭环工具 `query_almanac`（单日或 ≤62 天范围，按宜关键词过滤），以及相对日期解析和时间锚点注入，修复「问未来日期说没数据」；SP 重写为脱口秀算命先生，取消强制收集，开场用专用指令保证人设稳定；新增 `tuyile_shares` 表与分享接口 `POST/GET /api/toys/tuyile/share`
 
 - 2026-10-12: **玩具「图一乐」后端（v2.16.0）** — 新增 `almanac_days` 表（autoMigrate）；`cmd/almanac-crawler` 抓取 huangli.com（robots 全放行、静态 HTML）并用 `6tail/lunar-go` 交叉校验干支/农历/冲煞/星宿，缺失字段算法补齐并标注 `source`/`algoFields`，限速 ≤1 req/s、重试、断点续爬、按 date upsert；2024-01-01~2027-12-31 共 1461 天全量入库。新增黄历单日/月度公开接口与 AG-UI SSE 运势聊天 `POST /api/toys/tuyile/chat`（OpenAI 兼容上游，环境变量 `LLM_*` 配置，IP 限流、不落库用户信息）。新增依赖 `6tail/lunar-go`、`PuerkitoBio/goquery`
 

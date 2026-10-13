@@ -28,7 +28,11 @@ const (
 	MaxBodyBytes = 64 << 10
 	// MaxAssistantRunes 历史 assistant 消息截断长度（控制上游 token 成本）
 	MaxAssistantRunes = 1200
-	keepAliveInterval = 15 * time.Second
+	// FutureDaysWithTools 工具可用时注入的未来天数精简表（控制提示词长度与首字延迟）
+	FutureDaysWithTools = 7
+	// FutureDaysFallback 工具不可用（LLM_DISABLE_TOOLS=1）时的兜底注入天数
+	FutureDaysFallback = 30
+	keepAliveInterval  = 15 * time.Second
 )
 
 var (
@@ -36,15 +40,20 @@ var (
 	limiter *ipLimiter
 	sem     chan struct{}
 	nowFn   = time.Now
+	logf    = log.Printf
 )
 
 // Init 注入配置（main 启动时调用一次）
 func Init(llmCfg config.LLMConfig, cfg config.TuyileConfig) {
 	llm = newLLMClient(llmCfg)
 	limiter = newIPLimiter(cfg.RatePerMinute, cfg.RatePerDay)
+	if cfg.MaxConcurrency <= 0 {
+		cfg.MaxConcurrency = 8
+	}
 	sem = make(chan struct{}, cfg.MaxConcurrency)
+	initShare(cfg)
 	if err := llm.configured(); err != nil {
-		log.Printf("⚠️ tuyile: %v（chat 接口将返回 RUN_ERROR）", err)
+		logf("⚠️ tuyile: %v（chat 接口将返回 RUN_ERROR）", err)
 	}
 }
 
@@ -94,6 +103,7 @@ func reject(c *gin.Context, status int, msg string) {
 //
 // 运行开始前的输入错误（JSON 非法、消息超长、限流）按 AG-UI 绑定约定返回 HTTP 错误、无事件流；
 // 运行开始后的错误（未配置 key、上游失败）以 RUN_ERROR 事件在流内返回。
+// query_almanac 工具调用在服务端闭环完成，对前端只透出 CUSTOM tuyile.status 状态。
 func Chat(c *gin.Context) {
 	if llm == nil {
 		reject(c, http.StatusServiceUnavailable, "服务未初始化")
@@ -115,7 +125,7 @@ func Chat(c *gin.Context) {
 		reject(c, http.StatusBadRequest, "请求体不是合法的 RunAgentInput JSON")
 		return
 	}
-	msgs, userTexts, err := normalizeMessages(in.Messages)
+	msgs, userTexts, opening, err := normalizeMessages(in.Messages)
 	if err != nil {
 		reject(c, http.StatusBadRequest, err.Error())
 		return
@@ -145,14 +155,11 @@ func Chat(c *gin.Context) {
 		sendRunError(w, err)
 		return
 	}
+	em := &runEmitter{w: w, newID: uuid.NewString, textID: "msg_" + uuid.NewString()}
+	// 先发状态：前端立刻显示「掐指一算中…」，不必等上游首包
+	_ = em.status(statusValue{Stage: "thinking", Text: "掐指一算中…"})
 
-	facts := collectFacts(userTexts)
-	knowledge := buildKnowledge(almanac.NewRepo(db.DB), facts, nowFn())
-	upstream := make([]chatMessage, 0, len(msgs)+2)
-	upstream = append(upstream, chatMessage{Role: "system", Content: systemPrompt}, chatMessage{Role: "system", Content: knowledge})
-	upstream = append(upstream, msgs...)
-
-	// 空闲 keep-alive，避免首 token 慢时被 Nginx/浏览器断开
+	// 空闲 keep-alive，避免思考/工具阶段长时间无字节被 Nginx/浏览器断开
 	stopKA := make(chan struct{})
 	go func() {
 		t := time.NewTicker(keepAliveInterval)
@@ -170,25 +177,33 @@ func Chat(c *gin.Context) {
 	}()
 	defer close(stopKA)
 
-	messageID := "msg_" + uuid.NewString()
-	started := false
-	chars := 0
-	streamErr := llm.stream(ctx, upstream, func(delta string) error {
-		if !started {
-			started = true
-			if err := w.send(aguiEvent{Type: EventTextMessageStart, MessageID: messageID, Role: "assistant"}); err != nil {
-				return err
-			}
-		}
-		chars += utf8.RuneCountInString(delta)
-		return w.send(aguiEvent{Type: EventTextMessageContent, MessageID: messageID, Delta: delta})
-	})
-
-	if started {
-		_ = w.send(aguiEvent{Type: EventTextMessageEnd, MessageID: messageID})
+	repo := almanac.NewRepo(db.DB)
+	facts := collectFacts(userTexts)
+	var ranges []dateRange
+	if len(userTexts) > 0 && !opening {
+		ranges = parseRelativeDates(userTexts[len(userTexts)-1], nowFn())
 	}
+	useTools := !llm.cfg.DisableTools && !opening
+	futureDays := FutureDaysWithTools
+	if !useTools {
+		futureDays = FutureDaysFallback
+	}
+	if opening {
+		futureDays = 0
+	}
+	knowledge := buildKnowledge(repo, facts, ranges, nowFn(), futureDays)
+
+	upstream := make([]chatMessage, 0, len(msgs)+4)
+	upstream = append(upstream, chatMessage{Role: "system", Content: systemPrompt}, chatMessage{Role: "system", Content: knowledge})
+	if opening {
+		upstream = append(upstream, chatMessage{Role: "system", Content: openingPrompt})
+	}
+	upstream = append(upstream, msgs...)
+
+	stats, streamErr := runAgent(ctx, repo, em, upstream, useTools)
+	em.closeAll()
 	switch {
-	case streamErr == nil && !started:
+	case streamErr == nil && !em.textOpen:
 		sendRunError(w, &llmError{Code: "LLM_EMPTY_RESPONSE", Msg: "大模型没有返回内容，换个问法试试～"})
 	case streamErr == nil:
 		_ = w.send(aguiEvent{Type: EventRunFinished, ThreadID: in.ThreadID, RunID: in.RunID})
@@ -198,8 +213,74 @@ func Chat(c *gin.Context) {
 		sendRunError(w, streamErr)
 	}
 	// 日志不含姓名、生日、消息原文
-	log.Printf("tuyile.chat.done run=%s msgs=%d out_chars=%d birth=%v year=%d cost=%s err=%v",
-		in.RunID, len(msgs), chars, facts.Birth != nil, facts.TargetYear, time.Since(start).Truncate(time.Millisecond), errCode(streamErr))
+	logf("tuyile.chat.done run=%s msgs=%d opening=%v out_chars=%d reasoning_chars=%d tool_calls=%d rounds=%d first_byte=%s birth=%v year=%d ranges=%d cost=%s err=%s",
+		in.RunID, len(msgs), opening, em.textChars, stats.reasoningChars, stats.toolCalls, stats.rounds,
+		stats.firstContent.Truncate(time.Millisecond), facts.Birth != nil, facts.TargetYear, len(ranges),
+		time.Since(start).Truncate(time.Millisecond), errCode(streamErr))
+}
+
+type agentStats struct {
+	rounds         int
+	toolCalls      int
+	reasoningChars int
+	firstContent   time.Duration
+}
+
+// runAgent 服务端闭环的工具调用循环：模型请求 query_almanac → 服务端查库 → 回填 tool 消息 → 继续，最多 MaxToolRounds 轮
+func runAgent(ctx context.Context, repo *almanac.Repo, em *runEmitter, msgs []chatMessage, useTools bool) (agentStats, error) {
+	var st agentStats
+	begin := time.Now()
+	var tools []toolDef
+	if useTools {
+		tools = []toolDef{almanacTool}
+	}
+	for round := 0; ; round++ {
+		st.rounds = round + 1
+		roundTools := tools
+		if round >= llm.cfg.MaxToolRounds {
+			roundTools = nil // 轮数用尽：不再给工具，强制模型直接作答
+		}
+		res, err := llm.stream(ctx, msgs, roundTools, streamHandlers{
+			OnReasoning: func(delta string) error {
+				st.reasoningChars += utf8.RuneCountInString(delta)
+				return em.status(statusValue{Stage: "thinking", Text: "掐指一算中…"})
+			},
+			OnContent: func(delta string) error {
+				if st.firstContent == 0 {
+					st.firstContent = time.Since(begin)
+				}
+				return em.text(delta, utf8.RuneCountInString(delta))
+			},
+		})
+		if err != nil {
+			return st, err
+		}
+		if len(res.ToolCalls) == 0 || roundTools == nil {
+			return st, nil
+		}
+		// 回填 assistant(tool_calls) + tool 结果；保留本轮 reasoning_content（GLM 交错思考要求）
+		msgs = append(msgs, chatMessage{Role: "assistant", Content: res.Content, ReasoningContent: res.Reasoning, ToolCalls: res.ToolCalls})
+		for _, tc := range res.ToolCalls {
+			st.toolCalls++
+			result := "未知工具：" + tc.Function.Name
+			if tc.Function.Name == toolQueryAlmanac {
+				var a almanacArgs
+				_ = json.Unmarshal([]byte(tc.Function.Arguments), &a)
+				rng := a.Start
+				if a.End != "" && a.End != a.Start {
+					rng += "~" + a.End
+				}
+				if err := em.status(statusValue{Stage: "querying", Text: "翻黄历中…", Tool: toolQueryAlmanac, Range: rng}); err != nil {
+					return st, err
+				}
+				result = runAlmanacTool(repo, tc.Function.Arguments)
+			}
+			msgs = append(msgs, chatMessage{Role: "tool", ToolCallID: tc.ID, Content: result})
+		}
+		if err := em.status(statusValue{Stage: "thinking", Text: "掐指一算中…"}); err != nil {
+			return st, err
+		}
+	}
 }
 
 func sendRunError(w *sseWriter, err error) {
@@ -216,14 +297,18 @@ func errCode(err error) string {
 	if errors.As(err, &le) {
 		return le.Code
 	}
+	if errors.Is(err, context.Canceled) {
+		return "client_canceled"
+	}
 	if err != nil {
 		return "other"
 	}
 	return ""
 }
 
-// normalizeMessages 只保留 user/assistant（丢弃客户端注入的 system/developer/tool），截断历史并校验长度
-func normalizeMessages(in []inputMessage) ([]chatMessage, []string, error) {
+// normalizeMessages 只保留 user/assistant（丢弃客户端注入的 system/developer/tool），截断历史并校验长度。
+// messages 为空时返回 opening=true，并以占位 user 发言触发开场白。
+func normalizeMessages(in []inputMessage) ([]chatMessage, []string, bool, error) {
 	out := make([]chatMessage, 0, len(in))
 	for _, m := range in {
 		role := strings.ToLower(strings.TrimSpace(m.Role))
@@ -239,16 +324,14 @@ func normalizeMessages(in []inputMessage) ([]chatMessage, []string, error) {
 	if len(out) > MaxHistoryMessages {
 		out = out[len(out)-MaxHistoryMessages:]
 	}
-	if len(out) == 0 || out[len(out)-1].Role != "user" {
-		// 开场：前端可发送空 messages 让图一乐先打招呼
-		if len(out) == 0 {
-			out = append(out, chatMessage{Role: "user", Content: "你好"})
-		} else {
-			return nil, nil, errors.New("最后一条消息必须是 user")
-		}
+	if len(out) == 0 {
+		return []chatMessage{{Role: "user", Content: openingUserTurn}}, nil, true, nil
+	}
+	if out[len(out)-1].Role != "user" {
+		return nil, nil, false, errors.New("最后一条消息必须是 user")
 	}
 	if utf8.RuneCountInString(out[len(out)-1].Content) > MaxMessageRunes {
-		return nil, nil, errors.New("单条消息最多 500 字")
+		return nil, nil, false, errors.New("单条消息最多 500 字")
 	}
 	userTexts := make([]string, 0, len(out))
 	for i := range out {
@@ -261,7 +344,7 @@ func normalizeMessages(in []inputMessage) ([]chatMessage, []string, error) {
 			userTexts = append(userTexts, out[i].Content)
 		}
 	}
-	return out, userTexts, nil
+	return out, userTexts, false, nil
 }
 
 func truncateRunes(s string, n int) string {
