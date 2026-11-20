@@ -1,8 +1,17 @@
-# AGENTS.md - 项目中枢索引
+# AGENTS.md - 前端项目中枢索引
+
+> 仓库级运维、EdgeOne/CDN 缓存架构与总规范见根目录 [AGENTS.md](../AGENTS.md)。
+
+## ⚠️ 文档同步与提交铁律（必守）
+
+- **同步更新**：任何前端代码改动（新增/删改页面路由、Feature 模块、组件、Composable、Plugin、Middleware、Nitro API 代理、依赖或构建配置），**必须在同一次改动中同步更新本文件，禁止长期滞后**。与原内容冲突时直接修改原条目，并在底部「变更日志」追加记录。
+- **改完直接提交**：改动并验证完成后**直接 `git commit && git push`，不用再问**（只暂存本次改动文件，不误提交无关变更）。
+
+---
 
 ## 项目概述
 
-fatwill 个人博客，基于 Nuxt 3 前端 SSR + Go 后端 API 架构。前端 Nitro Server 层为纯透传代理，所有业务逻辑和数据存储由 Go 后端（`http://127.0.0.1:8080`）处理。支持 Dark/Light 主题切换、文章管理、相册管理、留言板等功能。
+fatwill 个人博客前端，基于 Nuxt 3 SSR + Go 后端 API 架构。生产环境由 Nginx 直接将 `/api/*` 转发给 Go 后端（`127.0.0.1:8080`），少数需字段映射或流式透传的接口（微信管理、图一乐 SSE 聊天）以及 SSR 阶段请求经由 Nitro Server 层透传代理。支持 Dark/Light 主题切换、文章、生活相册、成长日记、装修管理、玩具（图一乐 / SBTI / 太空游戏）、留言板与管理后台等功能。
 
 ## 技术栈速览
 
@@ -10,467 +19,201 @@ fatwill 个人博客，基于 Nuxt 3 前端 SSR + Go 后端 API 架构。前端 
 |------|------|------|
 | 框架 | Nuxt 3 | ^3.16.1 |
 | 视图层 | Vue 3 | ^3.5.13 |
-| 语言 | TypeScript | ^5.8.2 |
-| 样式 | Tailwind CSS（@nuxtjs/tailwindcss） | ^6.13.2 |
-| 状态管理 | Pinia（@pinia/nuxt） | ^2.3.0 / ^0.9.0 |
-| 富文本编辑器 | Tiptap（vue-3 + starter-kit + image + link） | ^3.21.0 |
-| UI 组件库 | Ant Design Vue（PC 端） | ^4.2.6 |
-| 虚拟滚动 | vue-virtual-scroller | ^2.0.0-beta.8 |
-| Canvas 文字排版 | @chenglou/pretext | ^0.0.4 |
-| 进度条 | nprogress | ^0.2.0 |
-| 后端 API | Go 后端（透传代理） | http://127.0.0.1:8080 |
+| 语言 | TypeScript（strict） | ^5.8.2 |
+| 样式 | Tailwind CSS（`@nuxtjs/tailwindcss`，darkMode: class） | ^6.13.2 |
+| 状态管理 | Pinia（`@pinia/nuxt`） | ^2.3.1 / ^0.9.0 |
+| 富文本编辑器 | Tiptap（vue-3 + starter-kit + image + link + table + html） | ^3.21.0 / ^3.22.3 |
+| Markdown / 高亮 | `markdown-it` + `highlight.js` | ^14.1.1 / ^11.11.1 |
+| UI 组件库 | Ant Design Vue（PC 端按需/客户端加载） | ^4.2.6 |
+| 图表 / PDF / 二维码 | `echarts`、`pdfjs-dist`、`qrcode` | ^6.0.0 / ^5.6.205 / ^1.5.4 |
+| 微信分享 | `weixin-js-sdk` | ^1.6.5 |
+| Canvas 文字排版 | `@chenglou/pretext` | ^0.0.4 |
+| 日期 / 进度条 | `dayjs`、`nprogress` | ^1.11.23 / ^0.2.0 |
+| 后端 API | Go 后端（`http://127.0.0.1:8080`） | — |
 | 包管理 | npm | — |
 
 ## 最高优先级读取
 
-1. `docs/eslint-rules.md` — 代码规范与命名约定（最高优先级）
-2. `docs/architecture.md` — 整体架构概览与目录结构说明
+1. **本文件** `frontend/AGENTS.md` 与根 [AGENTS.md](../AGENTS.md)
+2. `docs/eslint-rules.md` — 代码规范与命名约定
+3. `docs/architecture.md` — 整体架构概览与目录结构说明
 
 ## 目录结构（Feature-First + Nuxt 约定混合架构）
 
-> 已完成 Feature-First 重构。类型定义和 API 服务层已按领域拆分到 `features/` 目录，通用工具和 composables 已移至 `shared/` 目录。
-> Nuxt 约定目录（`components/`、`composables/`、`utils/`）保留为**向后兼容 re-export 层**，确保 Nuxt 自动导入机制正常工作。
-> 页面级 `.vue` 文件（`home.vue` 82KB、`admin.vue` 57KB）的组件拆分为后续优化方向。
+> 类型定义和 API 服务层按领域拆分在 `features/`，跨领域通用组件/composables/工具位于 `shared/`；Nuxt 约定目录（`components/`、`composables/`、`utils/`、`types/`）保留向后兼容 re-export 或直接存放通用模块，确保 Nuxt 自动导入正常工作。
+> 页面级 `.vue` 文件（`home.vue`、`admin.vue`）体量较大，后续按需继续拆分子组件。
 
 ```
 frontend/
-├── AGENTS.md                          # 中枢索引（本文件）
-├── docs/                              # 工程文档体系
-│   ├── architecture.md                # 整体架构概览
-│   ├── eslint-rules.md                # 代码规范
-│   ├── features/                      # 领域模块文档
-│   │   ├── article/README.md
-│   │   ├── album/README.md
-│   │   ├── auth/README.md
-│   │   ├── admin/README.md
-│   │   └── guestbook/README.md
-│   ├── pages/                         # 页面级文档
-│   │   ├── home.md
-│   │   ├── blog.md
-│   │   └── admin.md
-│   └── shared/                        # 共享层文档
-│       ├── components.md
-│       ├── composables.md
-│       └── utils.md
-│
+├── AGENTS.md                          # 前端中枢索引（本文件）
+├── app.vue                            # 应用入口（主题 class、运行时 canonical/preconnect 注入）
+├── nuxt.config.ts                     # Nuxt 配置（runtimeConfig、Tab 独立路由、nuxtLink 交互预取）
+├── tailwind.config.ts                 # Tailwind 配置（dark mode: class，扫描 features/**）
+├── package.json / tsconfig.json
+├── .env / .env.example / .env.production
+├── assets/styles/tailwind.css         # Tailwind 入口样式
+├── docs/                              # 工程文档体系（architecture / eslint-rules / features / pages / shared）
 ├── features/                          # 🏗️ Feature-First 领域模块
-│   ├── article/                       # 文章领域
-│   │   ├── types.ts                   #   类型定义（ArticleListItem、ArticleDetail 等）
-│   │   ├── api.ts                     #   API 服务层（CRUD + 点赞）
-│   │   └── index.ts                   #   模块公共导出入口
-│   ├── album/                         # 相册领域
-│   │   ├── types.ts                   #   类型定义（AlbumItem、PhotoItem 等）
-│   │   ├── api.ts                     #   API 服务层（相册/照片 CRUD + 密码验证）
-│   │   └── index.ts                   #   模块公共导出入口
-│   ├── auth/                          # 鉴权领域
-│   │   ├── types.ts                   #   类型定义（LoginRequest、LoginResponse）
-│   │   ├── api.ts                     #   API 服务层（login）
-│   │   └── index.ts                   #   模块公共导出入口
-│   ├── guestbook/                     # 留言板领域
-│   │   ├── types.ts                   #   类型定义（MessageItem、MessageListResponse）
-│   │   ├── api.ts                     #   API 服务层（留言 CRUD）
-│   │   └── index.ts                   #   模块公共导出入口
-│   ├── changelog/                     # 更新日志领域
-│   │   ├── types.ts                   #   类型定义（ChangelogItem、ChangelogResponse）
-│   │   └── index.ts                   #   模块公共导出入口
-│   ├── renovation/                    # 装修领域
-│   │   ├── types.ts                   #   类型定义（RenovationArticle）
-│   │   ├── api.ts                     #   API 服务层（假数据，TODO 对接后端）
-│   │   └── index.ts                   #   模块公共导出入口
-│   └── admin/                         # 管理后台领域（预留）
-│
+│   ├── article/                       #   文章领域（types.ts / api.ts / index.ts）
+│   ├── album/                         #   相册领域（types.ts / api.ts / index.ts）
+│   ├── auth/                          #   鉴权领域（types.ts / api.ts / index.ts）
+│   ├── guestbook/                     #   留言板领域（types.ts / api.ts / index.ts）
+│   ├── changelog/                     #   更新日志领域（types.ts / index.ts）
+│   ├── renovation/                    #   装修知识领域（types.ts / api.ts / index.ts，已对接后端 API）
+│   ├── material/                      #   装修材料清单领域（types.ts / api.ts / index.ts，已对接后端 API）
+│   ├── tuyile/                        #   图一乐领域（types/api/utils/styles + 10 组件 + 3 composables）
+│   └── admin/                         #   管理后台领域（预留）
 ├── shared/                            # 🔗 跨领域共享层
-│   ├── types.ts                       # 通用类型（NavItem、TabItem、Profile）
-│   ├── components/
-│   │   └── AppLoading.vue             # 跨端 Loading 组件（实际实现）
-│   ├── composables/
-│   │   ├── useTheme.ts                # 主题切换（实际实现）
-│   │   └── useDevice.ts               # 设备检测（实际实现）
-│   └── utils/
-│       ├── api.ts                     # 通用 API（profile、upload）
-│       ├── ui.ts                      # 统一 UI 工具（实际实现）
-│       ├── mobileUI.ts                # 移动端 Toast/Dialog（实际实现）
-│       ├── imageUrl.ts                # CDN URL 转换（实际实现）
-│       └── chunkedUpload.ts           # 分片上传（实际实现）
-│
-├── app.vue                            # 应用入口（主题 class 注入）
-├── nuxt.config.ts                     # Nuxt 配置
-├── tailwind.config.ts                 # Tailwind 配置（dark mode: class）
-├── package.json                       # 依赖管理
-├── tsconfig.json                      # TypeScript 配置
-├── assets/
-│   └── styles/
-│       └── tailwind.css               # Tailwind 入口样式
-├── components/                        # Nuxt 约定（re-export → shared/components/）
-│   └── AppLoading.vue                 #   → shared/components/AppLoading.vue
-├── composables/                       # Nuxt 约定（re-export → shared/composables/）
+│   ├── types.ts                       #   通用类型（NavItem、TabItem、Profile）
+│   ├── components/AppLoading.vue      #   跨端 Loading 组件
+│   ├── composables/                   #   useTheme.ts / useDevice.ts
+│   └── utils/                         #   api.ts / ui.ts / mobileUI.ts / imageUrl.ts / chunkedUpload.ts
+├── components/                        # Nuxt 自动导入组件
+│   ├── AppLoading.vue                 #   跨端 Loading 组件
+│   ├── MediaViewer.vue                #   图片/视频媒体灯箱预览组件
+│   └── SearchDialog.vue               #   Cmd+K 全站搜索弹窗
+├── composables/                       # Nuxt 自动导入 Composables
+│   ├── useAuth.ts                     #   鉴权状态与登录/退出封装
+│   ├── useDevice.ts                   #   → shared/composables/useDevice.ts
+│   ├── useSiteUrl.ts                  #   域名配置统一入口（siteUrl/assetsUrl/cdnUrl 等）
 │   ├── useTheme.ts                    #   → shared/composables/useTheme.ts
-│   └── useDevice.ts                   #   → shared/composables/useDevice.ts
-├── utils/                             # Nuxt 约定（re-export → features/*/api.ts + shared/utils/）
-│   ├── api.ts                         #   → features/*/api.ts + shared/utils/api.ts
-│   ├── ui.ts                          #   → shared/utils/ui.ts
-│   ├── mobileUI.ts                    #   → shared/utils/mobileUI.ts
-│   ├── imageUrl.ts                    #   → shared/utils/imageUrl.ts
-│   └── chunkedUpload.ts              #   → shared/utils/chunkedUpload.ts
-├── types/                             # Nuxt 约定（re-export → features/*/types.ts + shared/types.ts）
-│   └── index.ts                       #   → 各 feature 类型聚合导出
-├── layouts/
-│   └── default.vue                    # 默认布局（主题初始化）
+│   └── useWechatShare.ts              #   微信 JS-SDK 分享初始化（支持 signUrl 重签兜底）
+├── stores/auth.ts                     # Pinia 认证状态管理
 ├── middleware/
-│   └── auth.ts                        # 鉴权路由守卫（保护 /admin）
-├── pages/
-│   ├── index.vue                      # 酷炫首页（/ — Canvas + pretext 代码滚动）
-│   ├── home.vue                       # 博客主页（/home — 文章/生活/装修/玩具/留言板等 Tab）
-│   ├── login.vue                      # 登录页（/login）
-│   ├── admin.vue                      # 管理后台（/admin — 面包屑二级导航）
-│   ├── articles/
-│   │   └── [id].vue                   # 文章详情页（/articles/:id）
-│   └── renovation/                    # 装修子页面
-│       ├── budget.vue                 # 成本预算（/renovation/budget）
-│       ├── progress.vue               # 装修进度（/renovation/progress）
-│       ├── materials.vue              # 材料清单（/renovation/materials）
-│       └── articles/
-│           └── [id].vue               # 装修文章详情（/renovation/articles/:id）
-├── plugins/
-│   ├── antd.client.ts                 # Ant Design Vue 客户端插件
-│   ├── nprogress.client.ts            # NProgress 路由进度条
-│   ├── pinia-hydration-fix.ts         # Pinia SSR hydration 修复
-│   └── vue-virtual-scroller.client.ts # 虚拟滚动客户端插件
-├── public/
-│   └── avatar.png                     # 博主头像
-├── stores/
-│   └── auth.ts                        # 认证状态管理（Pinia）
-└── server/                            # Nuxt Server（Nitro）
-    ├── api/                           # API 路由
-    │   ├── auth/                      # 鉴权（login/check/logout）
-    │   ├── articles/                  # 文章 CRUD + 点赞
-    │   ├── albums/                    # 相册集 CRUD + 照片 + 密码验证
-    │   ├── photos/                    # 照片管理 + 点赞/踩 + 密码验证
-    │   ├── messages/                  # 留言板 CRUD
-    │   ├── pv/                        # PV/UV 数据统计（record/overview/trend/top-pages/logs）
-    │   ├── profile/                   # 个人资料
-    │   ├── upload/                    # 分片上传（chunk/merge/delete）
-    │   ├── upload.post.ts             # 小文件直传
-    │   ├── changelog.get.ts           # 更新日志
-    │   ├── theme.get.ts               # 获取主题偏好
-    │   └── theme.post.ts              # 保存主题偏好
-    ├── utils/                         # 服务端工具层
-    │   └── proxy.ts                   # 通用代理工具（proxyToBackend + proxyRawToBackend）
-    └── .env                           # 环境变量（BACKEND_URL）
+│   ├── auth.ts                        # 鉴权路由守卫（保护 /admin）
+│   └── tab-redirect.global.ts         # 全局重定向（/home 301 → /articles，兼容 ?tab=xxx）
+├── layouts/default.vue                # 默认布局
+├── pages/                             # 页面路由（详见下方「页面路由映射」）
+├── plugins/                           # 客户端/服务端插件（详见下方「Plugins」）
+├── public/                            # 静态资源（图标、china.json、test/* 静态测试页等）
+├── scripts/migrate-image-urls.ts      # 一次性历史数据迁移脚本
+└── server/                            # Nuxt Server（Nitro 代理与 SEO 路由）
+    ├── api/                           #   透传代理路由（auth/articles/albums/photos/messages/pv/profile/
+    │                                  #   upload/theme/changelog/growth-diary/renovation/toys/tuyile/wechat/admin）
+    ├── routes/                        #   动态 SEO 路由（robots.txt.ts / sitemap.xml.ts）
+    ├── utils/                         #   proxy.ts（通用代理）/ tuyileProxy.ts（SSE 流式透传）
+    └── data/                          #   articles.json / changelog.json（底稿数据）
 ```
 
 ## 领域模块注册表
 
-> 类型定义和 API 服务层已按领域拆分到 `features/` 目录。页面级 UI 组件仍内聚在 `pages/*.vue` 中，后续可进一步拆分。
-
 | 领域 | Feature 路径 | 包含内容 | 状态 | 页面级 UI |
 |------|-------------|---------|------|----------|
-| 文章 | `features/article/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（文章 Tab）、`pages/articles/[id].vue` |
-| 相册 | `features/album/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（生活 Tab） |
-| 鉴权 | `features/auth/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/login.vue`、`stores/auth.ts`、`middleware/auth.ts` |
-| 留言板 | `features/guestbook/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（留言板 Tab） |
-| 更新日志 | `features/changelog/` | types.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（更新日志 Tab） |
-| 管理后台 | `features/admin/` | （预留） | 🚧 待拆分 | `pages/admin.vue`（130KB，后续拆分组件） |
-| 装修 | `features/renovation/` | types.ts + api.ts + index.ts | ✅ 已拆分 | `pages/home.vue`（装修 Tab）、`pages/renovation/*` |
-| 图一乐 | `features/tuyile/` | types.ts + api.ts + utils.ts + composables/ + components/ + index.ts（文档 `docs/features/tuyile/`） | ✅ 已实现（二期） | `pages/toys/tuyile/index.vue`、`pages/toys/tuyile/share/[hash].vue` |
-| 酷炫首页 | — | — | ⏸️ 不拆分 | `pages/index.vue`（独立页面，无需 feature 模块） |
-| Agent Team | — | — | ⏸️ 不拆分 | `pages/home.vue`（Agent Team Tab，数据写死在前端） |
+| 文章 | `features/article/` | `types.ts` + `api.ts` + `index.ts` | ✅ 已对接 | `pages/home.vue`（文章 Tab）、`pages/articles/[id].vue` |
+| 相册 | `features/album/` | `types.ts` + `api.ts` + `index.ts` | ✅ 已对接 | `pages/home.vue`（生活 Tab） |
+| 鉴权 | `features/auth/` | `types.ts` + `api.ts` + `index.ts` | ✅ 已对接 | `pages/login.vue`、`stores/auth.ts`、`composables/useAuth.ts` |
+| 留言板 | `features/guestbook/` | `types.ts` + `api.ts` + `index.ts` | ✅ 已对接 | `pages/home.vue`（留言板 Tab） |
+| 更新日志 | `features/changelog/` | `types.ts` + `index.ts` | ✅ 已对接 | `pages/home.vue`（更新日志 Tab） |
+| 装修 | `features/renovation/` | `types.ts` + `api.ts` + `index.ts` | ✅ 已对接后端 `/api/renovation/articles` | `pages/home.vue`（装修 Tab）、`pages/renovation/*` |
+| 材料清单 | `features/material/` | `types.ts` + `api.ts` + `index.ts` | ✅ 已对接后端 `/api/materials` | `pages/admin.vue` / 材料附件联动 `pages/pdf/[id].vue` |
+| 图一乐 | `features/tuyile/` | `types.ts` + `api.ts` + `utils.ts` + `styles/` + `composables/` + `components/` + `index.ts` | ✅ 已上线（二期） | `pages/toys/tuyile/index.vue`、`pages/toys/tuyile/share/[hash].vue` |
+| 管理后台 | `features/admin/` | （预留） | 🚧 待拆分 | `pages/admin.vue` |
+| 酷炫首页 / Agent Team | — | — | ⏸️ 独立实现 | `pages/index.vue`、`pages/home.vue` |
 
 ## 共享层注册表
 
-### Composables（`shared/composables/` → `composables/` re-export）
+### Composables
 
-| 模块 | 实际路径 | Nuxt 自动导入路径 | 说明 |
-|------|---------|------------------|------|
-| 主题切换 | `shared/composables/useTheme.ts` | `composables/useTheme.ts` | Dark/Light 切换，Cookie 持久化，SSR 零闪烁 |
-| 设备检测 | `shared/composables/useDevice.ts` | `composables/useDevice.ts` | 响应式 `isMobile` ref + 命令式 `isMobileDevice()` 函数 |
-| 站点 URL | `composables/useSiteUrl.ts` | `composables/useSiteUrl.ts` | 域名配置统一入口：`siteUrl`/`assetsUrl`/`cdnUrl` + `articleUrl()`/`pageUrl()`/`defaultOgImage()`/`assetUrl()` |
-
-### Stores（`stores/`）
-
-| 模块 | 文件 | 说明 |
+| 模块 | 路径 | 说明 |
 |------|------|------|
-| 认证状态 | `stores/auth.ts` | `isLoggedIn`、`username`、`checkAuth()`（SSR Cookie 转发）、`logout()` |
+| 鉴权封装 | `composables/useAuth.ts` | 登录态访问、SSR `useState` 联动 |
+| 主题切换 | `shared/composables/useTheme.ts`（`composables/useTheme.ts` re-export） | Dark/Light 切换，Cookie 持久化，SSR 零闪烁 |
+| 设备检测 | `shared/composables/useDevice.ts`（`composables/useDevice.ts` re-export） | 响应式 `isMobile` ref + 命令式 `isMobileDevice()` |
+| 站点 URL | `composables/useSiteUrl.ts` | 域名统一入口：`siteUrl`/`assetsUrl`/`cdnUrl` + `articleUrl()`/`pageUrl()`/`defaultOgImage()`/`assetUrl()` |
+| 微信分享 | `composables/useWechatShare.ts` | 微信公众号 JS-SDK 签名与自定义卡片，支持可选 `signUrl` 重签兜底 |
 
-### Utils（`shared/utils/` → `utils/` re-export）
+### Components & Utils
 
-| 模块 | 实际路径 | Nuxt 自动导入路径 | 说明 |
-|------|---------|------------------|------|
-| 通用 API | `shared/utils/api.ts` | `utils/api.ts` | profile、upload 等跨领域 API |
-| 分片上传 | `shared/utils/chunkedUpload.ts` | `utils/chunkedUpload.ts` | ≤1.5MB 直传，>1.5MB 分片上传 |
-| CDN URL | `shared/utils/imageUrl.ts` | `utils/imageUrl.ts` | `toCdnUrl()` / `toThumbUrl()` / `toWebpUrl()` |
-| 统一 UI | `shared/utils/ui.ts` | `utils/ui.ts` | `showSuccess/Error/Info/Confirm` |
-| 移动端 UI | `shared/utils/mobileUI.ts` | `utils/mobileUI.ts` | `MobileToast/MobileDialog` |
-
-### Components（`shared/components/` → `components/` re-export）
-
-| 组件 | 实际路径 | Nuxt 自动导入路径 | 说明 |
-|------|---------|------------------|------|
-| AppLoading | `shared/components/AppLoading.vue` | `components/AppLoading.vue` | 跨端 Loading 组件 |
-| SearchDialog | `components/SearchDialog.vue` | `components/SearchDialog.vue` | Cmd+K 搜索对话框 |
-
-### Types（`shared/types.ts` → `types/index.ts` re-export）
-
-| 文件 | 说明 |
-|------|------|
-| `shared/types.ts` | 通用类型：NavItem、TabItem、Profile |
-| `types/index.ts` | 向后兼容聚合导出（re-export 所有 feature 类型 + shared 类型） |
+| 类型 | 模块 | 路径 | 说明 |
+|------|------|------|------|
+| Component | `AppLoading` | `components/AppLoading.vue` / `shared/components/AppLoading.vue` | 跨端 Loading 组件 |
+| Component | `MediaViewer` | `components/MediaViewer.vue` | 图片/视频全屏灯箱预览（含缩放、切换、视频播放） |
+| Component | `SearchDialog` | `components/SearchDialog.vue` | Cmd+K 搜索对话框 |
+| Store | `auth` | `stores/auth.ts` | Pinia 认证状态管理 |
+| Util | 通用 API | `shared/utils/api.ts`（`utils/api.ts` re-export） | profile、upload 等跨领域 API |
+| Util | 分片上传 | `shared/utils/chunkedUpload.ts` | ≤1.5MB 直传，>1.5MB 分片上传 |
+| Util | CDN URL | `shared/utils/imageUrl.ts` | `toCdnUrl()` / `toThumbUrl()` / `toWebpUrl()`（启动由插件注入 assets host） |
+| Util | 统一 UI | `shared/utils/ui.ts` + `shared/utils/mobileUI.ts` | `showSuccess/Error/Info/Confirm` + 移动端 Toast/Dialog |
 
 ### Plugins（`plugins/`）
 
 | 插件 | 文件 | 运行环境 | 说明 |
-|------|------|---------|------|
-| Ant Design Vue | `plugins/antd.client.ts` | 仅客户端 | 注册 message/modal/spin 样式，配置 message 全局参数 |
-| NProgress | `plugins/nprogress.client.ts` | 仅客户端 | 路由导航进度条（beforeEach/afterEach/onError） |
-| Pinia Hydration Fix | `plugins/pinia-hydration-fix.ts` | 仅服务端 | JSON 往返清洗 payload，修复 SSR hydration 原型链问题 |
-| Virtual Scroller | `plugins/vue-virtual-scroller.client.ts` | 仅客户端 | 注册 vue-virtual-scroller 全局组件 |
-| PV Tracker | `plugins/pv-tracker.client.ts` | 仅客户端 | 路由变化时自动上报 PV/UV（fire and forget） |
-| 图一乐首次入口 URL | `plugins/tuyile-entry-url.client.ts` | 仅客户端 | 记录首次进入 URL，供 iOS 微信 JS-SDK 签名失败时重签 |
-| ImageUrl Host | `plugins/0.image-url-host.ts` | 服务端 + 客户端 | 启动最早期把 `runtimeConfig.public.assetsUrl` 注入 `shared/utils/imageUrl.ts`（工具模块无法用 composable） |
+|------|------|----------|------|
+| ImageUrl Host | `0.image-url-host.ts` | 服务端 + 客户端 | 最早期把 `runtimeConfig.public.assetsUrl` 注入 `shared/utils/imageUrl.ts` |
+| Sandbox Safe | `0.sandbox-safe.client.ts` | 仅客户端（`enforce: 'pre'`） | 页面被嵌入无 `allow-same-origin` 的 sandbox iframe 时，兜底 `cookie`/`localStorage`/`sessionStorage` 防崩 |
+| Auth Check | `auth-check.server.ts` | 仅服务端 | SSR 阶段直连 Go 后端 `/api/auth/check` 确定登录态写入 `useState`，避免 Nitro 内部循环调用 |
+| Ant Design Vue | `antd.client.ts` | 仅客户端 | 按需/客户端加载 antd message/modal 等能力 |
+| NProgress | `nprogress.client.ts` | 仅客户端 | 路由导航进度条 |
+| Perf Tracker | `perf-tracker.client.ts` | 仅客户端 | 采集 FCP/LCP/TTFB/DOM Ready/Load/JS Load 上报 `/api/perf/report` |
+| Pinia Hydration Fix | `pinia-hydration-fix.ts` | 仅服务端 | JSON 往返清洗 payload，修复 SSR hydration 原型链问题 |
+| PV Tracker | `pv-tracker.client.ts` | 仅客户端 | 路由变化自动静默上报 `/api/pv/record` |
+| 图一乐入口 URL | `tuyile-entry-url.client.ts` | 仅客户端 | 记录首次进入 URL，供 iOS 微信 JS-SDK 重签兜底 |
+
+> 注：`nuxt.config.ts` 已开启 `experimental.defaults.nuxtLink.prefetchOn: { visibility: false, interaction: true }`，避免列表页首屏预取详情/后台大 chunk 抢占带宽；虚拟滚动插件已移除。
 
 ## 页面路由映射
 
-| 页面 | 路由 | 文件 | 依赖模块 | 说明 |
-|------|------|------|----------|------|
-| 酷炫首页 | `/` | `pages/index.vue`（17KB） | @chenglou/pretext | Canvas 代码滚动背景 + 拖拽按钮 |
-| 📝 文章 | `/articles` | `pages/home.vue`（84KB） | useTheme, useDevice, api, types, vue-virtual-scroller, antd | 默认 Tab，文章列表 |
-| 📷 生活 | `/life` | `pages/home.vue`（独立路由） | 同上 | 生活相册 Tab |
-| 🏠 装修 | `/renovation` | `pages/home.vue`（独立路由） | 同上 | 装修 Tab（功能按钮 + 知识文章列表） |
-| 🎮 玩具 | `/tools` | `pages/home.vue`（独立路由） | 同上 | 玩具 Tab |
-| 🤖 Agent Team | `/agent-team` | `pages/home.vue`（独立路由） | 同上 | Agent Team Tab |
-| 💬 留言板 | `/guestbook` | `pages/home.vue`（独立路由） | 同上 | 留言板 Tab |
-| 📋 更新日志 | `/changelog` | `pages/home.vue`（独立路由） | 同上 | 更新日志 Tab |
-| 旧主页重定向 | `/home` | `middleware/tab-redirect.global.ts` | — | 301 重定向到 `/articles`，兼容 `?tab=xxx` |
-| 文章详情 | `/articles/:id` | `pages/articles/[id].vue`（25KB） | useTheme, api, Tiptap | Tiptap 只读渲染 + 点赞 + 代码高亮 |
-| 太空游戏 | `/toys/starfling` | `pages/toys/starfling.vue` | — | 全屏 iframe 嵌入 |
-| SBTI 测试 | `/toys/sbti` | `pages/toys/sbti.vue` | — | SBTI 人格测试 |
-| 图一乐 | `/toys/tuyile` | `pages/toys/tuyile/index.vue` | features/tuyile, markdown-it, antd DatePicker（异步） | 老黄历 + AG-UI 运势聊天（query `view=almanac|chat`、`date=`），文档 `docs/pages/tuyile.md` |
-| 图一乐分享 | `/toys/tuyile/share/:hash` | `pages/toys/tuyile/share/[hash].vue` | features/tuyile | 对话分享只读页（SSR、404、OG、微信卡片、noindex），文档 `docs/pages/tuyile-share.md` |
-| 登录 | `/login` | `pages/login.vue`（4KB） | auth store, api | 账号密码登录，成功跳转 redirect 或 /articles |
-| 管理后台 | `/admin` | `pages/admin.vue`（130KB） | auth store, api, Tiptap, antd, chunkedUpload | 面包屑二级导航：内容管理/统计/装修 |
-| 装修-成本预算 | `/renovation/budget` | `pages/renovation/budget.vue` | — | 会计报表风格预算表（5 大分类+汇总统计卡片） |
-| 装修-装修进度 | `/renovation/progress` | `pages/renovation/progress.vue` | — | 敬请期待占位页 |
-| 装修-材料清单 | `/renovation/materials` | `pages/renovation/materials.vue` | — | 敬请期待占位页 |
-| 装修-文章详情 | `/renovation/articles/:id` | `pages/renovation/articles/[id].vue` | markdown-it | Markdown 渲染装修知识文章 |
-
-## 后端 API（透传代理 → Go 后端 `http://127.0.0.1:8080`）
-
-> 所有 `/api/*` 路由均为 Nitro 薄代理层，通过 `proxyToBackend()` / `proxyRawToBackend()` 转发到 Go 后端，自动透传 Cookie 和客户端 IP。
-
-### 鉴权
-
-| 方法 | 路径 | 鉴权 | 说明 |
+| 页面 | 路由 | 文件 | 说明 |
 |------|------|------|------|
-| POST | `/api/auth/login` | ❌ | 账号密码验证，写入 httpOnly cookie（72h TTL） |
-| GET | `/api/auth/check` | Cookie | 验证 token 有效性，滚动续期 lastActiveAt |
-| POST | `/api/auth/logout` | Cookie | 清除 token |
+| 酷炫首页 | `/` | `pages/index.vue` | Canvas + `@chenglou/pretext` 代码滚动背景 + 拖拽按钮 |
+| 📝 文章 Tab | `/articles` | `pages/home.vue`（`pages:extend` 注册） | 默认 Tab，文章列表 |
+| 📷 生活 Tab | `/life` | `pages/home.vue`（`pages:extend` 注册） | 生活相册与成长日记入口 |
+| 🏠 装修 Tab | `/renovation` | `pages/home.vue`（`pages:extend` 注册） | 装修功能入口与知识文章列表 |
+| 🎮 玩具 Tab | `/toys` | `pages/home.vue`（`pages:extend` 注册） | 玩具集合 Tab（注意 `nuxt.config.ts` 中为 `/toys`） |
+| 🤖 Agent Team | `/agent-team` | `pages/home.vue`（`pages:extend` 注册） | Agent Team 介绍 Tab |
+| 💬 留言板 | `/guestbook` | `pages/home.vue`（`pages:extend` 注册） | 留言板 Tab |
+| 📋 更新日志 | `/changelog` | `pages/home.vue`（`pages:extend` 注册） | 更新日志 Tab |
+| 旧主页重定向 | `/home` | `middleware/tab-redirect.global.ts` | 301 重定向到 `/articles`，兼容 `?tab=xxx` |
+| 文章详情 | `/articles/:id` | `pages/articles/[id].vue` | Tiptap 只读渲染、左侧 TOC、点赞、阅读量、图片事件委托预览与 WebP 输出 |
+| 成长日记 | `/life/growth-diary` | `pages/life/growth-diary.vue` | 阳阳的成长日记（按月浏览，登录支持批量编辑、图片/视频） |
+| 装修预算 | `/renovation/budget` | `pages/renovation/budget.vue` | 装修成本预算表（预算/实际支出、5 大分类、支持登录编辑） |
+| 装修进度 | `/renovation/progress` | `pages/renovation/progress.vue` | 装修进度与踩坑日记页面 |
+| PDF 预览 | `/pdf/:id` | `pages/pdf/[id].vue` | 纯客户端（`ssr: false`）`pdfjs-dist` Canvas 渲染附件 PDF |
+| 太空游戏 | `/toys/starfling` | `pages/toys/starfling.vue` | 全屏 iframe 嵌入 |
+| SBTI 测试 | `/toys/sbti` | `pages/toys/sbti.vue` | SBTI 人格测试 |
+| 图一乐 | `/toys/tuyile` | `pages/toys/tuyile/index.vue` | 老黄历 + AG-UI 运势聊天（`view=almanac\|chat`、`date=`），文档 `docs/pages/tuyile.md` |
+| 图一乐分享 | `/toys/tuyile/share/:hash` | `pages/toys/tuyile/share/[hash].vue` | 对话分享只读页（SSR、OG、微信卡片、noindex），文档 `docs/pages/tuyile-share.md` |
+| 登录 | `/login` | `pages/login.vue` | 博主账号密码登录 |
+| 管理后台 | `/admin` | `pages/admin.vue` | 鉴权保护：内容管理、相册、材料清单、PV/UV 与性能统计、微信同步 |
+| 问卷测试页 | `/test/wj-*` | `pages/test/wj-{html,html2,jspsych,jspsych2,jspsych3}-test.vue` | 问卷 / jsPsych 联调测试页（对应 `public/test/*`） |
 
-### 文章
+## Nitro Server 代理层（`server/`）
 
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| GET | `/api/articles` | ❌ | 文章列表（不含 content），支持 `?title=xxx` 筛选 |
-| GET | `/api/articles/:id` | ❌ | 文章详情（含 Tiptap JSON content） |
-| POST | `/api/articles` | ✅ | 创建文章（title/summary/coverImage/content） |
-| PUT | `/api/articles/:id` | ✅ | 更新文章（部分更新） |
-| DELETE | `/api/articles/:id` | ✅ | 物理删除文章 |
-| POST | `/api/articles/:id/like` | ❌ | 点赞/取消点赞（deviceId 切换） |
-| GET | `/api/articles/:id/like-status` | ❌ | 查询单篇点赞状态 |
-| GET | `/api/articles/like-status-batch` | ❌ | 批量查询点赞状态 |
+> 生产 Nginx 中 `/api/*` 默认直连 Go 后端 `127.0.0.1:8080`；其中 `/api/admin/wechat/*`、`/api/admin/articles/:id/wechat-sync-logs`、`/api/toys/tuyile/chat`（SSE 禁止缓冲）以及 SSR/本地开发请求经 Nitro `server/api/*` 转发。完整后端 API 清单以 [backend/AGENTS.md](../backend/AGENTS.md) 为准。
 
-### 相册
+- `server/utils/proxy.ts`：`proxyToBackend()`（JSON 透传）+ `proxyRawToBackend()`（multipart 上传原始透传），自动透传 Cookie / Set-Cookie / X-Forwarded-For。
+- `server/utils/tuyileProxy.ts`：`proxyTuyileJson()` + `proxyTuyileStream()`（SSE 流式逐块透传，客户端断开即中止上游）。
+- Nitro 已覆盖代理组：`auth/*`、`articles/*`（含 `random`、`view`、`like-status-batch`）、`albums/*`、`photos/*`、`messages/*`、`profile/*`、`upload/*`、`theme`、`changelog`、`pv/*`（含 `geo`）、`growth-diary/*`、`renovation/{budget,pitfall}/*`、`toys/tuyile/*`、`wechat/jssdk-config`、`admin/wechat/*`、`admin/articles/:id/*`。
 
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| GET | `/api/albums` | ❌ | 相册集列表（含 photoCount、coverUrl、hasPassword） |
-| POST | `/api/albums` | ✅ | 创建相册集（name/description/password） |
-| PUT | `/api/albums/:id` | ✅ | 更新相册集 |
-| DELETE | `/api/albums/:id` | ✅ | 级联删除相册及所有照片 |
-| GET | `/api/albums/:id/photos` | ❌ | 获取相册下所有照片 |
-| POST | `/api/albums/:id/photos` | ✅ | 添加照片并自动更新封面 |
-| POST | `/api/albums/:id/verify-password` | ❌ | 验证相册集密码 |
+## 环境配置与域名体系
 
-### 照片
-
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| PUT | `/api/photos/:id` | ✅ | 更新照片信息（caption/password） |
-| DELETE | `/api/photos/:id` | ✅ | 删除照片并自动更新相册封面 |
-| POST | `/api/photos/:id/likes` | ❌ | 照片点赞 |
-| GET | `/api/photos/:id/likes` | ❌ | 查询照片点赞状态 |
-| POST | `/api/photos/:id/dislikes` | ❌ | 照片踩 |
-| GET | `/api/photos/:id/dislikes` | ❌ | 查询照片踩状态 |
-| POST | `/api/photos/:id/verify-password` | ❌ | 验证照片密码 |
-
-### 留言板
-
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| GET | `/api/messages` | ❌ | 留言列表（支持 `?deviceId=xxx` 标记自己的留言） |
-| POST | `/api/messages` | ❌ | 新增留言（IP 限频） |
-| PUT | `/api/messages/:id` | ❌ | 修改留言（每日一次限制） |
-| DELETE | `/api/messages/:id` | ✅ | 管理员删除留言 |
-
-### 其他
-
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| GET | `/api/profile` | ❌ | 获取博主资料（avatar/bio） |
-| PUT | `/api/profile` | ✅ | 更新博主资料 |
-| GET | `/api/changelog` | ❌ | 获取所有版本更新日志 |
-| POST | `/api/upload` | ✅ | 小文件直传（multipart/form-data） |
-| POST | `/api/upload/chunk` | ✅ | 上传单个分片 |
-| POST | `/api/upload/merge` | ✅ | 合并所有分片 |
-| DELETE | `/api/upload/chunk` | ✅ | 清理临时分片文件 |
-| GET | `/api/theme` | ❌ | 获取主题偏好 |
-| POST | `/api/theme` | ❌ | 保存主题偏好 |
-
-### 玩具「图一乐」
-
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| GET | `/api/toys/tuyile/almanac` | ❌ | 单日老黄历（`?date=YYYY-MM-DD`，缺省北京时间今天） |
-| GET | `/api/toys/tuyile/almanac/month` | ❌ | 月度老黄历（`?month=YYYY-MM`） |
-| POST | `/api/toys/tuyile/chat` | ❌ | AG-UI 运势聊天，SSE 流式（Nitro `sendStream` 逐块透传，不缓冲） |
-| POST | `/api/toys/tuyile/share` | ❌ | 创建对话分享快照（原样透传，保留 400/413/429 + Retry-After） |
-| GET | `/api/toys/tuyile/share/:hash` | ❌ | 读取分享（12 位 base62，非法格式 Nitro 直接 404） |
-
-### PV/UV 数据统计
-
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| POST | `/api/pv/record` | ❌ | 上报访问记录（path/device_id/referer） |
-| GET | `/api/pv/overview` | ✅ | 今日/总 PV/UV 概览数据 |
-| GET | `/api/pv/trend` | ✅ | PV/UV 趋势数据（`?days=7\|30`） |
-| GET | `/api/pv/top-pages` | ✅ | Top5 页面报表（`?days=7\|30`） |
-| GET | `/api/pv/logs` | ✅ | 访问日志分页查询（`?page=&page_size=&path=&date=`） |
-
-## 服务端代理层（`server/utils/`）
-
-> 前端 Nitro Server 层为**纯透传代理**，不直连任何数据库或缓存，所有请求转发到 Go 后端 `http://127.0.0.1:8080`。
-
-| 文件 | 说明 |
-|------|------|
-| `proxy.ts` | 通用代理工具：`proxyToBackend()`（JSON 请求透传）+ `proxyRawToBackend()`（multipart 原始透传，用于文件上传）。自动透传 Cookie / Set-Cookie / X-Forwarded-For 等 header |
-| `tuyileProxy.ts` | 图一乐专用：`proxyTuyileJson()`（保留后端状态码/错误体/Retry-After/Cache-Control）+ `proxyTuyileStream()`（SSE 流式透传，客户端断开即中止上游） |
-
-## 环境配置
-
-前端通过 `.env` 文件注入环境变量（Nuxt runtimeConfig 读取）：
-
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `BACKEND_URL` | Go 后端 API 地址 | `http://127.0.0.1:8080` |
-
-### 域名/站点 URL 配置
-
-所有对外绝对 URL（canonical、OG、sitemap、robots、分享链接、CDN 素材）均不再硬编码，
-统一由 `runtimeConfig.public` 提供，可通过环境变量覆盖：
+通过 `.env` / `.env.production` 注入（Nuxt `runtimeConfig`）：
 
 | 变量 | 作用 | 默认值 | 生效方式 |
 |------|------|--------|---------|
-| `NUXT_PUBLIC_SITE_URL` | 站点主域名：canonical / OG / sitemap.xml / robots.txt / 分享文案 | `https://fatwill.cn` | 运行时 |
-| `NUXT_PUBLIC_ASSETS_URL` | 图片素材 CDN（COS 自定义域名）：文章封面、相册、SBTI 人格图、装修头像 | `https://assets.fatwill.cn` | 运行时 |
-| `NUXT_PUBLIC_CDN_URL` | Nuxt 构建产物 CDN（`app.cdnURL`） | `https://cdn.fatwill.cn` | ⚠️ **构建期** |
+| `BACKEND_URL` | Go 后端内网地址 | `http://127.0.0.1:8080` | 运行时 |
+| `NUXT_PUBLIC_SITE_URL` | 站点主域名（canonical / OG / sitemap / robots / 分享） | `https://fatwill.cn` | 运行时 |
+| `NUXT_PUBLIC_ASSETS_URL` | 图片/素材 CDN（EO 直连 COS） | `https://assets.fatwill.cn` | 运行时 |
+| `NUXT_PUBLIC_CDN_URL` | Nuxt 构建产物 CDN（`app.cdnURL`） | `https://cdn.fatwill.cn` | ⚠️ **构建期（换域须重 build）** |
 
-**统一读取入口**：`composables/useSiteUrl.ts`
+- 统一读取入口：`composables/useSiteUrl.ts`（`siteUrl`、`assetsUrl`、`cdnUrl`、`articleUrl()`、`pageUrl()`、`defaultOgImage()`、`assetUrl()`）。
+- 线上加速与两层缓存（EdgeOne `blog-cache` + VPS Nginx 24h SSR 缓存）详见根 [AGENTS.md](../AGENTS.md)。
 
-```ts
-const { siteUrl, assetsUrl, cdnUrl, articleUrl, pageUrl, defaultOgImage, assetUrl } = useSiteUrl()
+## SEO 与动态路由（`server/routes/`）
 
-articleUrl('abc')            // https://fatwill.cn/articles/abc
-pageUrl('/toys/sbti')        // https://fatwill.cn/toys/sbti
-defaultOgImage()             // https://fatwill.cn/og-default.png
-assetUrl('/toys/sbti/x.png') // https://assets.fatwill.cn/toys/sbti/x.png
-```
+- **`/robots.txt`**（`server/routes/robots.txt.ts`）：默认拒绝，显式 Allow `/$`、`/articles`、`/life$`、`/tools$`、`/agent-team$`、`/guestbook$`、`/changelog$`；Disallow `/admin`、`/login`、`/api/` 及兜底 `/`；Sitemap 动态读取 `siteUrl`。*(注：玩具 Tab 路由在 `nuxt.config.ts` 中为 `/toys`，若需放开玩具页收录记得同步更新此处。)*
+- **`/sitemap.xml`**（`server/routes/sitemap.xml.ts`）：动态拉取后端全部文章，输出 `/articles`（priority 1.0）及全部 `/articles/:id`（priority 0.8），缓存 `max-age=3600`。
 
-**如何换域名**：
+## 版本号与更新日志规范
 
-1. 在部署环境的 `.env` 中设置三个变量（参考 `.env.example`）
-2. **必须重新 `npm run build`**——因为 `NUXT_PUBLIC_CDN_URL` 对应的 `app.cdnURL` 是 Nuxt 构建期常量，只改运行时变量对静态资源路径无效
-3. `NUXT_PUBLIC_SITE_URL` / `NUXT_PUBLIC_ASSETS_URL` 支持纯运行时切换（改环境变量 + 重启即可）
-4. 手动 `sed` 替换静态测试页 `public/test/wj-jspsych-test/index.html`（详见文件顶部注释）
-
-**例外说明（有意保留的硬编码）**：
-
-| 位置 | 原因 |
-|------|------|
-| `nuxt.config.ts` → `app.cdnURL` | Nuxt 构建期常量，官方不支持运行时注入；已读 `process.env.NUXT_PUBLIC_CDN_URL`，需 build 时注入 |
-| `nuxt.config.ts` / `imageUrl.ts` 中的默认值字符串 | 环境变量未设置时的兜底默认值，保证行为不变 |
-| `public/test/wj-jspsych-test/index.html` | `public/` 下纯静态 HTML，不经 Nuxt 渲染，无法读 runtimeConfig |
-| `scripts/migrate-image-urls.ts` | 一次性历史数据迁移脚本，非运行时代码 |
-
-### 非 Nuxt 渲染层的 SEO 路由
-
-| 路由 | 文件 | 说明 |
-|------|------|------|
-| `/robots.txt` | `server/routes/robots.txt.ts` | 由静态 `public/robots.txt` 改为 Nitro 动态生成，Sitemap 行读 `siteUrl` |
-| `/sitemap.xml` | `server/routes/sitemap.xml.ts` | 动态生成，`baseUrl` 读 `siteUrl` |
-
-## 版本号规范
-
-格式：`X.Y.Z`（Semantic Versioning）
-
-| 位置 | 含义 | 何时递增 |
-|------|------|---------|
-| X（主版本） | 重大重构或破坏性变更 | 架构级改动 |
-| Y（次版本） | 常规功能迭代 | **默认每次发版递增此位** |
-| Z（补丁版本） | 紧急 bug 修复 | 仅修复线上问题 |
-
-## 更新日志规范
-
-- 通过 Go 后端 API 管理
-- 每条最多 **20 字**，最多 **5 条**
-- 内容风格：Emoji 前缀 + 简短描述，如 `"🎉 个人博客正式上线"`
-
-## SEO 规范
-
-### robots.txt 规则（`server/routes/robots.txt.ts` — 动态生成）
-- **策略**：默认拒绝，只显式 Allow 公开页面
-- **允许抓取**：`/`（首页）、`/home`（博客主页）、`/articles/`（文章详情页）
-- **禁止抓取**：`/admin`（管理后台）、`/login`（登录页）、`/api/`（接口）、其余所有路径（兜底 `Disallow: /`）
-- **Sitemap 行**：域名从 `runtimeConfig.public.siteUrl` 读取（原静态文件无法运行时换域名，故改为 Nitro 路由）
-- **新增页面时**：如果是需要登录才能访问的页面，必须在 `server/routes/robots.txt.ts` 中添加对应的 `Disallow` 规则；如果是公开页面，需添加 `Allow` 规则并同步更新 `server/routes/sitemap.xml.ts`
-
-### sitemap.xml（`server/routes/sitemap.xml.ts`）
-- 动态生成，自动从后端 API 拉取所有文章列表
-- 静态页面：`/`（priority 1.0）、`/home`（priority 0.9）
-- 文章页面：`/articles/:id`（priority 0.8，含 lastmod）
-- 缓存：`Cache-Control: public, max-age=3600`（1小时）
-- 访问地址：`{NUXT_PUBLIC_SITE_URL}/sitemap.xml`（默认 `https://fatwill.cn/sitemap.xml`）
+- 版本号 `X.Y.Z`（Semantic Versioning）：默认常规功能迭代递增次版本 `Y`，紧急修复递增补丁位 `Z`。
+- 更新日志通过 Go 后端 `pkg/db/changelog_seed.go` 幂等播种，每条 ≤ 20 字，最多 5 条，风格为 Emoji 前缀 + 简短描述。
 
 ## 变更日志（最近重要变更）
 
-- 2026-10-13: 图一乐二期：老黄历/首页顶部运势 banner（`FortuneBanner`）；「今天」旁加年/月/日快速选择（antd DatePicker 异步 chunk + `<ClientOnly>`，中文 locale，限 1900~2100）；聊天对接 `CUSTOM tuyile.status`/`REASONING_*` 显示思考状态条（querying 显示查询范围），reasoning 不渲染不回传；轻松风 placeholder 轮换 + 快捷提问 chip；对话分享（`ShareDialog` 确认/裁剪/复制/微信卡片+引导蒙层）与只读分享页 `/toys/tuyile/share/:hash`；路由 `pages/toys/tuyile.vue` → `pages/toys/tuyile/index.vue`；`composables/useWechatShare.ts` 的 `initWechatShare` 增加可选 `signUrl` 并返回是否成功（向后兼容）；新增插件 `plugins/tuyile-entry-url.client.ts` 记录首次进入 URL（iOS 重签兜底）；`dayjs` 由传递依赖改为直接依赖
-
-- 2026-10-12: 新增玩具「图一乐」（`/toys/tuyile`，`features/tuyile/`）：老黄历全字段 + 月历/翻日 + 十二时辰，AG-UI 运势聊天（fetch 手写 SSE 解析，流式 Markdown、停止生成、RUN_ERROR/400/429/503 提示，对话仅存内存）；Nitro 新增 `server/api/toys/tuyile/*` 透传与 `server/utils/tuyileProxy.ts`（SSE 不缓冲）；`tailwind.config.ts` content 增加 `features/**`；玩具 Tab 新增图一乐卡片
-
-- 2026-09-08: 主域配置更新为 `fatwill.cn`（`nuxt.config.ts` runtimeConfig 三项默认值 + `app.cdnURL` 兜底、`shared/utils/imageUrl.ts` 的 `DEFAULT_ASSETS_HOST`、`.env.example`、静态测试页 `public/test/wj-jspsych-test/index.html`、`scripts/migrate-image-urls.ts` 与文档全量对齐为 `fatwill.cn` / `assets.fatwill.cn` / `cdn.fatwill.cn`；SSR 结构与 SEO 逻辑不变，canonical / OG / sitemap / robots 仍走 `siteUrl` 运行时读取；⚠️ 部署环境 `.env` 需同步三项变量，且因 `app.cdnURL` 为构建期常量必须重新 build）
-
-- 2026-08-31: 域名配置化改造（新增 `NUXT_PUBLIC_SITE_URL` / `NUXT_PUBLIC_ASSETS_URL` / `NUXT_PUBLIC_CDN_URL` 三个 runtimeConfig 公共字段 + `composables/useSiteUrl.ts` 统一入口；`imageUrl.ts` 改为 factory + plugin 运行时注入 assets host；`public/robots.txt` 静态文件改为 `server/routes/robots.txt.ts` 动态生成；canonical/preconnect/dns-prefetch 从 nuxt.config.ts 迁至 app.vue 动态注入；默认值保持不变，线上行为一致）
-
-- 2026-04-22: 实现装修成本预算页面（会计报表风格表格，5 大分类色块区分，汇总统计卡片+进度条，支持 Dark/Light 主题）
-- 2026-04-16: 新增「装修」Tab 页（功能按钮 + Markdown 知识文章列表）+ 后台管理导航重构（面包屑二级导航）+ 新增装修 feature 模块
-- 2026-04-15: 首屏性能优化（CDN preconnect + 封面图 fetchpriority/lazy + COS 图片 WebP 自动压缩）
-- 2026-04-13: 修复 PC 端 Tab 切换失败，nuxt.config.ts 中 alias 改为独立路由注册（pages:extend push 独立路由条目）
-- 2026-04-13: 移除 Markdown 代码块的 marked 引擎渲染，改回普通代码高亮展示，卸载 marked 依赖
-- 2026-04-13: Tab 路由改为独立路径（/articles /life /tools /agent-team /guestbook /changelog），/home 301 重定向兼容
-- 2026-04-13: 文章详情页 Markdown 代码块用 marked 引擎渲染（保留容器样式/语言标签/复制按钮）
-- 2026-04-10: 文章详情页 TOC 重构（右侧→左侧 fixed + 收起/展开）+ 顶部操作栏滚动隐藏 + 移动端底部抽屉式目录
-- 2026-04-06: 相册支持视频上传和播放（前端 UI：视频卡片区分展示、灯箱视频播放、视频时长获取、切换暂停）
-- 2026-04-06: v1.1.0 新增TOC目录/Cmd+K搜索/阅读量统计/代码高亮+复制/访客足迹地图/随机文章功能
-- 2026-04-06: 新增数据统计功能（PV/UV 折线图、Top5 页面报表、访问日志查询）+ 前台 PV 自动埋点插件
-- 2026-04-05: 前端 Server Routes 全部改为透传代理，调用 Go 后端 API，移除 better-sqlite3/ioredis/cos-nodejs-sdk/bcryptjs/sharp/uuid 依赖
-- 2026-04-05: 上传接口迁移至腾讯云 COS，toCdnUrl 适配新 URL 格式
-- 2026-04-04: Feature-First 目录结构重构（types/api 按领域拆分到 features/，通用层移至 shared/）
-- 2026-04-04: 默认 Dark 模式 + 修正 GitHub 链接（fatwillzeng → fatwill）
-- 2026-04-04: SSR 阶段 Cookie 转发修复重启后需重新登录
-- 2026-04-04: 新增「Agent Team」Tab，展示 4 个 AI Agent 卡片
-- 2026-04-04: Tab 导航添加 Emoji 图标前缀 + 美化样式
-- 2026-04-03: 首页重写为 Canvas + @chenglou/pretext 代码滚动背景 + 拖拽按钮
-- 2026-04-02: 文章点赞 + 留言板 Tab 功能（v1.9.0）
-- 2026-04-02: 相册/照片密码保护功能（v1.8.0）
-- 2026-04-01: CDN 图片 URL 转换、ant-design-vue 集成、虚拟滚动优化
-- 2026-04-01: 首屏 CSR→SSR 改造（useAsyncData 预取 + Pinia hydration 修复）
-- 2026-03-31: 相册功能、分片上传、Token 持久化
-- 2026-03-30: 全面重写博客前端（Dark/Light 主题、Tab 导航、Tiptap 编辑器）
+- 2026-11-20：全面梳理并同步 `frontend/AGENTS.md`（补齐 `features/material`、`MediaViewer`、`useAuth`、`useWechatShare`、`0.sandbox-safe.client`、`auth-check.server`、`perf-tracker.client`、`/life/growth-diary`、`/pdf/:id`、`/test/wj-*`、`/toys` 路由与 `nuxtLink` 交互预取说明，移除已不存在页面记录）；新增 `AGENTS.md` 强制随改动同步更新铁律；关联根 `AGENTS.md` 的 EdgeOne 加速与缓存架构。
+- 2026-10-13：图一乐二期：顶部运势 banner（`FortuneBanner`）、年月日选择（antd DatePicker 异步 chunk）、思考状态条（`CUSTOM tuyile.status` / `REASONING_*`）、轻松风文案与对话分享页 `/toys/tuyile/share/:hash`；新增 `tuyile-entry-url.client.ts`；`dayjs` 升级为直接依赖。
+- 2026-10-12：新增玩具「图一乐」（`/toys/tuyile`，`features/tuyile/`）及 Nitro `server/utils/tuyileProxy.ts` SSE 流式透传。
+- 2026-09-30：修复文章图片点击预览失效，改为容器事件委托并在渲染阶段输出 WebP；底部备案信息追加粤公网安备链接与警徽图标。
+- 2026-09-08：主域配置全面切换为 `fatwill.cn` / `assets.fatwill.cn` / `cdn.fatwill.cn`（新增 `.env.production`）。
+- 2026-08-31：域名配置化改造（`useSiteUrl.ts`、`0.image-url-host.ts`、动态 `robots.txt.ts`）。
